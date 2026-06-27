@@ -13,6 +13,8 @@ commands:
 permissions:
   craftionfarmer.admin.reload:
     default: op
+  craftionfarmer.admin.reconcile:
+    default: op
 dependencies:
   server:
     Skyllia:
