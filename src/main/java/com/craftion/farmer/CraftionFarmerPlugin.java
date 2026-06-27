@@ -5,6 +5,8 @@ import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.message.MessageService;
+import com.craftion.farmer.scheduler.SchedulerAdapter;
+import com.craftion.farmer.scheduler.SchedulerFactory;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -14,6 +16,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private MessageManager messageManager;
     private MessageService messageService;
     private DebugLogger debugLogger;
+    private SchedulerAdapter schedulerAdapter;
 
     @Override
     public void onLoad() {
@@ -30,17 +33,23 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
         this.messageService = new MessageService(this.messageManager);
         this.debugLogger = new DebugLogger(this, this.configManager);
+        this.schedulerAdapter = SchedulerFactory.create(this);
 
         if (!registerCommands()) {
             return;
         }
 
         this.debugLogger.debug("Debug mode is enabled.");
+        this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
         getLogger().info("CraftionFarmer has been enabled.");
     }
 
     @Override
     public void onDisable() {
+        if (this.schedulerAdapter != null) {
+            this.schedulerAdapter.cancelTasks();
+        }
+
         getLogger().info("CraftionFarmer has been disabled.");
     }
 
@@ -48,6 +57,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.configManager.reload();
         this.messageManager.reload();
         this.debugLogger.debug("Configuration files reloaded.");
+    }
+
+    public SchedulerAdapter scheduler() {
+        return this.schedulerAdapter;
     }
 
     private boolean registerCommands() {
