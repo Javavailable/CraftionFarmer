@@ -4,6 +4,7 @@ import com.craftion.farmer.command.FarmerCommand;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
@@ -19,6 +20,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private DebugLogger debugLogger;
     private SchedulerAdapter schedulerAdapter;
     private DatabaseManager databaseManager;
+    private RegionProviderManager regionProviderManager;
 
     @Override
     public void onLoad() {
@@ -36,6 +38,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.messageService = new MessageService(this.messageManager);
         this.debugLogger = new DebugLogger(this, this.configManager);
         this.schedulerAdapter = SchedulerFactory.create(this);
+        this.regionProviderManager = new RegionProviderManager(this, this.configManager, this.debugLogger);
         this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
 
         if (!registerCommands()) {
@@ -44,6 +47,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
         this.debugLogger.debug("Debug mode is enabled.");
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
+        this.regionProviderManager.initialize();
         this.databaseManager.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
@@ -64,6 +68,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     public void reloadPluginFiles() {
         this.configManager.reload();
         this.messageManager.reload();
+        if (this.regionProviderManager != null) {
+            this.regionProviderManager.reload();
+        }
         if (this.databaseManager != null) {
             this.databaseManager.reload();
         }
@@ -76,6 +83,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public DatabaseManager database() {
         return this.databaseManager;
+    }
+
+    public RegionProviderManager regionProviderManager() {
+        return this.regionProviderManager;
     }
 
     private boolean registerCommands() {
