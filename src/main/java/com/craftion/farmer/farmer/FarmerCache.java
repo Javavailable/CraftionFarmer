@@ -30,6 +30,13 @@ public final class FarmerCache {
         return Optional.ofNullable(this.farmers.get(FarmerValidation.requireNonBlank(farmerId, "farmerId")));
     }
 
+    public Optional<Farmer> getByRegionId(String regionId) {
+        String normalizedRegionId = FarmerValidation.requireNonBlank(regionId, "regionId");
+        return this.farmers.values().stream()
+            .filter(farmer -> normalizedRegionId.equals(farmer.regionId()))
+            .findFirst();
+    }
+
     public Farmer put(Farmer farmer) {
         Farmer validatedFarmer = FarmerValidation.requireNonNull(farmer, "farmer");
         this.farmers.put(validatedFarmer.farmerId(), validatedFarmer);
@@ -38,6 +45,12 @@ public final class FarmerCache {
 
     public Optional<Farmer> remove(String farmerId) {
         return Optional.ofNullable(this.farmers.remove(FarmerValidation.requireNonBlank(farmerId, "farmerId")));
+    }
+
+    public Optional<Farmer> removeByRegionId(String regionId) {
+        Optional<Farmer> farmer = getByRegionId(regionId);
+        farmer.ifPresent(value -> this.farmers.remove(value.farmerId()));
+        return farmer;
     }
 
     public boolean contains(String farmerId) {

@@ -11,6 +11,16 @@ commands:
     description: CraftionFarmer ana komutu
     aliases: [ciftci, "çiftçi"]
 permissions:
+  craftionfarmer.use:
+    default: true
+  craftionfarmer.create:
+    default: true
+  craftionfarmer.remove:
+    default: true
+  craftionfarmer.admin:
+    default: op
+  craftionfarmer.admin.bypass:
+    default: op
   craftionfarmer.admin.reload:
     default: op
   craftionfarmer.admin.reconcile:
