@@ -5,6 +5,14 @@ settings:
 commands:
   main-command: farmer
 
+hooks:
+  region:
+    provider: SKYLLIA
+    skyllia:
+      allow-trusted-players: true
+      require-skyblock-world: true
+      sync-members-on-open: true
+
 database:
   type: SQLITE
   sqlite:

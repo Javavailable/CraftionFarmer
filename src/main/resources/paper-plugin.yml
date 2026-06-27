@@ -13,3 +13,9 @@ commands:
 permissions:
   craftionfarmer.admin.reload:
     default: op
+dependencies:
+  server:
+    Skyllia:
+      load: BEFORE
+      required: false
+      join-classpath: true

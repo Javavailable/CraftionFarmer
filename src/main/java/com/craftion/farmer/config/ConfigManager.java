@@ -30,6 +30,22 @@ public final class ConfigManager {
         return this.config.getString("commands.main-command", "farmer");
     }
 
+    public String regionProvider() {
+        return this.config.getString("hooks.region.provider", "SKYLLIA");
+    }
+
+    public boolean allowTrustedPlayers() {
+        return this.config.getBoolean("hooks.region.skyllia.allow-trusted-players", true);
+    }
+
+    public boolean requireSkyblockWorld() {
+        return this.config.getBoolean("hooks.region.skyllia.require-skyblock-world", true);
+    }
+
+    public boolean syncMembersOnOpen() {
+        return this.config.getBoolean("hooks.region.skyllia.sync-members-on-open", true);
+    }
+
     public String databaseType() {
         return this.config.getString("database.type", "SQLITE");
     }
