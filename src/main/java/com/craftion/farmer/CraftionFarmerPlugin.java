@@ -7,6 +7,7 @@ import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
+import com.craftion.farmer.storage.DatabaseManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -17,6 +18,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private MessageService messageService;
     private DebugLogger debugLogger;
     private SchedulerAdapter schedulerAdapter;
+    private DatabaseManager databaseManager;
 
     @Override
     public void onLoad() {
@@ -34,6 +36,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.messageService = new MessageService(this.messageManager);
         this.debugLogger = new DebugLogger(this, this.configManager);
         this.schedulerAdapter = SchedulerFactory.create(this);
+        this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
 
         if (!registerCommands()) {
             return;
@@ -41,11 +44,16 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
         this.debugLogger.debug("Debug mode is enabled.");
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
+        this.databaseManager.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
 
     @Override
     public void onDisable() {
+        if (this.databaseManager != null) {
+            this.databaseManager.shutdown();
+        }
+
         if (this.schedulerAdapter != null) {
             this.schedulerAdapter.cancelTasks();
         }
@@ -56,11 +64,18 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     public void reloadPluginFiles() {
         this.configManager.reload();
         this.messageManager.reload();
+        if (this.databaseManager != null) {
+            this.databaseManager.reload();
+        }
         this.debugLogger.debug("Configuration files reloaded.");
     }
 
     public SchedulerAdapter scheduler() {
         return this.schedulerAdapter;
+    }
+
+    public DatabaseManager database() {
+        return this.databaseManager;
     }
 
     private boolean registerCommands() {
