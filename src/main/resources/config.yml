@@ -12,6 +12,11 @@ hooks:
       allow-trusted-players: true
       require-skyblock-world: true
       sync-members-on-open: true
+  skyllia-sync:
+    enabled: true
+    remove-farmer-on-island-delete: true
+    reconcile-on-command: true
+    reconcile-on-menu-open: true
 
 database:
   type: SQLITE

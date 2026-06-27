@@ -4,7 +4,10 @@ import com.craftion.farmer.command.FarmerCommand;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.hook.region.RegionProviderManager;
+import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
+import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
@@ -21,6 +24,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private SchedulerAdapter schedulerAdapter;
     private DatabaseManager databaseManager;
     private RegionProviderManager regionProviderManager;
+    private FarmerCache farmerCache;
+    private FarmerReconcileService farmerReconcileService;
+    private SkylliaSyncManager skylliaSyncManager;
 
     @Override
     public void onLoad() {
@@ -40,6 +46,15 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.schedulerAdapter = SchedulerFactory.create(this);
         this.regionProviderManager = new RegionProviderManager(this, this.configManager, this.debugLogger);
         this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
+        this.farmerCache = new FarmerCache();
+        this.farmerReconcileService = new FarmerReconcileService(
+            this.schedulerAdapter,
+            this.databaseManager,
+            this.farmerCache,
+            this.regionProviderManager,
+            this.debugLogger
+        );
+        this.skylliaSyncManager = new SkylliaSyncManager(this, this.configManager, this.farmerReconcileService, this.debugLogger);
 
         if (!registerCommands()) {
             return;
@@ -49,11 +64,16 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
         this.regionProviderManager.initialize();
         this.databaseManager.initialize();
+        this.skylliaSyncManager.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
 
     @Override
     public void onDisable() {
+        if (this.skylliaSyncManager != null) {
+            this.skylliaSyncManager.shutdown();
+        }
+
         if (this.databaseManager != null) {
             this.databaseManager.shutdown();
         }
@@ -71,6 +91,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         if (this.regionProviderManager != null) {
             this.regionProviderManager.reload();
         }
+        if (this.skylliaSyncManager != null) {
+            this.skylliaSyncManager.reload();
+        }
         if (this.databaseManager != null) {
             this.databaseManager.reload();
         }
@@ -87,6 +110,18 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public RegionProviderManager regionProviderManager() {
         return this.regionProviderManager;
+    }
+
+    public ConfigManager configManager() {
+        return this.configManager;
+    }
+
+    public FarmerCache farmerCache() {
+        return this.farmerCache;
+    }
+
+    public FarmerReconcileService farmerReconcileService() {
+        return this.farmerReconcileService;
     }
 
     private boolean registerCommands() {

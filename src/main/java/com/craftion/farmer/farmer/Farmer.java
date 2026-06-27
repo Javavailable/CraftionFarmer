@@ -85,6 +85,24 @@ public final class Farmer {
         return this.ownerUuid;
     }
 
+    public Farmer withOwnerUuid(UUID ownerUuid) {
+        return new Farmer(
+            this.farmerId,
+            this.regionId,
+            FarmerValidation.requireUuid(ownerUuid, "ownerUuid"),
+            this.location,
+            this.level,
+            this.collectingEnabled,
+            this.storage,
+            this.members.values(),
+            this.settings,
+            this.moduleStates,
+            this.statistics,
+            this.createdAt,
+            Instant.now()
+        );
+    }
+
     public LocationSnapshot location() {
         return this.location;
     }

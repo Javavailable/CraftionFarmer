@@ -46,6 +46,22 @@ public final class ConfigManager {
         return this.config.getBoolean("hooks.region.skyllia.sync-members-on-open", true);
     }
 
+    public boolean isSkylliaSyncEnabled() {
+        return this.config.getBoolean("hooks.skyllia-sync.enabled", true);
+    }
+
+    public boolean removeFarmerOnIslandDelete() {
+        return this.config.getBoolean("hooks.skyllia-sync.remove-farmer-on-island-delete", true);
+    }
+
+    public boolean reconcileOnCommand() {
+        return this.config.getBoolean("hooks.skyllia-sync.reconcile-on-command", true);
+    }
+
+    public boolean reconcileOnMenuOpen() {
+        return this.config.getBoolean("hooks.skyllia-sync.reconcile-on-menu-open", true);
+    }
+
     public String databaseType() {
         return this.config.getString("database.type", "SQLITE");
     }
