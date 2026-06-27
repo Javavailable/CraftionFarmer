@@ -24,6 +24,7 @@ public final class DatabaseManager {
     private final DebugLogger debugLogger;
     private final MigrationRunner migrationRunner;
     private final AtomicReference<ConnectionProvider> provider = new AtomicReference<>();
+    private final AtomicReference<CompletableFuture<Void>> readyFuture = new AtomicReference<>(new CompletableFuture<>());
     private final AtomicBoolean closing = new AtomicBoolean(false);
     private final AtomicLong generation = new AtomicLong(0L);
     private volatile DatabaseSettings settings;
@@ -65,6 +66,10 @@ public final class DatabaseManager {
 
     public boolean isAvailable() {
         return this.available && this.provider.get() != null;
+    }
+
+    public CompletableFuture<Void> readyFuture() {
+        return this.readyFuture.get();
     }
 
     public <T> CompletableFuture<T> supplyAsync(SqlFunction<T> function) {
@@ -114,12 +119,15 @@ public final class DatabaseManager {
 
     private void scheduleInitialize(DatabaseSettings nextSettings, String reason) {
         long initializeGeneration = this.generation.incrementAndGet();
+        CompletableFuture<Void> nextReadyFuture = new CompletableFuture<>();
+        this.readyFuture.set(nextReadyFuture);
         this.debugLogger.debug(reason + ": " + nextSettings.type());
-        this.schedulerAdapter.runAsync(() -> initializeProvider(nextSettings, initializeGeneration));
+        this.schedulerAdapter.runAsync(() -> initializeProvider(nextSettings, initializeGeneration, nextReadyFuture));
     }
 
-    private void initializeProvider(DatabaseSettings nextSettings, long initializeGeneration) {
+    private void initializeProvider(DatabaseSettings nextSettings, long initializeGeneration, CompletableFuture<Void> nextReadyFuture) {
         if (this.closing.get()) {
+            nextReadyFuture.completeExceptionally(new IllegalStateException("Database manager is closing."));
             return;
         }
 
@@ -130,6 +138,7 @@ public final class DatabaseManager {
 
             if (this.closing.get() || this.generation.get() != initializeGeneration) {
                 closeQuietly(nextProvider);
+                nextReadyFuture.completeExceptionally(new IllegalStateException("Database initialization was superseded."));
                 return;
             }
 
@@ -139,12 +148,14 @@ public final class DatabaseManager {
 
             closeQuietly(previousProvider);
             this.plugin.getLogger().info("Database baglantisi hazir: " + nextSettings.type());
+            nextReadyFuture.complete(null);
         } catch (Exception exception) {
             closeQuietly(nextProvider);
             if (this.provider.get() == null) {
                 this.available = false;
             }
             this.plugin.getLogger().severe("Database baslatilamadi: " + readableMessage(exception));
+            nextReadyFuture.completeExceptionally(exception);
         }
     }
 

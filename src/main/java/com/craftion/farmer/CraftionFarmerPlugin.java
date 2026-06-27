@@ -5,6 +5,9 @@ import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.farmer.FarmerCache;
+import com.craftion.farmer.farmer.FarmerCreateService;
+import com.craftion.farmer.farmer.FarmerPersistenceService;
+import com.craftion.farmer.farmer.FarmerRemoveService;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
@@ -12,6 +15,8 @@ import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
 import com.craftion.farmer.storage.DatabaseManager;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -25,6 +30,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private DatabaseManager databaseManager;
     private RegionProviderManager regionProviderManager;
     private FarmerCache farmerCache;
+    private FarmerPersistenceService farmerPersistenceService;
+    private FarmerCreateService farmerCreateService;
+    private FarmerRemoveService farmerRemoveService;
     private FarmerReconcileService farmerReconcileService;
     private SkylliaSyncManager skylliaSyncManager;
 
@@ -47,6 +55,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.regionProviderManager = new RegionProviderManager(this, this.configManager, this.debugLogger);
         this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
         this.farmerCache = new FarmerCache();
+        this.farmerPersistenceService = new FarmerPersistenceService(this.databaseManager, this.farmerCache, this.debugLogger);
+        this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager);
+        this.farmerRemoveService = new FarmerRemoveService(this.farmerPersistenceService, this.regionProviderManager, Duration.ofSeconds(30L));
         this.farmerReconcileService = new FarmerReconcileService(
             this.schedulerAdapter,
             this.databaseManager,
@@ -64,6 +75,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
         this.regionProviderManager.initialize();
         this.databaseManager.initialize();
+        loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
@@ -73,6 +85,8 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.shutdown();
         }
+
+        saveCachedFarmersOnDisable();
 
         if (this.databaseManager != null) {
             this.databaseManager.shutdown();
@@ -96,6 +110,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
         if (this.databaseManager != null) {
             this.databaseManager.reload();
+            loadFarmerCacheWhenReady();
         }
         this.debugLogger.debug("Configuration files reloaded.");
     }
@@ -120,8 +135,55 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         return this.farmerCache;
     }
 
+    public FarmerPersistenceService farmerPersistenceService() {
+        return this.farmerPersistenceService;
+    }
+
+    public FarmerCreateService farmerCreateService() {
+        return this.farmerCreateService;
+    }
+
+    public FarmerRemoveService farmerRemoveService() {
+        return this.farmerRemoveService;
+    }
+
     public FarmerReconcileService farmerReconcileService() {
         return this.farmerReconcileService;
+    }
+
+    private void loadFarmerCacheWhenReady() {
+        if (this.databaseManager == null || this.farmerPersistenceService == null) {
+            return;
+        }
+
+        this.databaseManager.readyFuture().thenCompose(ignored -> this.farmerPersistenceService.loadAll()).whenComplete((farmers, throwable) -> {
+            if (throwable != null) {
+                getLogger().warning("Farmer cache yuklenemedi: " + readableMessage(throwable));
+                return;
+            }
+            this.debugLogger.debug("Farmer cache ready: " + farmers.size());
+        });
+    }
+
+    private void saveCachedFarmersOnDisable() {
+        if (this.databaseManager == null || this.farmerPersistenceService == null || !this.databaseManager.isAvailable()) {
+            return;
+        }
+
+        try {
+            this.farmerPersistenceService.saveAllCached().get(10L, TimeUnit.SECONDS);
+        } catch (Exception exception) {
+            getLogger().warning("Farmer cache kaydedilemedi: " + readableMessage(exception));
+        }
+    }
+
+    private String readableMessage(Throwable throwable) {
+        Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
+        String message = cause.getMessage();
+        if (message == null || message.isBlank()) {
+            return cause.getClass().getSimpleName();
+        }
+        return message;
     }
 
     private boolean registerCommands() {

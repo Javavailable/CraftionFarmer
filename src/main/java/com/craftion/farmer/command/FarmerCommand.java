@@ -1,21 +1,33 @@
 package com.craftion.farmer.command;
 
 import com.craftion.farmer.CraftionFarmerPlugin;
+import com.craftion.farmer.farmer.Farmer;
+import com.craftion.farmer.farmer.FarmerCreateResult;
+import com.craftion.farmer.farmer.FarmerRemoveResult;
+import com.craftion.farmer.hook.region.RegionAccessResult;
+import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileResult;
 import com.craftion.farmer.message.MessageService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class FarmerCommand implements CommandExecutor, TabCompleter {
 
+    private static final String USE_PERMISSION = "craftionfarmer.use";
+    private static final String CREATE_PERMISSION = "craftionfarmer.create";
+    private static final String REMOVE_PERMISSION = "craftionfarmer.remove";
+    private static final String ADMIN_PERMISSION = "craftionfarmer.admin";
+    private static final String ADMIN_BYPASS_PERMISSION = "craftionfarmer.admin.bypass";
     private static final String RELOAD_PERMISSION = "craftionfarmer.admin.reload";
     private static final String RECONCILE_PERMISSION = "craftionfarmer.admin.reconcile";
 
@@ -31,6 +43,26 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             this.messageService.sendList(sender, "commands.farmer.help");
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("create")) {
+            handleCreate(sender);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("remove")) {
+            handleRemove(sender, args);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("info")) {
+            handleInfo(sender);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("admin")) {
+            handleAdmin(sender, args);
             return true;
         }
 
@@ -50,19 +82,158 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String @NotNull [] args) {
-        if (args.length != 1) {
-            return Collections.emptyList();
+        if (args.length == 1) {
+            List<String> completions = new ArrayList<>();
+            addIfMatches(completions, "help", args[0]);
+            if (sender.hasPermission(USE_PERMISSION)) {
+                addIfMatches(completions, "info", args[0]);
+            }
+            if (sender.hasPermission(CREATE_PERMISSION)) {
+                addIfMatches(completions, "create", args[0]);
+            }
+            if (sender.hasPermission(REMOVE_PERMISSION)) {
+                addIfMatches(completions, "remove", args[0]);
+            }
+            if (sender.hasPermission(ADMIN_PERMISSION)) {
+                addIfMatches(completions, "admin", args[0]);
+            }
+            if (sender.hasPermission(RELOAD_PERMISSION)) {
+                addIfMatches(completions, "reload", args[0]);
+            }
+            if (sender.hasPermission(RECONCILE_PERMISSION)) {
+                addIfMatches(completions, "reconcile", args[0]);
+            }
+            return completions;
         }
 
-        List<String> completions = new ArrayList<>();
-        addIfMatches(completions, "help", args[0]);
-        if (sender.hasPermission(RELOAD_PERMISSION)) {
-            addIfMatches(completions, "reload", args[0]);
+        if (args.length == 2 && args[0].equalsIgnoreCase("remove") && sender.hasPermission(REMOVE_PERMISSION)) {
+            List<String> completions = new ArrayList<>();
+            addIfMatches(completions, "confirm", args[1]);
+            return completions;
         }
-        if (sender.hasPermission(RECONCILE_PERMISSION)) {
-            addIfMatches(completions, "reconcile", args[0]);
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("admin") && sender.hasPermission(ADMIN_PERMISSION)) {
+            List<String> completions = new ArrayList<>();
+            addIfMatches(completions, "info", args[1]);
+            return completions;
         }
-        return completions;
+
+        return Collections.emptyList();
+    }
+
+    private void handleCreate(CommandSender sender) {
+        if (!sender.hasPermission(CREATE_PERMISSION)) {
+            this.messageService.send(sender, "commands.farmer.no-permission");
+            return;
+        }
+
+        Player player = requirePlayer(sender);
+        if (player == null) {
+            return;
+        }
+
+        boolean bypassAccess = sender.hasPermission(ADMIN_BYPASS_PERMISSION);
+        this.plugin.farmerCreateService().create(player, bypassAccess).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+            if (throwable != null) {
+                this.plugin.getLogger().warning("Farmer create failed: " + readableMessage(throwable));
+                this.messageService.send(sender, "commands.farmer.create-failed");
+                return;
+            }
+            sendCreateResult(sender, result);
+        }));
+    }
+
+    private void handleRemove(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(REMOVE_PERMISSION)) {
+            this.messageService.send(sender, "commands.farmer.no-permission");
+            return;
+        }
+
+        Player player = requirePlayer(sender);
+        if (player == null) {
+            return;
+        }
+
+        boolean bypassAccess = sender.hasPermission(ADMIN_BYPASS_PERMISSION);
+        if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
+            this.plugin.farmerRemoveService().confirm(player, bypassAccess).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+                if (throwable != null) {
+                    this.plugin.getLogger().warning("Farmer remove failed: " + readableMessage(throwable));
+                    this.messageService.send(sender, "commands.farmer.remove-failed");
+                    return;
+                }
+                sendRemoveResult(sender, result);
+            }));
+            return;
+        }
+
+        this.plugin.farmerRemoveService().prepare(player, bypassAccess).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+            if (throwable != null) {
+                this.plugin.getLogger().warning("Farmer remove prepare failed: " + readableMessage(throwable));
+                this.messageService.send(sender, "commands.farmer.remove-failed");
+                return;
+            }
+            sendRemoveResult(sender, result);
+        }));
+    }
+
+    private void handleInfo(CommandSender sender) {
+        if (!sender.hasPermission(USE_PERMISSION)) {
+            this.messageService.send(sender, "commands.farmer.no-permission");
+            return;
+        }
+
+        Player player = requirePlayer(sender);
+        if (player == null) {
+            return;
+        }
+
+        RegionProvider provider = this.plugin.regionProviderManager().provider();
+        if (provider == null || !provider.isAvailable()) {
+            this.messageService.send(sender, "commands.farmer.provider-unavailable");
+            return;
+        }
+
+        RegionAccessResult access = provider.access(player.getLocation(), player.getUniqueId());
+        if (!access.allowed()) {
+            sendRegionAccessFailure(sender, access);
+            return;
+        }
+
+        this.plugin.farmerPersistenceService().findByRegionId(access.regionId()).whenComplete((farmer, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+            if (throwable != null) {
+                this.plugin.getLogger().warning("Farmer info failed: " + readableMessage(throwable));
+                this.messageService.send(sender, "commands.farmer.info-failed");
+                return;
+            }
+            farmer.ifPresentOrElse(value -> sendFarmerInfo(sender, value), () -> this.messageService.send(sender, "commands.farmer.info-no-farmer"));
+        }));
+    }
+
+    private void handleAdmin(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(ADMIN_PERMISSION)) {
+            this.messageService.send(sender, "commands.farmer.no-permission");
+            return;
+        }
+
+        if (args.length < 2 || !args[1].equalsIgnoreCase("info")) {
+            this.messageService.send(sender, "commands.farmer.admin-usage");
+            return;
+        }
+
+        if (args.length < 3 || args[2].isBlank()) {
+            this.messageService.send(sender, "commands.farmer.admin-info-usage");
+            return;
+        }
+
+        this.plugin.farmerPersistenceService().findByRegionId(args[2]).whenComplete((farmer, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+            if (throwable != null) {
+                this.plugin.getLogger().warning("Farmer admin info failed: " + readableMessage(throwable));
+                this.messageService.send(sender, "commands.farmer.info-failed");
+                return;
+            }
+            farmer.ifPresentOrElse(value -> sendFarmerInfo(sender, value), () -> this.messageService.send(sender, "commands.farmer.info-no-farmer"));
+        }));
     }
 
     private void handleReload(CommandSender sender) {
@@ -101,6 +272,53 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         }));
     }
 
+    private void sendCreateResult(CommandSender sender, FarmerCreateResult result) {
+        if (result == null) {
+            this.messageService.send(sender, "commands.farmer.create-failed");
+            return;
+        }
+
+        Map<String, String> placeholders = regionPlaceholders(result.regionId());
+        switch (result.status()) {
+            case CREATED -> this.messageService.send(sender, "commands.farmer.create-success", farmerPlaceholders(result.farmer()));
+            case PROVIDER_UNAVAILABLE -> this.messageService.send(sender, "commands.farmer.provider-unavailable");
+            case NO_REGION -> this.messageService.send(sender, "commands.farmer.create-no-region");
+            case NOT_ALLOWED -> this.messageService.send(sender, "commands.farmer.create-denied", placeholders);
+            case DUPLICATE -> this.messageService.send(sender, "commands.farmer.create-duplicate", placeholders);
+        }
+    }
+
+    private void sendRemoveResult(CommandSender sender, FarmerRemoveResult result) {
+        if (result == null) {
+            this.messageService.send(sender, "commands.farmer.remove-failed");
+            return;
+        }
+
+        Map<String, String> placeholders = regionPlaceholders(result.regionId());
+        switch (result.status()) {
+            case CONFIRM_REQUIRED -> this.messageService.send(sender, "commands.farmer.remove-confirm", placeholders);
+            case REMOVED -> this.messageService.send(sender, "commands.farmer.remove-success", placeholders);
+            case PROVIDER_UNAVAILABLE -> this.messageService.send(sender, "commands.farmer.provider-unavailable");
+            case NO_REGION -> this.messageService.send(sender, "commands.farmer.remove-no-region");
+            case NOT_ALLOWED -> this.messageService.send(sender, "commands.farmer.remove-denied", placeholders);
+            case NO_FARMER -> this.messageService.send(sender, "commands.farmer.remove-no-farmer", placeholders);
+            case NO_PENDING -> this.messageService.send(sender, "commands.farmer.remove-no-pending");
+            case EXPIRED -> this.messageService.send(sender, "commands.farmer.remove-expired");
+        }
+    }
+
+    private void sendRegionAccessFailure(CommandSender sender, RegionAccessResult access) {
+        if (access.denyReason() == RegionAccessResult.DenyReason.PLAYER_NOT_MEMBER || access.denyReason() == RegionAccessResult.DenyReason.BANNED) {
+            this.messageService.send(sender, "commands.farmer.info-denied", regionPlaceholders(access.regionId()));
+            return;
+        }
+        this.messageService.send(sender, "commands.farmer.info-no-region");
+    }
+
+    private void sendFarmerInfo(CommandSender sender, Farmer farmer) {
+        this.messageService.sendList(sender, "commands.farmer.info", farmerPlaceholders(farmer));
+    }
+
     private void sendReconcileResult(CommandSender sender, FarmerReconcileResult result) {
         if (result == null) {
             this.messageService.send(sender, "commands.farmer.reconcile-failed");
@@ -113,6 +331,40 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             case NO_REGION -> this.messageService.send(sender, "commands.farmer.reconcile-no-region");
             case NO_FARMER -> this.messageService.send(sender, "commands.farmer.reconcile-no-farmer");
         }
+    }
+
+    private Player requirePlayer(CommandSender sender) {
+        if (sender instanceof Player player) {
+            return player;
+        }
+        this.messageService.send(sender, "commands.farmer.only-player");
+        return null;
+    }
+
+    private Map<String, String> farmerPlaceholders(Farmer farmer) {
+        if (farmer == null) {
+            return Map.of();
+        }
+        return Map.of(
+            "farmer", farmer.farmerId(),
+            "region", farmer.regionId(),
+            "owner", farmer.ownerUuid().toString(),
+            "level", String.valueOf(farmer.level()),
+            "members", String.valueOf(farmer.members().size())
+        );
+    }
+
+    private Map<String, String> regionPlaceholders(String regionId) {
+        return Map.of("region", regionId == null ? "-" : regionId);
+    }
+
+    private String readableMessage(Throwable throwable) {
+        Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
+        String message = cause.getMessage();
+        if (message == null || message.isBlank()) {
+            return cause.getClass().getSimpleName();
+        }
+        return message;
     }
 
     private void addIfMatches(List<String> completions, String value, String input) {
