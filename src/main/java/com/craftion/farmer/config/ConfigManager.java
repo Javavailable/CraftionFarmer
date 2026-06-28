@@ -1,5 +1,6 @@
 package com.craftion.farmer.config;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -112,6 +113,13 @@ public final class ConfigManager {
 
     public int npcVisibilityDistance() {
         return this.config.getInt("npc.visibility-distance", 48);
+    }
+
+    public ConfigurationSection guiMenu(String menuId) {
+        if (menuId == null || menuId.isBlank()) {
+            return null;
+        }
+        return this.config.getConfigurationSection("gui.menus." + menuId);
     }
 
     public String databaseType() {

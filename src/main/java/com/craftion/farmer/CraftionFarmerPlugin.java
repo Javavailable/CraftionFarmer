@@ -8,6 +8,7 @@ import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerCreateService;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.FarmerRemoveService;
+import com.craftion.farmer.gui.MenuService;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
@@ -37,6 +38,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private FarmerRemoveService farmerRemoveService;
     private FarmerReconcileService farmerReconcileService;
     private SkylliaSyncManager skylliaSyncManager;
+    private MenuService menuService;
 
     @Override
     public void onLoad() {
@@ -75,6 +77,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.debugLogger
         );
         this.skylliaSyncManager = new SkylliaSyncManager(this, this.configManager, this.farmerReconcileService, this.debugLogger);
+        this.menuService = new MenuService(this, this.configManager, this.schedulerAdapter, this.debugLogger);
 
         if (!registerCommands()) {
             return;
@@ -87,6 +90,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.databaseManager.initialize();
         loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
+        this.menuService.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
 
@@ -95,6 +99,8 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.shutdown();
         }
+
+        this.menuService = null;
 
         saveCachedFarmersOnDisable();
 
@@ -124,6 +130,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.reload();
+        }
+        if (this.menuService != null) {
+            this.menuService.reload();
         }
         if (this.databaseManager != null) {
             this.databaseManager.reload();
@@ -170,6 +179,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public FarmerReconcileService farmerReconcileService() {
         return this.farmerReconcileService;
+    }
+
+    public MenuService menuService() {
+        return this.menuService;
     }
 
     private void loadFarmerCacheWhenReady() {
