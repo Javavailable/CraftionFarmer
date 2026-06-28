@@ -27,6 +27,9 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runAsync(Runnable task) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         OneShotTask oneShotTask = new OneShotTask(task);
         ScheduledTask scheduledTask = this.plugin.getServer().getAsyncScheduler().runNow(this.plugin, ignored -> oneShotTask.run());
         return trackOneShot(scheduledTask, oneShotTask);
@@ -34,6 +37,9 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runGlobal(Runnable task) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         OneShotTask oneShotTask = new OneShotTask(task);
         ScheduledTask scheduledTask = this.plugin.getServer().getGlobalRegionScheduler().run(this.plugin, ignored -> oneShotTask.run());
         return trackOneShot(scheduledTask, oneShotTask);
@@ -41,6 +47,9 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runDelayed(Runnable task, long delayTicks) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         OneShotTask oneShotTask = new OneShotTask(task);
         ScheduledTask scheduledTask = this.plugin.getServer().getGlobalRegionScheduler()
             .runDelayed(this.plugin, ignored -> oneShotTask.run(), normalizeDelay(delayTicks));
@@ -49,6 +58,9 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runRepeating(Runnable task, long delayTicks, long periodTicks) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         Runnable repeatingTask = requireTask(task);
         ScheduledTask scheduledTask = this.plugin.getServer().getGlobalRegionScheduler()
             .runAtFixedRate(this.plugin, ignored -> repeatingTask.run(), normalizeDelay(delayTicks), normalizePeriod(periodTicks));
@@ -58,6 +70,9 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
     @Override
     public ScheduledTaskHandle runAtEntity(Entity entity, Runnable task) {
         Objects.requireNonNull(entity, "entity");
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
 
         OneShotTask oneShotTask = new OneShotTask(task);
         ScheduledTask scheduledTask = entity.getScheduler().run(this.plugin, ignored -> oneShotTask.run(), oneShotTask::finish);
@@ -71,6 +86,9 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
     @Override
     public ScheduledTaskHandle runAtLocation(Location location, Runnable task) {
         Objects.requireNonNull(location, "location");
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
 
         OneShotTask oneShotTask = new OneShotTask(task);
         ScheduledTask scheduledTask = this.plugin.getServer().getRegionScheduler().run(this.plugin, location, ignored -> oneShotTask.run());
@@ -101,6 +119,10 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
 
     private void untrack(ScheduledTaskHandle handle) {
         this.tasks.remove(handle);
+    }
+
+    private boolean canSchedule() {
+        return this.plugin.isEnabled();
     }
 
     private Runnable requireTask(Runnable task) {
