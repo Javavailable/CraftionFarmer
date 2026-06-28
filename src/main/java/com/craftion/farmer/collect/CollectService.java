@@ -133,6 +133,10 @@ public final class CollectService {
         }
 
         MaterialKey materialKey = MaterialKey.of(material.name());
+        if (!value.productCollectingEnabled(materialKey)) {
+            return CollectResult.skipped(CollectResult.Status.PRODUCT_DISABLED, context, regionId.get());
+        }
+
         long requestedAmount = itemStack.getAmount();
         long capacity = capacityFor(value, materialKey);
         StorageAddResult addResult = value.addStorageAmount(materialKey, requestedAmount, capacity);
