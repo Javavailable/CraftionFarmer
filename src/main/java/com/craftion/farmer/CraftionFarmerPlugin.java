@@ -1,6 +1,7 @@
 package com.craftion.farmer;
 
 import com.craftion.farmer.command.FarmerCommand;
+import com.craftion.farmer.command.FarmerPaperCommand;
 import com.craftion.farmer.collect.CollectService;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.ConfigValidationService;
@@ -30,7 +31,6 @@ import com.craftion.farmer.storage.repository.DatabaseLogRepository;
 import com.craftion.farmer.storage.repository.LogRepository;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CraftionFarmerPlugin extends JavaPlugin {
@@ -376,16 +376,15 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     }
 
     private boolean registerCommands() {
-        PluginCommand farmerCommand = getCommand("farmer");
-        if (farmerCommand == null) {
-            getLogger().severe("The farmer command is missing from plugin metadata.");
+        FarmerPaperCommand command = new FarmerPaperCommand(new FarmerCommand(this, this.messageService));
+        try {
+            registerCommand("farmer", command);
+            registerCommand("ciftci", command);
+            return true;
+        } catch (RuntimeException exception) {
+            getLogger().severe("CraftionFarmer commands could not be registered: " + readableMessage(exception));
             getServer().getPluginManager().disablePlugin(this);
             return false;
         }
-
-        FarmerCommand command = new FarmerCommand(this, this.messageService);
-        farmerCommand.setExecutor(command);
-        farmerCommand.setTabCompleter(command);
-        return true;
     }
 }
