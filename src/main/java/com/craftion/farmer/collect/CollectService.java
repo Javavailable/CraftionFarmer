@@ -11,6 +11,7 @@ import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.farmer.StorageAddResult;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
+import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.scheduler.ScheduledTaskHandle;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ public final class CollectService {
     private final RegionProviderManager regionProviderManager;
     private final FarmerCache farmerCache;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final ModuleManager moduleManager;
     private final Set<String> dirtyFarmerIds = ConcurrentHashMap.newKeySet();
     private Listener listener;
     private ScheduledTaskHandle flushTask = ScheduledTaskHandle.cancelled();
@@ -47,7 +49,8 @@ public final class CollectService {
         DebugLogger debugLogger,
         RegionProviderManager regionProviderManager,
         FarmerCache farmerCache,
-        FarmerPersistenceService farmerPersistenceService
+        FarmerPersistenceService farmerPersistenceService,
+        ModuleManager moduleManager
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -56,6 +59,7 @@ public final class CollectService {
         this.regionProviderManager = regionProviderManager;
         this.farmerCache = farmerCache;
         this.farmerPersistenceService = farmerPersistenceService;
+        this.moduleManager = moduleManager;
     }
 
     public void initialize() {
@@ -149,6 +153,7 @@ public final class CollectService {
         }
 
         markDirty(value.farmerId());
+        this.moduleManager.recordCollect(value, materialKey, addResult.collectedAmount());
 
         if (addResult.remainingAmount() > 0L) {
             callStorageFull(value, materialKey, requestedAmount, addResult.storageAmount(), capacity);

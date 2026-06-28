@@ -45,6 +45,10 @@ public record MenuAction(Type type, String target) {
             String target = target(action, "sell:");
             return isSellTarget(target) ? Optional.of(new MenuAction(Type.SELL, target)) : Optional.empty();
         }
+        if (action.startsWith("module-toggle:")) {
+            String target = target(action, "module-toggle:");
+            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.MODULE_TOGGLE, target)) : Optional.empty();
+        }
 
         return Optional.empty();
     }
@@ -67,6 +71,7 @@ public record MenuAction(Type type, String target) {
             case CLOSE, BACK, INFO -> target.isEmpty();
             case WITHDRAW -> isWithdrawTarget(target);
             case SELL -> isSellTarget(target);
+            case MODULE_TOGGLE -> isMaterialTarget(target);
         };
     }
 
@@ -117,6 +122,7 @@ public record MenuAction(Type type, String target) {
         BACK,
         INFO,
         WITHDRAW,
-        SELL
+        SELL,
+        MODULE_TOGGLE
     }
 }

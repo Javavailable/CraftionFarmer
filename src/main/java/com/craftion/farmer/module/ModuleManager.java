@@ -1,0 +1,158 @@
+package com.craftion.farmer.module;
+
+import com.craftion.farmer.config.ConfigManager;
+import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.economy.EconomyProviderManager;
+import com.craftion.farmer.economy.StorageTransactionService;
+import com.craftion.farmer.farmer.Farmer;
+import com.craftion.farmer.farmer.FarmerCache;
+import com.craftion.farmer.farmer.FarmerPersistenceService;
+import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.farmer.MaterialKey;
+import com.craftion.farmer.gui.FarmerMenuAccess;
+import com.craftion.farmer.hook.region.RegionProviderManager;
+import com.craftion.farmer.scheduler.SchedulerAdapter;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+public final class ModuleManager {
+
+    private final ConfigManager configManager;
+    private final FarmerPersistenceService farmerPersistenceService;
+    private final ModuleStateService moduleStateService;
+    private final Map<String, FarmerModule> modules = new LinkedHashMap<>();
+    private final ProductionCalcModule productionCalcModule;
+
+    public ModuleManager(
+        ConfigManager configManager,
+        SchedulerAdapter schedulerAdapter,
+        DebugLogger debugLogger,
+        FarmerCache farmerCache,
+        FarmerPersistenceService farmerPersistenceService,
+        RegionProviderManager regionProviderManager,
+        EconomyProviderManager economyProviderManager,
+        StorageTransactionService storageTransactionService
+    ) {
+        this.configManager = Objects.requireNonNull(configManager, "configManager");
+        this.farmerPersistenceService = Objects.requireNonNull(farmerPersistenceService, "farmerPersistenceService");
+        this.moduleStateService = new ModuleStateService(configManager, farmerPersistenceService);
+        this.productionCalcModule = new ProductionCalcModule();
+        register(this.productionCalcModule);
+        register(new AutoSellModule(
+            configManager,
+            Objects.requireNonNull(schedulerAdapter, "schedulerAdapter"),
+            Objects.requireNonNull(debugLogger, "debugLogger"),
+            Objects.requireNonNull(farmerCache, "farmerCache"),
+            this.moduleStateService,
+            Objects.requireNonNull(regionProviderManager, "regionProviderManager"),
+            Objects.requireNonNull(economyProviderManager, "economyProviderManager"),
+            Objects.requireNonNull(storageTransactionService, "storageTransactionService")
+        ));
+        register(new PlaceholderModule("auto-harvest", "DIAMOND_HOE"));
+        register(new PlaceholderModule("auto-kill", "IRON_SWORD"));
+    }
+
+    public void initialize() {
+        this.modules.values().forEach(FarmerModule::initialize);
+    }
+
+    public void reload() {
+        this.modules.values().forEach(FarmerModule::reload);
+    }
+
+    public void shutdown() {
+        this.modules.values().forEach(FarmerModule::shutdown);
+    }
+
+    public List<FarmerModule> modules() {
+        return List.copyOf(this.modules.values());
+    }
+
+    public Optional<FarmerModule> module(String moduleKey) {
+        return Optional.ofNullable(this.modules.get(normalize(moduleKey)));
+    }
+
+    public boolean configEnabled(String moduleKey) {
+        return module(moduleKey).isPresent() && this.configManager.moduleEnabled(moduleKey);
+    }
+
+    public boolean state(Farmer farmer, String moduleKey) {
+        Optional<FarmerModule> module = module(moduleKey);
+        return module.isPresent() && this.moduleStateService.state(farmer, module.get());
+    }
+
+    public boolean ensureDefaultStates(Farmer farmer) {
+        boolean changed = this.moduleStateService.ensureDefaults(farmer, this.modules.values());
+        if (changed) {
+            this.farmerPersistenceService.save(farmer);
+        }
+        return changed;
+    }
+
+    public void ensureDefaultStates(Collection<Farmer> farmers) {
+        if (farmers == null || farmers.isEmpty()) {
+            return;
+        }
+
+        List<Farmer> changedFarmers = farmers.stream()
+            .filter(farmer -> this.moduleStateService.ensureDefaults(farmer, this.modules.values()))
+            .toList();
+        if (!changedFarmers.isEmpty()) {
+            this.farmerPersistenceService.saveAll(changedFarmers);
+        }
+    }
+
+    public CompletableFuture<ModuleStateResult> toggle(Farmer farmer, String moduleKey, FarmerRole role) {
+        Optional<FarmerModule> module = module(moduleKey);
+        if (module.isEmpty()) {
+            return CompletableFuture.completedFuture(new ModuleStateResult(ModuleStateResult.Status.UNKNOWN_MODULE, moduleKey, false));
+        }
+        if (!FarmerMenuAccess.MANAGER.allows(role)) {
+            return CompletableFuture.completedFuture(new ModuleStateResult(ModuleStateResult.Status.DENIED, module.get().key(), state(farmer, module.get().key())));
+        }
+        if (!this.configManager.moduleEnabled(module.get().key())) {
+            return CompletableFuture.completedFuture(new ModuleStateResult(ModuleStateResult.Status.MODULE_DISABLED, module.get().key(), false));
+        }
+
+        return this.moduleStateService.toggle(farmer, module.get()).thenApply(result -> {
+            if (result.success()) {
+                module.get().onStateChanged(farmer, result.enabled());
+            }
+            return result;
+        });
+    }
+
+    public void recordCollect(Farmer farmer, MaterialKey materialKey, long amount) {
+        if (state(farmer, ProductionCalcModule.KEY)) {
+            this.productionCalcModule.record(farmer, materialKey, amount);
+        }
+    }
+
+    public ProductionEstimate productionEstimate(Farmer farmer) {
+        if (!state(farmer, ProductionCalcModule.KEY)) {
+            return ProductionEstimate.empty();
+        }
+        return this.productionCalcModule.estimate(farmer);
+    }
+
+    public String intervalLabel(String moduleKey) {
+        if (AutoSellModule.KEY.equals(normalize(moduleKey))) {
+            return this.configManager.autoSellIntervalSeconds() + " sɴ";
+        }
+        return "-";
+    }
+
+    private void register(FarmerModule module) {
+        this.modules.put(normalize(module.key()), module);
+    }
+
+    private String normalize(String moduleKey) {
+        return moduleKey == null ? "" : moduleKey.trim().toLowerCase(Locale.ROOT);
+    }
+}

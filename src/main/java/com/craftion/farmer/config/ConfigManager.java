@@ -189,6 +189,25 @@ public final class ConfigManager {
         return OptionalDouble.of(price);
     }
 
+    public boolean moduleEnabled(String moduleKey) {
+        String normalizedKey = normalizeGuiKey(moduleKey);
+        return this.config.getBoolean("modules." + normalizedKey + ".enabled", false);
+    }
+
+    public boolean moduleDefaultState(String moduleKey) {
+        String normalizedKey = normalizeGuiKey(moduleKey);
+        return this.config.getBoolean("modules." + normalizedKey + ".default-state", false);
+    }
+
+    public long autoSellIntervalSeconds() {
+        return Math.max(5L, this.config.getLong("modules.auto-sell.interval-seconds", 60L));
+    }
+
+    public String guiModuleDescription(String moduleKey) {
+        String normalizedKey = normalizeGuiKey(moduleKey);
+        return this.config.getString("gui.module-descriptions." + normalizedKey, "ᴍᴏᴅᴜʟ ʙɪʟɢɪsɪ");
+    }
+
     public ConfigurationSection guiMenu(String menuId) {
         if (menuId == null || menuId.isBlank()) {
             return null;

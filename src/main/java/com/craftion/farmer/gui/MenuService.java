@@ -16,6 +16,9 @@ import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.message.MessageService;
+import com.craftion.farmer.module.ModuleManager;
+import com.craftion.farmer.module.ModuleStateResult;
+import com.craftion.farmer.module.ProductionEstimate;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.storage.DatabaseManager;
 import com.craftion.farmer.util.TextUtil;
@@ -47,6 +50,7 @@ public final class MenuService {
     private final FarmerReconcileService farmerReconcileService;
     private final MessageService messageService;
     private final StorageTransactionService storageTransactionService;
+    private final ModuleManager moduleManager;
     private final MenuActionRegistry actionRegistry;
     private final Map<String, FarmerMenu> menus = new LinkedHashMap<>();
     private boolean initialized;
@@ -61,7 +65,8 @@ public final class MenuService {
         FarmerPersistenceService farmerPersistenceService,
         FarmerReconcileService farmerReconcileService,
         MessageService messageService,
-        StorageTransactionService storageTransactionService
+        StorageTransactionService storageTransactionService,
+        ModuleManager moduleManager
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -73,6 +78,7 @@ public final class MenuService {
         this.farmerReconcileService = farmerReconcileService;
         this.messageService = messageService;
         this.storageTransactionService = storageTransactionService;
+        this.moduleManager = moduleManager;
         this.actionRegistry = new MenuActionRegistry(debugLogger);
         registerMenus();
         registerDefaultActions();
@@ -133,6 +139,7 @@ public final class MenuService {
         this.actionRegistry.register(MenuAction.Type.INFO, (context, action) -> true);
         this.actionRegistry.register(MenuAction.Type.WITHDRAW, this::withdraw);
         this.actionRegistry.register(MenuAction.Type.SELL, this::sell);
+        this.actionRegistry.register(MenuAction.Type.MODULE_TOGGLE, this::toggleModule);
     }
 
     private boolean openForPlayer(Player player, String menuId, String previousMenuId) {
@@ -289,6 +296,29 @@ public final class MenuService {
         return true;
     }
 
+    private boolean toggleModule(MenuContext context, MenuAction action) {
+        Optional<FarmerMenuSession> session = context.session();
+        if (session.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return false;
+        }
+
+        this.moduleManager.toggle(session.get().farmer(), action.target(), session.get().role()).whenComplete((result, throwable) -> {
+            this.schedulerAdapter.runAtEntity(context.player(), () -> {
+                if (throwable != null) {
+                    this.plugin.getLogger().warning("Module toggle failed: " + readableMessage(throwable));
+                    this.messageService.send(context.player(), "commands.farmer.module-toggle-failed", modulePlaceholders(action.target(), false));
+                    return;
+                }
+                sendModuleToggleResult(context.player(), result);
+                if (result.success()) {
+                    refreshCurrentMenu(context);
+                }
+            });
+        });
+        return true;
+    }
+
     private void sendWithdrawResult(Player player, StorageTransactionResult result) {
         String path = switch (result.status()) {
             case SUCCESS -> "commands.farmer.withdraw-success";
@@ -313,6 +343,17 @@ public final class MenuService {
         this.messageService.send(player, path, transactionPlaceholders(result));
     }
 
+    private void sendModuleToggleResult(Player player, ModuleStateResult result) {
+        String path = switch (result.status()) {
+            case SUCCESS -> result.enabled() ? "commands.farmer.module-enabled" : "commands.farmer.module-disabled";
+            case DENIED -> "commands.farmer.module-toggle-denied";
+            case UNKNOWN_MODULE -> "commands.farmer.module-unknown";
+            case MODULE_DISABLED -> "commands.farmer.module-config-disabled";
+            case FAILED -> "commands.farmer.module-toggle-failed";
+        };
+        this.messageService.send(player, path, modulePlaceholders(result.moduleKey(), result.enabled()));
+    }
+
     private Map<String, String> transactionPlaceholders(StorageTransactionResult result) {
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("material", materialName(result.materialKey()));
@@ -323,6 +364,14 @@ public final class MenuService {
         placeholders.put("net", formatMoney(result.net()));
         placeholders.put("provider", result.providerName().isBlank() ? "-" : result.providerName());
         placeholders.put("error", result.errorMessage().isBlank() ? "ʙɪʟɪɴᴍᴇʏᴇɴ ʜᴀᴛᴀ" : result.errorMessage());
+        return Map.copyOf(placeholders);
+    }
+
+    private Map<String, String> modulePlaceholders(String moduleKey, boolean enabled) {
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("module", this.configManager.guiModuleName(moduleKey));
+        placeholders.put("module_key", moduleKey == null ? "" : moduleKey);
+        placeholders.put("module_state", this.configManager.guiModuleState(enabled));
         return Map.copyOf(placeholders);
     }
 
@@ -355,7 +404,7 @@ public final class MenuService {
         String title = menuSection.getString("title", DEFAULT_TITLE);
         MenuLayoutBuilder builder = new MenuLayoutBuilder(menu.id(), previousMenuId, session, size, title);
         loadStaticItems(menuSection, builder, placeholders);
-        menu.render(new MenuRenderContext(player, session, this.configManager, menuSection, placeholders), builder);
+        menu.render(new MenuRenderContext(player, session, this.configManager, this.moduleManager, menuSection, placeholders), builder);
 
         MenuLayoutBuilder.MenuLayout layout = builder.build();
         Inventory inventory = Bukkit.createInventory(layout.holder(), layout.size(), TextUtil.parse(layout.title()));
@@ -392,6 +441,11 @@ public final class MenuService {
         placeholders.put("collecting_state", this.configManager.guiCollectingState(farmer.collectingEnabled()));
         placeholders.put("role", this.configManager.guiRoleName(session.role()));
         placeholders.put("player", player.getName());
+        ProductionEstimate productionEstimate = this.moduleManager.productionEstimate(farmer);
+        placeholders.put("production_minute", formatAmount(productionEstimate.perMinute()));
+        placeholders.put("production_hour", formatAmount(productionEstimate.perHour()));
+        placeholders.put("production_day", formatAmount(productionEstimate.perDay()));
+        placeholders.put("auto_sell_interval", this.moduleManager.intervalLabel("auto-sell"));
         return Map.copyOf(placeholders);
     }
 
