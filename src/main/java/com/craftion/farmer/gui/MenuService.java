@@ -574,12 +574,11 @@ public final class MenuService {
         String materialName = materialName(materialKey);
         OptionalDouble price = this.configManager.price(materialKey);
         String title = operation == DialogOperation.WITHDRAW
-            ? "<#38BDF8>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ"
-            : "<#22C55E>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ";
+            ? "<#38BDF8>ᴄᴇᴋɪᴍ"
+            : "<#22C55E>sᴀᴛɪs";
         String body = operation == DialogOperation.WITHDRAW
-            ? "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
-                + "\n<#CBD5E1>ᴇɴᴠᴀɴᴛᴇʀ <#94A3B8>• <#E0F2FE>ʏᴇʀ ᴋᴀᴅᴀʀ"
-            : "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
+            ? "<#CBD5E1>" + materialName + " <#94A3B8>• <#38BDF8>ᴄᴇᴋ\n<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
+            : "<#CBD5E1>" + materialName + " <#94A3B8>• <#22C55E>sᴀᴛ\n<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
                 + (price.isPresent() ? "\n<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>" + formatMoney(price.getAsDouble() * maxAmount) : "");
 
         ActionButton confirmButton = ActionButton.builder(TextUtil.parse("<#22C55E>ᴏɴᴀʏʟᴀ"))
@@ -591,7 +590,7 @@ public final class MenuService {
             ))
             .build();
         ActionButton cancelButton = ActionButton.builder(TextUtil.parse("<#EF4444>ᴠᴀᴢɢᴇᴄ"))
-            .tooltip(TextUtil.parse("<#BBF7D0>ᴜʀᴜɴ ᴍᴇɴᴜsᴜɴᴇ ᴅᴏɴ"))
+            .tooltip(TextUtil.parse("<#BBF7D0>ɢᴇʀɪ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"))
             .width(150)
             .action(DialogAction.customClick(
                 (response, audience) -> handleAmountDialogCancel(menuId, previousMenuId, session, audience),

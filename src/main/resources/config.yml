@@ -181,7 +181,7 @@ gui:
           action: "open:modules"
           lore:
             - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴍᴏᴅᴜʟʟᴇʀɪ"
-            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪʟᴇʙɪʟɪʀ"
+            - "<#CBD5E1>ᴏᴛᴏᴍᴀsʏᴏɴ <#94A3B8>• <#E0F2FE>ᴀʏᴀʀ"
         "42":
           material: OAK_SIGN
           name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
@@ -232,17 +232,17 @@ gui:
             - "<#CBD5E1>ᴅᴏʟᴜʟᴜᴋ <#94A3B8>• <#E0F2FE>%fill_percent%"
             - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>ᴜʀᴜɴ ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%product_state%"
-            - "<#CBD5E1>ɢᴇɴᴇʟ ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
-            - "<#CBD5E1>ᴇᴛᴋɪɴ ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%effective_product_state%"
+            - "<#CBD5E1>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>%product_state%"
+            - "<#CBD5E1>ɢᴇɴᴇʟ <#94A3B8>• <#E0F2FE>%collecting_state%"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%effective_product_state%"
             - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
         "20":
           material: REDSTONE_TORCH
           name: "<#FBBF24>ᴜʀᴜɴ ᴛᴏᴘʟᴀᴍᴀ"
           action: "product-toggle:%material%"
           lore:
-            - "<#FBBF24>ᴍᴇᴠᴄᴜᴛ <#94A3B8>• <#E0F2FE>%product_state%"
-            - "<#CBD5E1>ᴇᴛᴋɪɴ <#94A3B8>• <#E0F2FE>%effective_product_state%"
+            - "<#FBBF24>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>%product_state%"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%effective_product_state%"
             - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>ᴀᴄ / ᴋᴀᴘᴀᴛ"
         "22":
           material: EMERALD
@@ -251,7 +251,7 @@ gui:
           lore:
             - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ"
             - "<#CBD5E1>ᴏɴᴀʏʟᴀ <#94A3B8>• <#22C55E>sᴀᴛ"
-            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>%worth%"
         "24":
           material: CHEST
           name: "<#38BDF8>ᴄᴇᴋ"
@@ -265,14 +265,14 @@ gui:
           name: "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
           action: "sell:%material%:all"
           lore:
-            - "<#BBF7D0>ʙᴜ ᴜʀᴜɴᴜɴ ᴛᴜᴍ ᴅᴇᴘᴏsᴜɴᴜ sᴀᴛ"
-            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#BBF7D0>ᴛᴜᴍ ᴅᴇᴘᴏʏᴜ sᴀᴛ"
+            - "<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>%worth%"
         "32":
           material: HOPPER
           name: "<#38BDF8>ᴀʟᴀʙɪʟᴅɪɢɪɴɪ ᴄᴇᴋ"
           action: "withdraw:%material%:all"
           lore:
-            - "<#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴅᴇᴋɪ ʙᴏs ᴀʟᴀɴᴀ ɢᴏʀᴇ ᴄᴇᴋ"
+            - "<#CBD5E1>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#38BDF8>ᴄᴇᴋ"
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
         "45":
           material: ARROW
@@ -369,7 +369,7 @@ gui:
           name: "<#38BDF8>ᴍᴏᴅᴜʟ ʏᴏɴᴇᴛɪᴍɪ"
           action: "open:modules"
           lore:
-            - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴅᴀᴠʀᴀɴɪsʟᴀʀɪɴɪ ʏᴏɴᴇᴛ"
+            - "<#E0F2FE>ᴏᴛᴏᴍᴀsʏᴏɴ ᴀʏᴀʀʟᴀʀɪ"
             - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ᴀᴅᴀ sᴀʜɪʙɪ ᴠᴇ ʏᴏɴᴇᴛɪᴄɪ"
         "45":
           material: ARROW
@@ -424,28 +424,28 @@ gui:
           name: "<#38BDF8>ᴍᴏᴅᴜʟ ᴏᴢᴇᴛɪ"
           action: "info"
           lore:
-            - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴅᴀᴠʀᴀɴɪsʟᴀʀɪɴɪ ʙᴜʀᴀᴅᴀɴ ʏᴏɴᴇᴛ"
-            - "<#CBD5E1>ᴅᴇɢɪsᴛɪʀᴍᴇ <#94A3B8>• <#E0F2FE>ᴀᴅᴀ sᴀʜɪʙɪ ᴠᴇ ʏᴏɴᴇᴛɪᴄɪ"
+            - "<#E0F2FE>ᴏᴛᴏᴍᴀsʏᴏɴ ᴅᴜʀᴜᴍʟᴀʀɪ"
+            - "<#CBD5E1>ᴛɪᴋʟᴀ <#94A3B8>• <#E0F2FE>ᴀᴄ / ᴋᴀᴘᴀᴛ"
         "20":
           material: CLOCK
           name: "<#38BDF8>ᴜʀᴇᴛɪᴍ ᴛᴀʜᴍɪɴɪ"
           action: "info"
           lore:
-            - "<#E0F2FE>sᴏɴ ᴛᴏᴘʟᴀᴍᴀ ᴀᴋɪsɪɴᴀ ɢᴏʀᴇ ᴛᴀʜᴍɪɴ ᴄɪᴋᴀʀɪʀ"
-            - "<#CBD5E1>ɢᴏʀᴜɴᴜᴍ <#94A3B8>• <#E0F2FE>ᴅᴇᴘᴏ ᴏᴢᴇᴛɪ"
+            - "<#E0F2FE>sᴏɴ ᴛᴏᴘʟᴀᴍᴀ ᴀᴋɪsɪɴᴀ ɢᴏʀᴇ ᴛᴀʜᴍɪɴ"
+            - "<#CBD5E1>ɢᴏʀᴜɴᴜᴍ <#94A3B8>• <#E0F2FE>ᴅᴇᴘᴏ"
         "22":
           material: EMERALD
           name: "<#22C55E>ᴏᴛᴏ sᴀᴛɪs"
           action: "info"
           lore:
-            - "<#BBF7D0>ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴅᴇᴘᴏ ᴜʀᴜɴʟᴇʀɪɴɪ ᴏᴛᴏᴍᴀᴛɪᴋ sᴀᴛᴀʀ"
+            - "<#BBF7D0>ғɪʏᴀᴛʟɪ ᴜʀᴜɴʟᴇʀɪ ᴏᴛᴏ sᴀᴛᴀʀ"
             - "<#CBD5E1>ᴀʀᴀʟɪᴋ <#94A3B8>• <#E0F2FE>%auto_sell_interval%"
         "24":
           material: LEVER
           name: "<#FBBF24>ᴍᴏᴅᴜʟ ᴅᴜʀᴜᴍʟᴀʀɪ"
           action: "info"
           lore:
-            - "<#FBBF24>ᴀʟᴛᴛᴀᴋɪ ᴍᴏᴅᴜʟ ᴋᴀʀᴛʟᴀʀɪɴᴅᴀɴ ᴀᴄɪᴘ ᴋᴀᴘᴀᴛ"
+            - "<#FBBF24>ᴋᴀʀᴛʟᴀʀᴅᴀɴ ᴀᴄ / ᴋᴀᴘᴀᴛ"
             - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ᴀᴅᴀ sᴀʜɪʙɪ ᴠᴇ ʏᴏɴᴇᴛɪᴄɪ"
         "45":
           material: ARROW
