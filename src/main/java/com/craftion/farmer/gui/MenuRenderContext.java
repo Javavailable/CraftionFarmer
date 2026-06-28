@@ -1,0 +1,61 @@
+package com.craftion.farmer.gui;
+
+import com.craftion.farmer.config.ConfigManager;
+import com.craftion.farmer.farmer.Farmer;
+import com.craftion.farmer.farmer.FarmerRole;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+
+public record MenuRenderContext(
+    Player player,
+    FarmerMenuSession session,
+    ConfigManager configManager,
+    ConfigurationSection menuSection,
+    Map<String, String> placeholders
+) {
+
+    public MenuRenderContext {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(session, "session");
+        Objects.requireNonNull(configManager, "configManager");
+        Objects.requireNonNull(menuSection, "menuSection");
+        placeholders = Map.copyOf(Objects.requireNonNull(placeholders, "placeholders"));
+    }
+
+    public Farmer farmer() {
+        return this.session.farmer();
+    }
+
+    public Map<String, String> withPlaceholders(Map<String, String> extraPlaceholders) {
+        Map<String, String> merged = new HashMap<>(this.placeholders);
+        if (extraPlaceholders != null) {
+            merged.putAll(extraPlaceholders);
+        }
+        return Map.copyOf(merged);
+    }
+
+    public String materialName(String materialKey) {
+        return this.configManager.guiMaterialName(materialKey);
+    }
+
+    public String moduleName(String moduleKey) {
+        return this.configManager.guiModuleName(moduleKey);
+    }
+
+    public String roleName(FarmerRole role) {
+        return this.configManager.guiRoleName(role);
+    }
+
+    public String playerName(UUID playerUuid) {
+        if (playerUuid == null) {
+            return "-";
+        }
+        String name = Bukkit.getOfflinePlayer(playerUuid).getName();
+        return name == null || name.isBlank() ? playerUuid.toString() : name;
+    }
+}

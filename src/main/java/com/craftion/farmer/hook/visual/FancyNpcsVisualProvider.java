@@ -63,6 +63,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
     private final JavaPlugin plugin;
     private final SchedulerAdapter schedulerAdapter;
     private final DebugLogger debugLogger;
+    private final Consumer<Player> clickAction;
     private final FancyNpcsApiMode configuredApiMode;
     private final ApiBinding apiBinding;
     private final String idPrefix;
@@ -80,11 +81,12 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         JavaPlugin plugin,
         ConfigManager configManager,
         SchedulerAdapter schedulerAdapter,
-        DebugLogger debugLogger
+        DebugLogger debugLogger,
+        Consumer<Player> clickAction
     ) {
         FancyNpcsApiMode configuredApiMode = FancyNpcsApiMode.from(configManager.fancyNpcsApiMode());
         Optional<ApiBinding> binding = resolveBinding(configuredApiMode, debugLogger);
-        return binding.map(value -> new FancyNpcsVisualProvider(plugin, configManager, schedulerAdapter, debugLogger, configuredApiMode, value));
+        return binding.map(value -> new FancyNpcsVisualProvider(plugin, configManager, schedulerAdapter, debugLogger, clickAction, configuredApiMode, value));
     }
 
     private FancyNpcsVisualProvider(
@@ -92,12 +94,14 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         ConfigManager configManager,
         SchedulerAdapter schedulerAdapter,
         DebugLogger debugLogger,
+        Consumer<Player> clickAction,
         FancyNpcsApiMode configuredApiMode,
         ApiBinding apiBinding
     ) {
         this.plugin = plugin;
         this.schedulerAdapter = schedulerAdapter;
         this.debugLogger = debugLogger;
+        this.clickAction = clickAction == null ? player -> player.performCommand("farmer open") : clickAction;
         this.configuredApiMode = configuredApiMode;
         this.apiBinding = apiBinding;
         this.idPrefix = normalizeIdPrefix(configManager.fancyNpcsIdPrefix());
@@ -199,7 +203,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
 
     private Object createNpcData(String npcId, Farmer farmer, Location location) {
         try {
-            Consumer<Player> onClick = player -> this.schedulerAdapter.runAtEntity(player, () -> player.performCommand("farmer info"));
+            Consumer<Player> onClick = player -> this.schedulerAdapter.runAtEntity(player, () -> this.clickAction.accept(player));
             return this.apiBinding.npcDataConstructor().newInstance(
                 npcId,
                 npcId,

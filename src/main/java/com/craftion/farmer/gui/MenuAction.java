@@ -30,6 +30,9 @@ public record MenuAction(Type type, String target) {
         if (action.equals("back")) {
             return Optional.of(new MenuAction(Type.BACK, ""));
         }
+        if (action.equals("info")) {
+            return Optional.of(new MenuAction(Type.INFO, ""));
+        }
         if (action.startsWith("open:")) {
             String target = target(action, "open:");
             return OPEN_TARGETS.contains(target) ? Optional.of(new MenuAction(Type.OPEN, target)) : Optional.empty();
@@ -61,7 +64,7 @@ public record MenuAction(Type type, String target) {
     private static boolean isValidTarget(Type type, String target) {
         return switch (type) {
             case OPEN -> OPEN_TARGETS.contains(target);
-            case CLOSE, BACK -> target.isEmpty();
+            case CLOSE, BACK, INFO -> target.isEmpty();
             case WITHDRAW, SELL -> isMaterialTarget(target);
         };
     }
@@ -84,6 +87,7 @@ public record MenuAction(Type type, String target) {
         OPEN,
         CLOSE,
         BACK,
+        INFO,
         WITHDRAW,
         SELL
     }
