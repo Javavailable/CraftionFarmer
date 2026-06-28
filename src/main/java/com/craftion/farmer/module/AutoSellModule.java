@@ -79,6 +79,10 @@ public final class AutoSellModule implements FarmerModule {
     }
 
     private void schedule() {
+        if (this.task != null && !this.task.isCancelled()) {
+            this.task.cancel();
+            this.task = ScheduledTaskHandle.cancelled();
+        }
         if (!this.configManager.moduleEnabled(KEY)) {
             this.debugLogger.debug("AutoSell module disabled by config.");
             return;

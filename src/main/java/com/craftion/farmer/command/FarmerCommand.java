@@ -1,12 +1,15 @@
 package com.craftion.farmer.command;
 
 import com.craftion.farmer.CraftionFarmerPlugin;
+import com.craftion.farmer.economy.EconomyProvider;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerCreateResult;
 import com.craftion.farmer.farmer.FarmerRemoveResult;
+import com.craftion.farmer.hook.placeholder.PlaceholderProvider;
 import com.craftion.farmer.hook.region.RegionAccessResult;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileResult;
+import com.craftion.farmer.hook.visual.FarmerVisualProvider;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.module.ProductionEstimate;
 import com.craftion.farmer.storage.repository.FarmerLogEntry;
@@ -520,17 +523,21 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
 
     private Map<String, String> adminFarmerPlaceholders(Farmer farmer) {
         Map<String, String> base = new java.util.HashMap<>(farmerPlaceholders(farmer));
+        EconomyProvider economyProvider = this.plugin.economyProviderManager() == null ? null : this.plugin.economyProviderManager().provider();
+        RegionProvider regionProvider = this.plugin.regionProviderManager() == null ? null : this.plugin.regionProviderManager().provider();
+        FarmerVisualProvider visualProvider = this.plugin.visualProviderManager() == null ? null : this.plugin.visualProviderManager().provider();
+        PlaceholderProvider placeholderProvider = this.plugin.placeholderProviderManager() == null ? null : this.plugin.placeholderProviderManager().provider();
         base.put("collecting", stateLabel(farmer.collectingEnabled()));
         base.put("storage_total", formatAmount(storageTotal(farmer)));
         base.put("module_states", moduleStates(farmer));
-        base.put("economy_provider", this.plugin.economyProviderManager().provider().name());
-        base.put("economy_state", stateLabel(this.plugin.economyProviderManager().provider().isAvailable()));
-        base.put("region_provider", this.plugin.regionProviderManager().provider().type().name());
-        base.put("region_state", stateLabel(this.plugin.regionProviderManager().provider().isAvailable()));
-        base.put("visual_provider", this.plugin.visualProviderManager().provider().type().name());
-        base.put("visual_state", stateLabel(this.plugin.visualProviderManager().provider().isAvailable()));
-        base.put("placeholder_provider", this.plugin.placeholderProviderManager().provider().name());
-        base.put("placeholder_state", stateLabel(this.plugin.placeholderProviderManager().provider().isAvailable()));
+        base.put("economy_provider", economyProvider == null ? "-" : economyProvider.name());
+        base.put("economy_state", stateLabel(economyProvider != null && economyProvider.isAvailable()));
+        base.put("region_provider", regionProvider == null ? "-" : regionProvider.type().name());
+        base.put("region_state", stateLabel(regionProvider != null && regionProvider.isAvailable()));
+        base.put("visual_provider", visualProvider == null ? "-" : visualProvider.type().name());
+        base.put("visual_state", stateLabel(visualProvider != null && visualProvider.isAvailable()));
+        base.put("placeholder_provider", placeholderProvider == null ? "-" : placeholderProvider.name());
+        base.put("placeholder_state", stateLabel(placeholderProvider != null && placeholderProvider.isAvailable()));
         ProductionEstimate estimate = this.plugin.moduleManager().productionEstimate(farmer);
         base.put("production_minute", formatAmount(estimate.perMinute()));
         base.put("production_hour", formatAmount(estimate.perHour()));

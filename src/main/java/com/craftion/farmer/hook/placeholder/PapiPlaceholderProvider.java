@@ -100,9 +100,7 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
     }
 
     private Optional<Farmer> farmer(UUID playerUuid) {
-        return this.farmerCache.snapshot().values().stream()
-            .filter(farmer -> farmer.ownerUuid().equals(playerUuid) || farmer.members().containsKey(playerUuid))
-            .findFirst();
+        return this.farmerCache.getByPlayerUuid(playerUuid);
     }
 
     private long storageTotal(Farmer farmer) {
