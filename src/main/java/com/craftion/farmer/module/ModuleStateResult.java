@@ -14,6 +14,8 @@ public record ModuleStateResult(Status status, String moduleKey, boolean enabled
     public enum Status {
         SUCCESS,
         DENIED,
+        PERMISSION_DENIED,
+        UNAVAILABLE,
         UNKNOWN_MODULE,
         MODULE_DISABLED,
         FAILED

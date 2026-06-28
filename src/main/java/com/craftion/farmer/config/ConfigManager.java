@@ -216,6 +216,16 @@ public final class ConfigManager {
         return this.config.getBoolean("modules." + normalizedKey + ".default-state", false);
     }
 
+    public String modulePermission(String moduleKey) {
+        String normalizedKey = normalizeGuiKey(moduleKey);
+        String permission = this.config.getString("modules." + normalizedKey + ".permission", "craftionfarmer.module." + normalizedKey);
+        return permission == null ? "" : permission.trim();
+    }
+
+    public boolean modulePermissionRequired(String moduleKey) {
+        return !modulePermission(moduleKey).isBlank();
+    }
+
     public long autoSellIntervalSeconds() {
         return Math.max(5L, this.config.getLong("modules.auto-sell.interval-seconds", 60L));
     }

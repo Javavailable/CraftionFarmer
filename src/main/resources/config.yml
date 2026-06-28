@@ -84,13 +84,16 @@ modules:
   auto-sell:
     enabled: true
     default-state: false
+    permission: "craftionfarmer.module.auto-sell"
     interval-seconds: 60
   production-calc:
     enabled: true
     default-state: true
+    permission: "craftionfarmer.module.production-calc"
   auto-harvest:
     enabled: true
     default-state: false
+    permission: "craftionfarmer.module.auto-harvest"
     prevent-growth-when-full: true
     check-stock: true
     require-piston: false
@@ -111,6 +114,7 @@ modules:
   auto-kill:
     enabled: false
     default-state: false
+    permission: "craftionfarmer.module.auto-kill"
 
 gui:
   labels:
@@ -121,6 +125,15 @@ gui:
       enabled: "ᴀᴋᴛɪғ"
       disabled: "ᴘᴀsɪғ"
       unavailable: "ᴋᴀᴘᴀʟɪ"
+      coming-soon: "ʏᴀᴋɪɴᴅᴀ"
+      access-ok: "ʏᴏɴᴇᴛɪᴍ"
+      access-denied: "ᴇʀɪsɪᴍ ʏᴏᴋ"
+      permission-ok: "ᴠᴀʀ"
+      permission-required: "ɢᴇʀᴇᴋɪʀ"
+      permission-none: "ɢᴇʀᴇᴋᴍᴇᴢ"
+      config-enabled: "ᴀᴄɪᴋ"
+      action-enable: "ᴀᴄ"
+      action-disable: "ᴋᴀᴘᴀᴛ"
     roles:
       owner: "ᴀᴅᴀ sᴀʜɪʙɪ"
       manager: "ʏᴏɴᴇᴛɪᴄɪ"
@@ -147,10 +160,10 @@ gui:
     auto-harvest: "ᴏᴛᴏ ʜᴀsᴀᴛ"
     auto-kill: "ᴏᴛᴏ ᴀᴠ"
   module-descriptions:
-    auto-sell: "ᴅᴇᴘᴏᴅᴀᴋɪ ғɪʏᴀᴛʟɪ ᴜʀᴜɴʟᴇʀɪ ʙᴇʟɪʀʟɪ ᴀʀᴀʟɪᴋʟᴀ sᴀᴛᴀʀ"
-    production-calc: "sᴏɴ ᴛᴏᴘʟᴀᴍᴀ ᴀᴋɪsɪɴᴀ ɢᴏʀᴇ ᴜʀᴇᴛɪᴍ ᴛᴀʜᴍɪɴɪ ɢᴏsᴛᴇʀɪʀ"
-    auto-harvest: "ᴏʟɢᴜɴʟᴀsᴀɴ ᴀᴅᴀ ᴜʀᴜɴʟᴇʀɪɴɪ ᴛᴏᴘʟᴀᴍᴀ ᴀᴋɪsɪɴᴀ ʙɪʀᴀᴋɪʀ"
-    auto-kill: "ʜᴇɴᴜᴢ ᴀᴋᴛɪғ ᴅᴇɢɪʟ ᴠᴇ ᴍᴏᴅᴜʟ ᴏʟᴀʀᴀᴋ ʏᴜᴋʟᴇɴᴍᴇᴢ"
+    auto-sell: "ғɪʏᴀᴛʟɪ ᴜʀᴜɴʟᴇʀɪ sᴀᴛᴀʀ"
+    production-calc: "ᴜʀᴇᴛɪᴍ ᴀᴋɪsɪɴɪ ɢᴏsᴛᴇʀɪʀ"
+    auto-harvest: "ᴏʟɢᴜɴ ᴜʀᴜɴᴜ ᴛᴏᴘʟᴀʀ"
+    auto-kill: "ᴀᴠ ᴏᴛᴏᴍᴀsʏᴏɴᴜ ʏᴀᴋɪɴᴅᴀ"
   menus:
     main:
       title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
@@ -448,11 +461,12 @@ gui:
       items:
         "4":
           material: AMETHYST_SHARD
-          name: "<#38BDF8>ᴍᴏᴅᴜʟ ᴏᴢᴇᴛɪ"
+          name: "<#38BDF8>ᴏᴛᴏᴍᴀsʏᴏɴ <#94A3B8>• <#E0F2FE>ᴀʏᴀʀ"
           action: "info"
           lore:
-            - "<#E0F2FE>ᴏᴛᴏᴍᴀsʏᴏɴ ᴅᴜʀᴜᴍʟᴀʀɪ"
-            - "<#CBD5E1>ᴛɪᴋʟᴀ <#94A3B8>• <#E0F2FE>ᴀᴄ / ᴋᴀᴘᴀᴛ"
+            - "<#CBD5E1>ᴀᴅᴀ <#94A3B8>• <#E0F2FE>%region%"
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
         "20":
           material: CLOCK
           name: "<#38BDF8>ᴜʀᴇᴛɪᴍ ᴛᴀʜᴍɪɴɪ"
@@ -472,8 +486,8 @@ gui:
           name: "<#FBBF24>ᴍᴏᴅᴜʟ ᴅᴜʀᴜᴍʟᴀʀɪ"
           action: "info"
           lore:
-            - "<#FBBF24>ᴋᴀʀᴛʟᴀʀᴅᴀɴ ᴀᴄ / ᴋᴀᴘᴀᴛ"
-            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ᴀᴅᴀ sᴀʜɪʙɪ ᴠᴇ ʏᴏɴᴇᴛɪᴄɪ"
+            - "<#FBBF24>ᴋᴀʀᴛ <#94A3B8>• <#E0F2FE>ᴅᴜʀᴜᴍ ᴠᴇ ʏᴇᴛᴋɪ"
+            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪᴍ"
         "45":
           material: ARROW
           name: "<#94A3B8>ɢᴇʀɪ"
@@ -490,30 +504,52 @@ gui:
         slots: [28, 29, 30, 31, 32, 33, 34]
         enabled:
           material: "%module_material%"
-          name: "<#22C55E>%module%"
+          name: "<#22C55E>✦ <#D1FAE5>%module%"
           action: "module-toggle:%module_key%"
           lore:
             - "<#BBF7D0>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
-            - "<#CBD5E1>ᴀᴄɪᴋʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%module_description%"
-            - "<#CBD5E1>ᴀʀᴀʟɪᴋ <#94A3B8>• <#E0F2FE>%module_interval%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴍᴏᴅᴜʟᴜ ᴋᴀᴘᴀᴛ"
+            - "<#CBD5E1>ᴏᴢᴇᴛ <#94A3B8>• <#E0F2FE>%module_description%"
+            - "<#CBD5E1>ᴀʏᴀʀ <#94A3B8>• <#E0F2FE>%module_availability%"
+            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>%module_access%"
+            - "<#CBD5E1>ʏᴇᴛᴋɪ <#94A3B8>• <#E0F2FE>%module_permission%"
+            - "<#CBD5E1>ᴅᴇᴛᴀʏ <#94A3B8>• <#E0F2FE>%module_metric%"
+            - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>%module_action%"
         disabled:
           material: "%module_material%"
-          name: "<#FBBF24>%module%"
+          name: "<#FBBF24>✦ <#FDE68A>%module%"
           action: "module-toggle:%module_key%"
           lore:
             - "<#FBBF24>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
-            - "<#CBD5E1>ᴀᴄɪᴋʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%module_description%"
-            - "<#CBD5E1>ᴀʀᴀʟɪᴋ <#94A3B8>• <#E0F2FE>%module_interval%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴍᴏᴅᴜʟᴜ ᴀᴄ"
-        unavailable:
+            - "<#CBD5E1>ᴏᴢᴇᴛ <#94A3B8>• <#E0F2FE>%module_description%"
+            - "<#CBD5E1>ᴀʏᴀʀ <#94A3B8>• <#E0F2FE>%module_availability%"
+            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>%module_access%"
+            - "<#CBD5E1>ʏᴇᴛᴋɪ <#94A3B8>• <#E0F2FE>%module_permission%"
+            - "<#CBD5E1>ᴅᴇᴛᴀʏ <#94A3B8>• <#E0F2FE>%module_metric%"
+            - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>%module_action%"
+        locked:
           material: "%module_material%"
-          name: "<#94A3B8>%module%"
-          action: "info"
+          name: "<#FB7185>✦ <#FFE4E6>%module%"
+          action: "module-toggle:%module_key%"
           lore:
             - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
-            - "<#CBD5E1>ᴀᴄɪᴋʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%module_description%"
-            - "<#CBD5E1>ʙᴜ ᴍᴏᴅᴜʟ ʏᴀᴘɪʟᴀɴᴅɪʀᴍᴀᴅᴀ ᴋᴀᴘᴀʟɪ"
+            - "<#CBD5E1>ᴏᴢᴇᴛ <#94A3B8>• <#E0F2FE>%module_description%"
+            - "<#CBD5E1>ᴀʏᴀʀ <#94A3B8>• <#E0F2FE>%module_availability%"
+            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>%module_access%"
+            - "<#CBD5E1>ʏᴇᴛᴋɪ <#94A3B8>• <#E0F2FE>%module_permission%"
+            - "<#CBD5E1>ᴅᴇᴛᴀʏ <#94A3B8>• <#E0F2FE>%module_metric%"
+            - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>%module_action%"
+        unavailable:
+          material: "%module_material%"
+          name: "<#94A3B8>✦ <#CBD5E1>%module%"
+          action: "module-toggle:%module_key%"
+          lore:
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
+            - "<#CBD5E1>ᴏᴢᴇᴛ <#94A3B8>• <#E0F2FE>%module_description%"
+            - "<#CBD5E1>ᴀʏᴀʀ <#94A3B8>• <#E0F2FE>%module_availability%"
+            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>%module_access%"
+            - "<#CBD5E1>ʏᴇᴛᴋɪ <#94A3B8>• <#E0F2FE>%module_permission%"
+            - "<#CBD5E1>ᴅᴇᴛᴀʏ <#94A3B8>• <#E0F2FE>%module_metric%"
+            - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>%module_action%"
         empty:
           material: AMETHYST_SHARD
           name: "<#FBBF24>ᴍᴏᴅᴜʟ ʏᴏᴋ"

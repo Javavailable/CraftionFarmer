@@ -735,7 +735,7 @@ public final class MenuService {
             return false;
         }
 
-        this.moduleManager.toggle(session.get().farmer(), action.target(), session.get().role(), context.player().getUniqueId()).whenComplete((result, throwable) -> {
+        this.moduleManager.toggle(context.player(), session.get(), action.target()).whenComplete((result, throwable) -> {
             this.schedulerAdapter.runAtEntity(context.player(), () -> {
                 if (throwable != null) {
                     this.plugin.getLogger().warning("Module toggle failed: " + readableMessage(throwable));
@@ -817,6 +817,8 @@ public final class MenuService {
         String path = switch (result.status()) {
             case SUCCESS -> result.enabled() ? "commands.farmer.module-enabled" : "commands.farmer.module-disabled";
             case DENIED -> "commands.farmer.module-toggle-denied";
+            case PERMISSION_DENIED -> "commands.farmer.module-permission-denied";
+            case UNAVAILABLE -> "commands.farmer.module-unavailable";
             case UNKNOWN_MODULE -> "commands.farmer.module-unknown";
             case MODULE_DISABLED -> "commands.farmer.module-config-disabled";
             case FAILED -> "commands.farmer.module-toggle-failed";
@@ -1081,6 +1083,7 @@ public final class MenuService {
         placeholders.put("module", this.configManager.guiModuleName(moduleKey));
         placeholders.put("module_key", moduleKey == null ? "" : moduleKey);
         placeholders.put("module_state", this.configManager.guiModuleState(enabled));
+        placeholders.put("permission", this.configManager.modulePermission(moduleKey));
         return Map.copyOf(placeholders);
     }
 
