@@ -39,11 +39,11 @@ public record MenuAction(Type type, String target) {
         }
         if (action.startsWith("withdraw:")) {
             String target = target(action, "withdraw:");
-            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.WITHDRAW, target)) : Optional.empty();
+            return isWithdrawTarget(target) ? Optional.of(new MenuAction(Type.WITHDRAW, target)) : Optional.empty();
         }
         if (action.startsWith("sell:")) {
             String target = target(action, "sell:");
-            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.SELL, target)) : Optional.empty();
+            return isSellTarget(target) ? Optional.of(new MenuAction(Type.SELL, target)) : Optional.empty();
         }
 
         return Optional.empty();
@@ -65,8 +65,36 @@ public record MenuAction(Type type, String target) {
         return switch (type) {
             case OPEN -> OPEN_TARGETS.contains(target);
             case CLOSE, BACK, INFO -> target.isEmpty();
-            case WITHDRAW, SELL -> isMaterialTarget(target);
+            case WITHDRAW -> isWithdrawTarget(target);
+            case SELL -> isSellTarget(target);
         };
+    }
+
+    private static boolean isWithdrawTarget(String target) {
+        String[] parts = parts(target);
+        if (parts.length == 1) {
+            return isStorageMaterialTarget(parts[0]);
+        }
+        return parts.length == 2 && isStorageMaterialTarget(parts[0]) && (parts[1].equals("stack") || parts[1].equals("all"));
+    }
+
+    private static boolean isSellTarget(String target) {
+        if ("all".equals(target)) {
+            return true;
+        }
+        String[] parts = parts(target);
+        if (parts.length == 1) {
+            return isStorageMaterialTarget(parts[0]);
+        }
+        return parts.length == 2 && isStorageMaterialTarget(parts[0]) && parts[1].equals("all");
+    }
+
+    private static String[] parts(String target) {
+        return target == null ? new String[0] : target.split(":", -1);
+    }
+
+    private static boolean isStorageMaterialTarget(String target) {
+        return isMaterialTarget(target) && !target.equals("all");
     }
 
     private static boolean isMaterialTarget(String target) {

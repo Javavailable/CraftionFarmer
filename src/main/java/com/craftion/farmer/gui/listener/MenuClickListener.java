@@ -49,8 +49,8 @@ public final class MenuClickListener implements Listener {
         }
 
         int slot = event.getRawSlot();
-        Optional<MenuAction> action = this.menuService.actionRegistry().resolve(menuHolder, slot);
-        action.ifPresent(value -> this.menuService.execute(new MenuContext(player, menuHolder, slot), value));
+        Optional<MenuAction> action = this.menuService.actionRegistry().resolve(menuHolder, slot, event.getClick());
+        action.ifPresent(value -> this.menuService.execute(new MenuContext(player, menuHolder, slot, event.getClick()), value));
     }
 
     private boolean isTopInventoryClick(InventoryClickEvent event, Inventory topInventory) {

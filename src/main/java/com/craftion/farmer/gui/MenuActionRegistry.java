@@ -4,6 +4,7 @@ import com.craftion.farmer.debug.DebugLogger;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
+import org.bukkit.event.inventory.ClickType;
 
 public final class MenuActionRegistry {
 
@@ -19,10 +20,14 @@ public final class MenuActionRegistry {
     }
 
     public Optional<MenuAction> resolve(MenuHolder holder, int slot) {
+        return resolve(holder, slot, ClickType.LEFT);
+    }
+
+    public Optional<MenuAction> resolve(MenuHolder holder, int slot, ClickType clickType) {
         if (holder == null || slot < 0) {
             return Optional.empty();
         }
-        return holder.actionAt(slot);
+        return holder.actionAt(slot, clickType);
     }
 
     public void register(MenuAction.Type type, MenuActionHandler handler) {

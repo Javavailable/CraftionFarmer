@@ -4,6 +4,7 @@ import com.craftion.farmer.farmer.MaterialKey;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.OptionalDouble;
 import org.bukkit.configuration.ConfigurationSection;
 
 public final class StorageMenu implements FarmerMenu {
@@ -41,10 +42,13 @@ public final class StorageMenu implements FarmerMenu {
             }
 
             String materialKey = entry.getKey().toString();
+            OptionalDouble price = context.configManager().price(entry.getKey());
             builder.putConfiguredItem(slots.get(index), filledTemplate, context.withPlaceholders(Map.of(
                 "material", materialKey,
                 "material_name", context.materialName(materialKey),
-                "amount", formatAmount(entry.getValue())
+                "amount", formatAmount(entry.getValue()),
+                "price", price.isPresent() ? formatMoney(price.getAsDouble()) : "-",
+                "worth", price.isPresent() ? formatMoney(price.getAsDouble() * entry.getValue()) : "-"
             )), "BARREL");
             index++;
         }
@@ -59,5 +63,9 @@ public final class StorageMenu implements FarmerMenu {
 
     private String formatAmount(long amount) {
         return String.format(Locale.US, "%,d", amount);
+    }
+
+    private String formatMoney(double amount) {
+        return Double.isFinite(amount) ? String.format(Locale.US, "%,.2f", amount) : "-";
     }
 }

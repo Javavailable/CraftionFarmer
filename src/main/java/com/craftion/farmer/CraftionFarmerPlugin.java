@@ -5,6 +5,10 @@ import com.craftion.farmer.collect.CollectService;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.economy.ConfigPriceProvider;
+import com.craftion.farmer.economy.EconomyProviderManager;
+import com.craftion.farmer.economy.PriceProvider;
+import com.craftion.farmer.economy.StorageTransactionService;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerCreateService;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
@@ -18,6 +22,8 @@ import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
 import com.craftion.farmer.storage.DatabaseManager;
+import com.craftion.farmer.storage.repository.DatabaseLogRepository;
+import com.craftion.farmer.storage.repository.LogRepository;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.bukkit.command.PluginCommand;
@@ -31,8 +37,11 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private DebugLogger debugLogger;
     private SchedulerAdapter schedulerAdapter;
     private DatabaseManager databaseManager;
+    private LogRepository logRepository;
     private RegionProviderManager regionProviderManager;
     private VisualProviderManager visualProviderManager;
+    private EconomyProviderManager economyProviderManager;
+    private PriceProvider priceProvider;
     private FarmerCache farmerCache;
     private FarmerPersistenceService farmerPersistenceService;
     private FarmerCreateService farmerCreateService;
@@ -41,6 +50,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private SkylliaSyncManager skylliaSyncManager;
     private MenuService menuService;
     private CollectService collectService;
+    private StorageTransactionService storageTransactionService;
 
     @Override
     public void onLoad() {
@@ -67,8 +77,20 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             player.performCommand("farmer open");
         });
         this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
+        this.logRepository = new DatabaseLogRepository(this.databaseManager);
+        this.economyProviderManager = new EconomyProviderManager(this, this.configManager, this.debugLogger);
+        this.priceProvider = new ConfigPriceProvider(this.configManager);
         this.farmerCache = new FarmerCache();
         this.farmerPersistenceService = new FarmerPersistenceService(this.databaseManager, this.farmerCache, this.debugLogger);
+        this.storageTransactionService = new StorageTransactionService(
+            this,
+            this.configManager,
+            this.debugLogger,
+            this.farmerPersistenceService,
+            this.logRepository,
+            this.economyProviderManager,
+            this.priceProvider
+        );
         this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
@@ -103,7 +125,8 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.regionProviderManager,
             this.farmerPersistenceService,
             this.farmerReconcileService,
-            this.messageService
+            this.messageService,
+            this.storageTransactionService
         );
 
         if (!registerCommands()) {
@@ -114,6 +137,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
         this.regionProviderManager.initialize();
         this.visualProviderManager.initialize();
+        this.economyProviderManager.initialize();
         this.databaseManager.initialize();
         loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
@@ -159,6 +183,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
         if (this.visualProviderManager != null) {
             this.visualProviderManager.reload();
+        }
+        if (this.economyProviderManager != null) {
+            this.economyProviderManager.reload();
         }
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.reload();
@@ -222,6 +249,14 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public CollectService collectService() {
         return this.collectService;
+    }
+
+    public EconomyProviderManager economyProviderManager() {
+        return this.economyProviderManager;
+    }
+
+    public StorageTransactionService storageTransactionService() {
+        return this.storageTransactionService;
     }
 
     private void loadFarmerCacheWhenReady() {
