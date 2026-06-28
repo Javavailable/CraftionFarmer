@@ -35,6 +35,9 @@ npc:
   interaction-cooldown: 0.5
   visibility-distance: 48
 
+gui:
+  menus: {}
+
 database:
   type: SQLITE
   sqlite:
