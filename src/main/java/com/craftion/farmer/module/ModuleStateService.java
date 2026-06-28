@@ -7,11 +7,14 @@ import java.util.Collection;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public final class ModuleStateService {
 
     private final ConfigManager configManager;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final ConcurrentMap<String, Long> stateVersions = new ConcurrentHashMap<>();
 
     public ModuleStateService(ConfigManager configManager, FarmerPersistenceService farmerPersistenceService) {
         this.configManager = Objects.requireNonNull(configManager, "configManager");
@@ -53,14 +56,30 @@ public final class ModuleStateService {
         }
 
         String moduleKey = normalize(module.key());
-        boolean previousState = state(farmer, module);
-        boolean nextState = !previousState;
-        farmer.setModuleState(moduleKey, nextState);
+        String versionKey = farmer.farmerId() + ":" + moduleKey;
+        boolean previousState;
+        boolean nextState;
+        long operationVersion;
+        synchronized (farmer) {
+            previousState = state(farmer, module);
+            nextState = !previousState;
+            farmer.setModuleState(moduleKey, nextState);
+            operationVersion = this.stateVersions.merge(versionKey, 1L, Long::sum);
+        }
         return this.farmerPersistenceService.save(farmer)
             .thenApply(ignored -> new ModuleStateResult(ModuleStateResult.Status.SUCCESS, module.key(), nextState))
             .exceptionally(throwable -> {
-                farmer.setModuleState(moduleKey, previousState);
-                return new ModuleStateResult(ModuleStateResult.Status.FAILED, module.key(), previousState);
+                boolean safeState;
+                synchronized (farmer) {
+                    boolean currentState = state(farmer, module);
+                    long currentVersion = this.stateVersions.getOrDefault(versionKey, 0L);
+                    if (currentState == nextState && currentVersion == operationVersion) {
+                        farmer.setModuleState(moduleKey, previousState);
+                        this.stateVersions.merge(versionKey, 1L, Long::sum);
+                    }
+                    safeState = state(farmer, module);
+                }
+                return new ModuleStateResult(ModuleStateResult.Status.FAILED, module.key(), safeState);
             });
     }
 

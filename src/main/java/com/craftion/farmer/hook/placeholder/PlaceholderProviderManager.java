@@ -23,18 +23,18 @@ public final class PlaceholderProviderManager {
         this.moduleManager = moduleManager;
     }
 
-    public void initialize() {
+    public synchronized void initialize() {
+        this.provider.shutdown();
         this.provider = createProvider();
         this.provider.initialize();
         this.debugLogger.debug("Placeholder provider: " + this.provider.name());
     }
 
-    public void reload() {
-        this.provider.shutdown();
+    public synchronized void reload() {
         initialize();
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
         this.provider.shutdown();
         this.provider = new NoPlaceholderProvider();
     }

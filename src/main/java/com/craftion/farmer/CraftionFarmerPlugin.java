@@ -3,6 +3,7 @@ package com.craftion.farmer;
 import com.craftion.farmer.command.FarmerCommand;
 import com.craftion.farmer.collect.CollectService;
 import com.craftion.farmer.config.ConfigManager;
+import com.craftion.farmer.config.ConfigValidationService;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.economy.ConfigPriceProvider;
@@ -13,6 +14,7 @@ import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerCreateService;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.FarmerRemoveService;
+import com.craftion.farmer.farmer.FarmerSaveRetryService;
 import com.craftion.farmer.gui.MenuService;
 import com.craftion.farmer.hook.placeholder.PlaceholderProviderManager;
 import com.craftion.farmer.hook.region.RegionProviderManager;
@@ -35,6 +37,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     private ConfigManager configManager;
     private MessageManager messageManager;
+    private ConfigValidationService configValidationService;
     private MessageService messageService;
     private DebugLogger debugLogger;
     private SchedulerAdapter schedulerAdapter;
@@ -46,6 +49,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private PriceProvider priceProvider;
     private FarmerCache farmerCache;
     private FarmerPersistenceService farmerPersistenceService;
+    private FarmerSaveRetryService farmerSaveRetryService;
     private FarmerCreateService farmerCreateService;
     private FarmerRemoveService farmerRemoveService;
     private FarmerReconcileService farmerReconcileService;
@@ -71,6 +75,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
         this.messageService = new MessageService(this.messageManager);
         this.debugLogger = new DebugLogger(this, this.configManager);
+        this.configValidationService = new ConfigValidationService(this, this.debugLogger);
         this.schedulerAdapter = SchedulerFactory.create(this);
         this.regionProviderManager = new RegionProviderManager(this, this.configManager, this.debugLogger);
         this.visualProviderManager = new VisualProviderManager(this, this.configManager, this.schedulerAdapter, this.debugLogger, player -> {
@@ -86,11 +91,13 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.priceProvider = new ConfigPriceProvider(this.configManager);
         this.farmerCache = new FarmerCache();
         this.farmerPersistenceService = new FarmerPersistenceService(this.databaseManager, this.farmerCache, this.debugLogger);
+        this.farmerSaveRetryService = new FarmerSaveRetryService(this, this.schedulerAdapter, this.debugLogger, this.farmerPersistenceService, this.farmerCache);
         this.storageTransactionService = new StorageTransactionService(
             this,
             this.configManager,
             this.debugLogger,
             this.farmerPersistenceService,
+            this.farmerSaveRetryService,
             this.logRepository,
             this.economyProviderManager,
             this.priceProvider
@@ -101,6 +108,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.debugLogger,
             this.farmerCache,
             this.farmerPersistenceService,
+            this.farmerSaveRetryService,
             this.logRepository,
             this.regionProviderManager,
             this.economyProviderManager,
@@ -110,6 +118,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
+            this.farmerSaveRetryService,
             this.regionProviderManager,
             this.visualProviderManager,
             Duration.ofSeconds(30L)
@@ -153,6 +162,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
         this.debugLogger.debug("Debug mode is enabled.");
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
+        validateConfiguration();
         this.regionProviderManager.initialize();
         this.visualProviderManager.initialize();
         this.economyProviderManager.initialize();
@@ -186,6 +196,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
         this.menuService = null;
 
+        flushDirtyFarmersOnDisable();
         saveCachedFarmersOnDisable();
 
         if (this.visualProviderManager != null) {
@@ -206,6 +217,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     public void reloadPluginFiles() {
         this.configManager.reload();
         this.messageManager.reload();
+        validateConfiguration();
         if (this.regionProviderManager != null) {
             this.regionProviderManager.reload();
         }
@@ -263,6 +275,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public FarmerPersistenceService farmerPersistenceService() {
         return this.farmerPersistenceService;
+    }
+
+    public FarmerSaveRetryService farmerSaveRetryService() {
+        return this.farmerSaveRetryService;
     }
 
     public FarmerCreateService farmerCreateService() {
@@ -334,6 +350,19 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.farmerPersistenceService.saveAllCached().get(10L, TimeUnit.SECONDS);
         } catch (Exception exception) {
             getLogger().warning("Farmer cache kaydedilemedi: " + readableMessage(exception));
+        }
+    }
+
+    private void flushDirtyFarmersOnDisable() {
+        if (this.farmerSaveRetryService == null) {
+            return;
+        }
+        this.farmerSaveRetryService.flushNowBlocking(Duration.ofSeconds(10L));
+    }
+
+    private void validateConfiguration() {
+        if (this.configValidationService != null) {
+            this.configValidationService.validate();
         }
     }
 

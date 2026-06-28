@@ -4,6 +4,7 @@ import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
+import com.craftion.farmer.farmer.FarmerSaveRetryService;
 import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.farmer.StorageRemoveResult;
 import com.craftion.farmer.gui.FarmerMenuAccess;
@@ -33,6 +34,7 @@ public final class StorageTransactionService {
     private final ConfigManager configManager;
     private final DebugLogger debugLogger;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final FarmerSaveRetryService farmerSaveRetryService;
     private final LogRepository logRepository;
     private final EconomyProviderManager economyProviderManager;
     private final PriceProvider priceProvider;
@@ -42,6 +44,7 @@ public final class StorageTransactionService {
         ConfigManager configManager,
         DebugLogger debugLogger,
         FarmerPersistenceService farmerPersistenceService,
+        FarmerSaveRetryService farmerSaveRetryService,
         LogRepository logRepository,
         EconomyProviderManager economyProviderManager,
         PriceProvider priceProvider
@@ -50,6 +53,7 @@ public final class StorageTransactionService {
         this.configManager = configManager;
         this.debugLogger = debugLogger;
         this.farmerPersistenceService = farmerPersistenceService;
+        this.farmerSaveRetryService = farmerSaveRetryService;
         this.logRepository = logRepository;
         this.economyProviderManager = economyProviderManager;
         this.priceProvider = priceProvider;
@@ -351,7 +355,8 @@ public final class StorageTransactionService {
     private void persistAndLog(Farmer farmer, UUID actorUuid, String action, String detail) {
         this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
             if (throwable != null) {
-                this.plugin.getLogger().warning("Farmer transaction storage kaydedilemedi: " + readableMessage(throwable));
+                this.plugin.getLogger().warning("Transaction save failed for farmer " + farmer.farmerId() + ": " + readableMessage(throwable));
+                this.farmerSaveRetryService.markDirty(farmer, "transaction " + action);
             }
         });
 

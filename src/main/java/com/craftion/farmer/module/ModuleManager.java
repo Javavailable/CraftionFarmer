@@ -8,6 +8,7 @@ import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.farmer.FarmerSaveRetryService;
 import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.gui.FarmerMenuAccess;
 import com.craftion.farmer.hook.region.RegionProviderManager;
@@ -27,6 +28,7 @@ public final class ModuleManager {
     private final ConfigManager configManager;
     private final DebugLogger debugLogger;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final FarmerSaveRetryService farmerSaveRetryService;
     private final LogRepository logRepository;
     private final ModuleStateService moduleStateService;
     private final Map<String, FarmerModule> modules = new LinkedHashMap<>();
@@ -38,6 +40,7 @@ public final class ModuleManager {
         DebugLogger debugLogger,
         FarmerCache farmerCache,
         FarmerPersistenceService farmerPersistenceService,
+        FarmerSaveRetryService farmerSaveRetryService,
         LogRepository logRepository,
         RegionProviderManager regionProviderManager,
         EconomyProviderManager economyProviderManager,
@@ -46,6 +49,7 @@ public final class ModuleManager {
         this.configManager = Objects.requireNonNull(configManager, "configManager");
         this.debugLogger = Objects.requireNonNull(debugLogger, "debugLogger");
         this.farmerPersistenceService = Objects.requireNonNull(farmerPersistenceService, "farmerPersistenceService");
+        this.farmerSaveRetryService = Objects.requireNonNull(farmerSaveRetryService, "farmerSaveRetryService");
         this.logRepository = Objects.requireNonNull(logRepository, "logRepository");
         this.moduleStateService = new ModuleStateService(configManager, farmerPersistenceService);
         this.productionCalcModule = new ProductionCalcModule();
@@ -96,7 +100,12 @@ public final class ModuleManager {
     public boolean ensureDefaultStates(Farmer farmer) {
         boolean changed = this.moduleStateService.ensureDefaults(farmer, this.modules.values());
         if (changed) {
-            this.farmerPersistenceService.save(farmer);
+            this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
+                if (throwable != null) {
+                    this.debugLogger.debug("Module default save failed for " + farmer.farmerId() + ": " + readableMessage(throwable));
+                    this.farmerSaveRetryService.markDirty(farmer, "module defaults");
+                }
+            });
         }
         return changed;
     }
@@ -110,7 +119,12 @@ public final class ModuleManager {
             .filter(farmer -> this.moduleStateService.ensureDefaults(farmer, this.modules.values()))
             .toList();
         if (!changedFarmers.isEmpty()) {
-            this.farmerPersistenceService.saveAll(changedFarmers);
+            this.farmerPersistenceService.saveAll(changedFarmers).whenComplete((ignored, throwable) -> {
+                if (throwable != null) {
+                    this.debugLogger.debug("Module default batch save failed: " + readableMessage(throwable));
+                    changedFarmers.forEach(farmer -> this.farmerSaveRetryService.markDirty(farmer, "module defaults"));
+                }
+            });
         }
     }
 
