@@ -11,6 +11,7 @@ import com.craftion.farmer.farmer.FarmerRemoveService;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
+import com.craftion.farmer.hook.visual.VisualProviderManager;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
@@ -29,6 +30,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private SchedulerAdapter schedulerAdapter;
     private DatabaseManager databaseManager;
     private RegionProviderManager regionProviderManager;
+    private VisualProviderManager visualProviderManager;
     private FarmerCache farmerCache;
     private FarmerPersistenceService farmerPersistenceService;
     private FarmerCreateService farmerCreateService;
@@ -53,16 +55,23 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.debugLogger = new DebugLogger(this, this.configManager);
         this.schedulerAdapter = SchedulerFactory.create(this);
         this.regionProviderManager = new RegionProviderManager(this, this.configManager, this.debugLogger);
+        this.visualProviderManager = new VisualProviderManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
         this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
         this.farmerCache = new FarmerCache();
         this.farmerPersistenceService = new FarmerPersistenceService(this.databaseManager, this.farmerCache, this.debugLogger);
-        this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager);
-        this.farmerRemoveService = new FarmerRemoveService(this.farmerPersistenceService, this.regionProviderManager, Duration.ofSeconds(30L));
+        this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
+        this.farmerRemoveService = new FarmerRemoveService(
+            this.farmerPersistenceService,
+            this.regionProviderManager,
+            this.visualProviderManager,
+            Duration.ofSeconds(30L)
+        );
         this.farmerReconcileService = new FarmerReconcileService(
             this.schedulerAdapter,
             this.databaseManager,
             this.farmerCache,
             this.regionProviderManager,
+            this.visualProviderManager,
             this.debugLogger
         );
         this.skylliaSyncManager = new SkylliaSyncManager(this, this.configManager, this.farmerReconcileService, this.debugLogger);
@@ -74,6 +83,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.debugLogger.debug("Debug mode is enabled.");
         this.debugLogger.debug("Scheduler adapter: " + this.schedulerAdapter.type());
         this.regionProviderManager.initialize();
+        this.visualProviderManager.initialize();
         this.databaseManager.initialize();
         loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
@@ -87,6 +97,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
 
         saveCachedFarmersOnDisable();
+
+        if (this.visualProviderManager != null) {
+            this.visualProviderManager.shutdown();
+        }
 
         if (this.databaseManager != null) {
             this.databaseManager.shutdown();
@@ -104,6 +118,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.messageManager.reload();
         if (this.regionProviderManager != null) {
             this.regionProviderManager.reload();
+        }
+        if (this.visualProviderManager != null) {
+            this.visualProviderManager.reload();
         }
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.reload();
@@ -125,6 +142,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public RegionProviderManager regionProviderManager() {
         return this.regionProviderManager;
+    }
+
+    public VisualProviderManager visualProviderManager() {
+        return this.visualProviderManager;
     }
 
     public ConfigManager configManager() {
@@ -160,6 +181,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             if (throwable != null) {
                 getLogger().warning("Farmer cache yuklenemedi: " + readableMessage(throwable));
                 return;
+            }
+            if (this.visualProviderManager != null) {
+                this.visualProviderManager.reconcile(farmers);
             }
             this.debugLogger.debug("Farmer cache ready: " + farmers.size());
         });

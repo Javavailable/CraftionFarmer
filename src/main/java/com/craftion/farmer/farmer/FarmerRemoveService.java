@@ -3,6 +3,7 @@ package com.craftion.farmer.farmer;
 import com.craftion.farmer.hook.region.RegionAccessResult;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
+import com.craftion.farmer.hook.visual.VisualProviderManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -17,16 +18,19 @@ public final class FarmerRemoveService {
 
     private final FarmerPersistenceService persistenceService;
     private final RegionProviderManager regionProviderManager;
+    private final VisualProviderManager visualProviderManager;
     private final Duration confirmTimeout;
     private final Map<UUID, PendingRemoval> pendingRemovals = new ConcurrentHashMap<>();
 
     public FarmerRemoveService(
         FarmerPersistenceService persistenceService,
         RegionProviderManager regionProviderManager,
+        VisualProviderManager visualProviderManager,
         Duration confirmTimeout
     ) {
         this.persistenceService = Objects.requireNonNull(persistenceService, "persistenceService");
         this.regionProviderManager = Objects.requireNonNull(regionProviderManager, "regionProviderManager");
+        this.visualProviderManager = Objects.requireNonNull(visualProviderManager, "visualProviderManager");
         this.confirmTimeout = Objects.requireNonNull(confirmTimeout, "confirmTimeout");
     }
 
@@ -63,11 +67,18 @@ public final class FarmerRemoveService {
             return CompletableFuture.completedFuture(FarmerRemoveResult.of(FarmerRemoveResult.Status.NOT_ALLOWED, pendingRemoval.regionId()));
         }
 
-        return this.persistenceService.deleteByRegionId(pendingRemoval.regionId()).thenApply(deleted -> {
-            if (!deleted) {
-                return FarmerRemoveResult.of(FarmerRemoveResult.Status.NO_FARMER, pendingRemoval.regionId());
+        return this.persistenceService.findByRegionId(pendingRemoval.regionId()).thenCompose(farmer -> {
+            if (farmer.isEmpty()) {
+                return CompletableFuture.completedFuture(FarmerRemoveResult.of(FarmerRemoveResult.Status.NO_FARMER, pendingRemoval.regionId()));
             }
-            return FarmerRemoveResult.of(FarmerRemoveResult.Status.REMOVED, pendingRemoval.regionId());
+
+            return this.persistenceService.deleteByRegionId(pendingRemoval.regionId()).thenApply(deleted -> {
+                if (!deleted) {
+                    return FarmerRemoveResult.of(FarmerRemoveResult.Status.NO_FARMER, pendingRemoval.regionId());
+                }
+                this.visualProviderManager.remove(farmer.get());
+                return FarmerRemoveResult.of(FarmerRemoveResult.Status.REMOVED, pendingRemoval.regionId());
+            });
         });
     }
 
