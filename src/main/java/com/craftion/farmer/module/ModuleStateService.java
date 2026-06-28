@@ -52,10 +52,16 @@ public final class ModuleStateService {
             return CompletableFuture.completedFuture(new ModuleStateResult(ModuleStateResult.Status.MODULE_DISABLED, module.key(), false));
         }
 
-        boolean nextState = !state(farmer, module);
-        farmer.setModuleState(normalize(module.key()), nextState);
+        String moduleKey = normalize(module.key());
+        boolean previousState = state(farmer, module);
+        boolean nextState = !previousState;
+        farmer.setModuleState(moduleKey, nextState);
         return this.farmerPersistenceService.save(farmer)
-            .thenApply(ignored -> new ModuleStateResult(ModuleStateResult.Status.SUCCESS, module.key(), nextState));
+            .thenApply(ignored -> new ModuleStateResult(ModuleStateResult.Status.SUCCESS, module.key(), nextState))
+            .exceptionally(throwable -> {
+                farmer.setModuleState(moduleKey, previousState);
+                return new ModuleStateResult(ModuleStateResult.Status.FAILED, module.key(), previousState);
+            });
     }
 
     private String normalize(String moduleKey) {
