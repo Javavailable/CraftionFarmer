@@ -17,6 +17,7 @@ public final class Farmer {
     private final ConcurrentMap<UUID, FarmerMember> members = new ConcurrentHashMap<>();
     private final FarmerSettings settings;
     private final ConcurrentMap<String, Boolean> moduleStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MaterialKey, Boolean> productCollectingStates = new ConcurrentHashMap<>();
     private final Instant createdAt;
     private volatile LocationSnapshot location;
     private volatile int level;
@@ -39,6 +40,40 @@ public final class Farmer {
         Instant createdAt,
         Instant updatedAt
     ) {
+        this(
+            farmerId,
+            regionId,
+            ownerUuid,
+            location,
+            level,
+            collectingEnabled,
+            storage,
+            members,
+            settings,
+            moduleStates,
+            Map.of(),
+            statistics,
+            createdAt,
+            updatedAt
+        );
+    }
+
+    public Farmer(
+        String farmerId,
+        String regionId,
+        UUID ownerUuid,
+        LocationSnapshot location,
+        int level,
+        boolean collectingEnabled,
+        FarmerStorage storage,
+        Collection<FarmerMember> members,
+        FarmerSettings settings,
+        Map<String, Boolean> moduleStates,
+        Map<MaterialKey, Boolean> productCollectingStates,
+        FarmerStatistics statistics,
+        Instant createdAt,
+        Instant updatedAt
+    ) {
         this.farmerId = FarmerValidation.requireNonBlank(farmerId, "farmerId");
         this.regionId = FarmerValidation.requireNonBlank(regionId, "regionId");
         this.ownerUuid = FarmerValidation.requireUuid(ownerUuid, "ownerUuid");
@@ -52,6 +87,7 @@ public final class Farmer {
         this.updatedAt = FarmerValidation.requireNonNull(updatedAt, "updatedAt");
         FarmerValidation.requireNonNull(members, "members").forEach(this::loadMember);
         FarmerValidation.requireNonNull(moduleStates, "moduleStates").forEach(this::loadModuleState);
+        FarmerValidation.requireNonNull(productCollectingStates, "productCollectingStates").forEach(this::loadProductCollectingState);
     }
 
     public static Farmer create(String farmerId, String regionId, UUID ownerUuid, LocationSnapshot location) {
@@ -101,6 +137,7 @@ public final class Farmer {
             this.members.values(),
             this.settings,
             this.moduleStates,
+            this.productCollectingStates,
             this.statistics,
             this.createdAt,
             Instant.now()
@@ -183,6 +220,15 @@ public final class Farmer {
         return Map.copyOf(this.moduleStates);
     }
 
+    public Map<MaterialKey, Boolean> productCollectingStates() {
+        return Map.copyOf(this.productCollectingStates);
+    }
+
+    public boolean productCollectingEnabled(MaterialKey materialKey) {
+        FarmerValidation.requireNonNull(materialKey, "materialKey");
+        return this.productCollectingStates.getOrDefault(materialKey, true);
+    }
+
     public FarmerStatistics statistics() {
         return this.statistics;
     }
@@ -254,6 +300,16 @@ public final class Farmer {
         touch();
     }
 
+    public void setProductCollectingEnabled(MaterialKey materialKey, boolean enabled) {
+        FarmerValidation.requireNonNull(materialKey, "materialKey");
+        if (enabled) {
+            this.productCollectingStates.remove(materialKey);
+        } else {
+            this.productCollectingStates.put(materialKey, false);
+        }
+        touch();
+    }
+
     public void updateStatistics(FarmerStatistics statistics) {
         this.statistics = FarmerValidation.requireNonNull(statistics, "statistics");
         touch();
@@ -286,5 +342,14 @@ public final class Farmer {
 
     private void loadModuleState(String moduleKey, boolean enabled) {
         this.moduleStates.put(FarmerValidation.requireNonBlank(moduleKey, "moduleKey"), enabled);
+    }
+
+    private void loadProductCollectingState(MaterialKey materialKey, boolean enabled) {
+        FarmerValidation.requireNonNull(materialKey, "materialKey");
+        if (enabled) {
+            this.productCollectingStates.remove(materialKey);
+        } else {
+            this.productCollectingStates.put(materialKey, false);
+        }
     }
 }
