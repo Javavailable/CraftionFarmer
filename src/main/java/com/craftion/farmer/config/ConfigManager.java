@@ -62,6 +62,58 @@ public final class ConfigManager {
         return this.config.getBoolean("hooks.skyllia-sync.reconcile-on-menu-open", true);
     }
 
+    public String visualProvider() {
+        return this.config.getString("hooks.visual.provider", "FANCY_NPCS");
+    }
+
+    public String fancyNpcsApiMode() {
+        return this.config.getString("hooks.visual.fancynpcs.api-mode", "AUTO");
+    }
+
+    public String fancyNpcsIdPrefix() {
+        return this.config.getString("hooks.visual.fancynpcs.id-prefix", "craftion-farmer-");
+    }
+
+    public boolean saveFancyNpcsToFile() {
+        return this.config.getBoolean("hooks.visual.fancynpcs.save-npcs-to-file", false);
+    }
+
+    public boolean removeFancyNpcOnFarmerDelete() {
+        return this.config.getBoolean("hooks.visual.fancynpcs.remove-on-farmer-delete", true);
+    }
+
+    public boolean isNpcEnabled() {
+        return this.config.getBoolean("npc.enabled", true);
+    }
+
+    public String npcType() {
+        return this.config.getString("npc.type", "VILLAGER");
+    }
+
+    public String npcName() {
+        return this.config.getString("npc.name", "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ");
+    }
+
+    public boolean npcGlowing() {
+        return this.config.getBoolean("npc.glowing", true);
+    }
+
+    public String npcGlowingColor() {
+        return this.config.getString("npc.glowing-color", "AQUA");
+    }
+
+    public boolean npcTurnToPlayer() {
+        return this.config.getBoolean("npc.turn-to-player", true);
+    }
+
+    public double npcInteractionCooldown() {
+        return this.config.getDouble("npc.interaction-cooldown", 0.5D);
+    }
+
+    public int npcVisibilityDistance() {
+        return this.config.getInt("npc.visibility-distance", 48);
+    }
+
     public String databaseType() {
         return this.config.getString("database.type", "SQLITE");
     }

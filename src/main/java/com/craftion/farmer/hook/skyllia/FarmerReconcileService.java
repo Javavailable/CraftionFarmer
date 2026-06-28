@@ -8,6 +8,7 @@ import com.craftion.farmer.farmer.FarmerRole;
 import com.craftion.farmer.hook.region.RegionMemberInfo;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
+import com.craftion.farmer.hook.visual.VisualProviderManager;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.storage.DatabaseManager;
 import java.sql.Connection;
@@ -38,6 +39,7 @@ public final class FarmerReconcileService {
     private final DatabaseManager databaseManager;
     private final FarmerCache farmerCache;
     private final RegionProviderManager regionProviderManager;
+    private final VisualProviderManager visualProviderManager;
     private final DebugLogger debugLogger;
 
     public FarmerReconcileService(
@@ -45,12 +47,14 @@ public final class FarmerReconcileService {
         DatabaseManager databaseManager,
         FarmerCache farmerCache,
         RegionProviderManager regionProviderManager,
+        VisualProviderManager visualProviderManager,
         DebugLogger debugLogger
     ) {
         this.schedulerAdapter = Objects.requireNonNull(schedulerAdapter, "schedulerAdapter");
         this.databaseManager = Objects.requireNonNull(databaseManager, "databaseManager");
         this.farmerCache = Objects.requireNonNull(farmerCache, "farmerCache");
         this.regionProviderManager = Objects.requireNonNull(regionProviderManager, "regionProviderManager");
+        this.visualProviderManager = Objects.requireNonNull(visualProviderManager, "visualProviderManager");
         this.debugLogger = Objects.requireNonNull(debugLogger, "debugLogger");
     }
 
@@ -81,10 +85,15 @@ public final class FarmerReconcileService {
                 deleteFarmerChildren(connection, farmerId);
             }
             int deleted = deleteFarmersByRegionId(connection, region);
-            return deleted > 0 || !farmerIds.isEmpty();
-        })).thenApply(deleted -> {
-            removeCachedRegion(region);
-            return deleted;
+            return deleted > 0 || !farmerIds.isEmpty() ? farmerIds : List.<String>of();
+        })).thenApply(deletedFarmerIds -> {
+            if (!deletedFarmerIds.isEmpty()) {
+                removeCachedRegion(region);
+                for (String farmerId : deletedFarmerIds) {
+                    this.visualProviderManager.remove(farmerId);
+                }
+            }
+            return !deletedFarmerIds.isEmpty();
         });
     }
 

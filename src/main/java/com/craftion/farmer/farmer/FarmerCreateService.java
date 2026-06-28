@@ -4,6 +4,7 @@ import com.craftion.farmer.hook.region.RegionAccessResult;
 import com.craftion.farmer.hook.region.RegionMemberInfo;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
+import com.craftion.farmer.hook.visual.VisualProviderManager;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,10 +19,16 @@ public final class FarmerCreateService {
 
     private final FarmerPersistenceService persistenceService;
     private final RegionProviderManager regionProviderManager;
+    private final VisualProviderManager visualProviderManager;
 
-    public FarmerCreateService(FarmerPersistenceService persistenceService, RegionProviderManager regionProviderManager) {
+    public FarmerCreateService(
+        FarmerPersistenceService persistenceService,
+        RegionProviderManager regionProviderManager,
+        VisualProviderManager visualProviderManager
+    ) {
         this.persistenceService = Objects.requireNonNull(persistenceService, "persistenceService");
         this.regionProviderManager = Objects.requireNonNull(regionProviderManager, "regionProviderManager");
+        this.visualProviderManager = Objects.requireNonNull(visualProviderManager, "visualProviderManager");
     }
 
     public CompletableFuture<FarmerCreateResult> create(Player player, boolean bypassAccess) {
@@ -44,7 +51,10 @@ public final class FarmerCreateService {
                 return CompletableFuture.completedFuture(FarmerCreateResult.failed(FarmerCreateResult.Status.DUPLICATE, context.regionId()));
             }
 
-            return this.persistenceService.save(farmer).thenApply(ignored -> FarmerCreateResult.created(farmer));
+            return this.persistenceService.save(farmer).thenApply(ignored -> {
+                this.visualProviderManager.spawn(farmer);
+                return FarmerCreateResult.created(farmer);
+            });
         });
     }
 

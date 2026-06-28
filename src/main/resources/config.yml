@@ -17,6 +17,23 @@ hooks:
     remove-farmer-on-island-delete: true
     reconcile-on-command: true
     reconcile-on-menu-open: true
+  visual:
+    provider: FANCY_NPCS
+    fancynpcs:
+      api-mode: AUTO
+      id-prefix: "craftion-farmer-"
+      save-npcs-to-file: false
+      remove-on-farmer-delete: true
+
+npc:
+  enabled: true
+  type: VILLAGER
+  name: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
+  glowing: true
+  glowing-color: AQUA
+  turn-to-player: true
+  interaction-cooldown: 0.5
+  visibility-distance: 48
 
 database:
   type: SQLITE
