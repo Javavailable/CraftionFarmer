@@ -1,8 +1,10 @@
 package com.craftion.farmer.config;
 
 import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.farmer.MaterialKey;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.OptionalDouble;
 import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -149,6 +151,42 @@ public final class ConfigManager {
             }
         }
         return Set.copyOf(materials);
+    }
+
+    public boolean allowMemberWithdraw() {
+        return this.config.getBoolean("storage.withdraw.allow-members", true);
+    }
+
+    public String economyProvider() {
+        return this.config.getString("economy.provider", "VAULT");
+    }
+
+    public boolean economyTaxEnabled() {
+        return this.config.getBoolean("economy.tax.enabled", false);
+    }
+
+    public double economyTaxRate() {
+        double rate = this.config.getDouble("economy.tax.rate", 0.0D);
+        if (!Double.isFinite(rate)) {
+            return 0.0D;
+        }
+        return Math.max(0.0D, Math.min(1.0D, rate));
+    }
+
+    public OptionalDouble price(MaterialKey materialKey) {
+        if (materialKey == null) {
+            return OptionalDouble.empty();
+        }
+        return price(materialKey.toString());
+    }
+
+    public OptionalDouble price(String materialKey) {
+        String normalizedKey = normalizeGuiKey(materialKey);
+        double price = this.config.getDouble("prices." + normalizedKey, -1.0D);
+        if (!Double.isFinite(price) || price <= 0.0D) {
+            return OptionalDouble.empty();
+        }
+        return OptionalDouble.of(price);
     }
 
     public ConfigurationSection guiMenu(String menuId) {

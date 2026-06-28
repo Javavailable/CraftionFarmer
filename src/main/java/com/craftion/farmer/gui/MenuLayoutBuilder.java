@@ -16,6 +16,7 @@ public final class MenuLayoutBuilder {
     private final int size;
     private final String title;
     private final Map<Integer, MenuAction> actions = new HashMap<>();
+    private final Map<Integer, MenuAction> rightActions = new HashMap<>();
     private final Map<Integer, ItemStack> items = new HashMap<>();
 
     public MenuLayoutBuilder(String menuId, String previousMenuId, FarmerMenuSession session, int size, String title) {
@@ -44,10 +45,14 @@ public final class MenuLayoutBuilder {
             return;
         }
 
-        putItem(slot, item.get(), action(section, placeholders).orElse(null));
+        putItem(slot, item.get(), action(section, "action", placeholders).orElse(null), action(section, "right-action", placeholders).orElse(null));
     }
 
     public void putItem(int slot, ItemStack item, MenuAction action) {
+        putItem(slot, item, action, null);
+    }
+
+    public void putItem(int slot, ItemStack item, MenuAction action, MenuAction rightAction) {
         if (!isValidSlot(slot) || item == null || item.getType().isAir()) {
             return;
         }
@@ -55,10 +60,13 @@ public final class MenuLayoutBuilder {
         if (action != null) {
             this.actions.put(slot, action);
         }
+        if (rightAction != null) {
+            this.rightActions.put(slot, rightAction);
+        }
     }
 
     public MenuLayout build() {
-        MenuHolder holder = new MenuHolder(this.menuId, this.previousMenuId, this.actions, this.session);
+        MenuHolder holder = new MenuHolder(this.menuId, this.previousMenuId, this.actions, this.rightActions, this.session);
         return new MenuLayout(holder, this.size, this.title, Map.copyOf(this.items));
     }
 
@@ -78,8 +86,8 @@ public final class MenuLayoutBuilder {
             .build());
     }
 
-    private Optional<MenuAction> action(ConfigurationSection section, Map<String, String> placeholders) {
-        String rawAction = applyPlaceholders(section.getString("action"), placeholders);
+    private Optional<MenuAction> action(ConfigurationSection section, String key, Map<String, String> placeholders) {
+        String rawAction = applyPlaceholders(section.getString(key), placeholders);
         return MenuAction.parse(rawAction);
     }
 

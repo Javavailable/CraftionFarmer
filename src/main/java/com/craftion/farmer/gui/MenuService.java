@@ -2,9 +2,12 @@ package com.craftion.farmer.gui;
 
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.economy.StorageTransactionResult;
+import com.craftion.farmer.economy.StorageTransactionService;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.gui.listener.MenuClickListener;
 import com.craftion.farmer.gui.listener.MenuDragListener;
 import com.craftion.farmer.hook.region.RegionAccessResult;
@@ -43,6 +46,7 @@ public final class MenuService {
     private final FarmerPersistenceService farmerPersistenceService;
     private final FarmerReconcileService farmerReconcileService;
     private final MessageService messageService;
+    private final StorageTransactionService storageTransactionService;
     private final MenuActionRegistry actionRegistry;
     private final Map<String, FarmerMenu> menus = new LinkedHashMap<>();
     private boolean initialized;
@@ -56,7 +60,8 @@ public final class MenuService {
         RegionProviderManager regionProviderManager,
         FarmerPersistenceService farmerPersistenceService,
         FarmerReconcileService farmerReconcileService,
-        MessageService messageService
+        MessageService messageService,
+        StorageTransactionService storageTransactionService
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -67,6 +72,7 @@ public final class MenuService {
         this.farmerPersistenceService = farmerPersistenceService;
         this.farmerReconcileService = farmerReconcileService;
         this.messageService = messageService;
+        this.storageTransactionService = storageTransactionService;
         this.actionRegistry = new MenuActionRegistry(debugLogger);
         registerMenus();
         registerDefaultActions();
@@ -125,8 +131,8 @@ public final class MenuService {
         this.actionRegistry.register(MenuAction.Type.CLOSE, (context, action) -> close(context.player()));
         this.actionRegistry.register(MenuAction.Type.BACK, this::back);
         this.actionRegistry.register(MenuAction.Type.INFO, (context, action) -> true);
-        this.actionRegistry.register(MenuAction.Type.WITHDRAW, this::deferFutureAction);
-        this.actionRegistry.register(MenuAction.Type.SELL, this::deferFutureAction);
+        this.actionRegistry.register(MenuAction.Type.WITHDRAW, this::withdraw);
+        this.actionRegistry.register(MenuAction.Type.SELL, this::sell);
     }
 
     private boolean openForPlayer(Player player, String menuId, String previousMenuId) {
@@ -253,10 +259,84 @@ public final class MenuService {
         return true;
     }
 
-    private boolean deferFutureAction(MenuContext context, MenuAction action) {
-        this.messageService.send(context.player(), "commands.farmer.gui-action-pending");
-        this.debugLogger.debug("Menu action is reserved for a later package: " + action.type() + ":" + action.target());
+    private boolean withdraw(MenuContext context, MenuAction action) {
+        Optional<FarmerMenuSession> session = context.session();
+        if (session.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return false;
+        }
+
+        StorageTransactionResult result = this.storageTransactionService.withdraw(context.player(), session.get(), action.target());
+        sendWithdrawResult(context.player(), result);
+        if (result.success()) {
+            refreshCurrentMenu(context);
+        }
         return true;
+    }
+
+    private boolean sell(MenuContext context, MenuAction action) {
+        Optional<FarmerMenuSession> session = context.session();
+        if (session.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return false;
+        }
+
+        StorageTransactionResult result = this.storageTransactionService.sell(context.player(), session.get(), action.target());
+        sendSellResult(context.player(), result);
+        if (result.success()) {
+            refreshCurrentMenu(context);
+        }
+        return true;
+    }
+
+    private void sendWithdrawResult(Player player, StorageTransactionResult result) {
+        String path = switch (result.status()) {
+            case SUCCESS -> "commands.farmer.withdraw-success";
+            case DENIED -> "commands.farmer.withdraw-denied";
+            case EMPTY_STORAGE -> "commands.farmer.withdraw-empty";
+            case INVENTORY_FULL -> "commands.farmer.withdraw-inventory-full";
+            case INVALID_ACTION, NO_PRICE, ECONOMY_UNAVAILABLE, DEPOSIT_FAILED, FAILED -> "commands.farmer.withdraw-failed";
+        };
+        this.messageService.send(player, path, transactionPlaceholders(result));
+    }
+
+    private void sendSellResult(Player player, StorageTransactionResult result) {
+        String path = switch (result.status()) {
+            case SUCCESS -> "commands.farmer.sell-success";
+            case DENIED -> "commands.farmer.sell-denied";
+            case EMPTY_STORAGE -> "commands.farmer.sell-empty";
+            case NO_PRICE -> "commands.farmer.sell-no-price";
+            case ECONOMY_UNAVAILABLE -> "commands.farmer.sell-economy-unavailable";
+            case DEPOSIT_FAILED -> "commands.farmer.sell-deposit-failed";
+            case INVENTORY_FULL, INVALID_ACTION, FAILED -> "commands.farmer.sell-failed";
+        };
+        this.messageService.send(player, path, transactionPlaceholders(result));
+    }
+
+    private Map<String, String> transactionPlaceholders(StorageTransactionResult result) {
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("material", materialName(result.materialKey()));
+        placeholders.put("amount", formatAmount(result.amount()));
+        placeholders.put("materials", formatAmount(result.materialCount()));
+        placeholders.put("gross", formatMoney(result.gross()));
+        placeholders.put("tax", formatMoney(result.tax()));
+        placeholders.put("net", formatMoney(result.net()));
+        placeholders.put("provider", result.providerName().isBlank() ? "-" : result.providerName());
+        placeholders.put("error", result.errorMessage().isBlank() ? "ʙɪʟɪɴᴍᴇʏᴇɴ ʜᴀᴛᴀ" : result.errorMessage());
+        return Map.copyOf(placeholders);
+    }
+
+    private void refreshCurrentMenu(MenuContext context) {
+        context.session().ifPresent(session -> openResolved(
+            context.player(),
+            context.menuId(),
+            context.holder().previousMenuId().orElse(null),
+            session
+        ));
+    }
+
+    private String materialName(MaterialKey materialKey) {
+        return materialKey == null ? "ᴛᴜᴍ ᴜʀᴜɴʟᴇʀ" : this.configManager.guiMaterialName(materialKey.toString());
     }
 
     private void openNow(Player player, FarmerMenu menu, String previousMenuId, FarmerMenuSession session) {
@@ -389,6 +469,10 @@ public final class MenuService {
 
     private String formatAmount(long amount) {
         return String.format(Locale.US, "%,d", amount);
+    }
+
+    private String formatMoney(double amount) {
+        return String.format(Locale.US, "%,.2f", amount);
     }
 
     private String playerName(UUID playerUuid) {

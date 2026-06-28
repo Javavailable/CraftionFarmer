@@ -145,6 +145,28 @@ public final class Farmer {
         }
     }
 
+    public StorageRemoveResult removeStorageAmount(MaterialKey materialKey, long requestedAmount) {
+        FarmerValidation.requireNonNull(materialKey, "materialKey");
+        FarmerValidation.requireNonNegative(requestedAmount, "requestedAmount");
+
+        synchronized (this) {
+            long currentAmount = this.storage.amount(materialKey);
+            long removedAmount = Math.min(requestedAmount, currentAmount);
+            if (removedAmount <= 0L) {
+                return new StorageRemoveResult(materialKey, requestedAmount, 0L, requestedAmount, currentAmount);
+            }
+
+            long newAmount = currentAmount - removedAmount;
+            if (newAmount <= 0L) {
+                this.storage.remove(materialKey);
+            } else {
+                this.storage.setAmount(materialKey, newAmount);
+            }
+            touch();
+            return new StorageRemoveResult(materialKey, requestedAmount, removedAmount, requestedAmount - removedAmount, newAmount);
+        }
+    }
+
     public Map<UUID, FarmerMember> members() {
         return Map.copyOf(this.members);
     }

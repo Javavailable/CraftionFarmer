@@ -52,6 +52,27 @@ collect:
     - MELON_SLICE
     - PUMPKIN
 
+storage:
+  withdraw:
+    allow-members: true
+
+economy:
+  provider: VAULT
+  tax:
+    enabled: true
+    rate: 0.05
+
+prices:
+  wheat: 2.0
+  carrot: 2.0
+  potato: 2.0
+  beetroot: 2.5
+  cactus: 1.5
+  sugar_cane: 1.5
+  bamboo: 1.0
+  melon_slice: 1.0
+  pumpkin: 4.0
+
 gui:
   labels:
     collecting:
@@ -153,15 +174,26 @@ gui:
           action: "close"
           lore:
             - "<#FFE4E6>ᴍᴇɴᴜʏᴜ ᴋᴀᴘᴀᴛ"
+        "53":
+          material: EMERALD
+          name: "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
+          action: "sell:all"
+          lore:
+            - "<#D1FAE5>ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴅᴇᴘᴏ ᴜʀᴜɴʟᴇʀɪɴɪ sᴀᴛ"
+            - "<#CBD5E1>ᴏᴅᴇᴍᴇ <#94A3B8>• <#E0F2FE>ᴠᴀᴜʟᴛ ᴇᴋᴏɴᴏᴍɪ"
       storage-items:
         slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
         filled:
           material: "%material%"
           name: "<#22C55E>%material_name%"
-          action: "withdraw:%material%"
+          action: "withdraw:%material%:stack"
+          right-action: "sell:%material%:all"
           lore:
             - "<#D1FAE5>ᴅᴇᴘᴏᴅᴀᴋɪ ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount%"
-            - "<#CBD5E1>ᴄᴇᴋᴍᴇ ɪsʟᴇᴍɪ sᴏɴʀᴀᴋɪ ᴘᴀᴋᴇᴛᴛᴇ ᴀᴋᴛɪғ ᴏʟᴀᴄᴀᴋ"
+            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
+            - "<#CBD5E1>ᴛᴀʜᴍɪɴɪ ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙɪʀ sᴛᴀᴄᴋ ᴄᴇᴋ"
+            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙᴜ ᴜʀᴜɴᴜ sᴀᴛ"
         empty:
           material: BARREL
           name: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
