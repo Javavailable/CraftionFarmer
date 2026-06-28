@@ -40,18 +40,13 @@ public final class MainFarmerMenu implements FarmerMenu {
             long amount = context.farmer().storageAmount(materialKey);
             OptionalDouble price = context.configManager().price(materialKey);
             long capacity = context.configManager().maxStoragePerItem();
-            boolean productEnabled = context.farmer().productCollectingEnabled(materialKey);
-            boolean effectiveEnabled = context.farmer().collectingEnabled() && productEnabled;
             builder.putConfiguredItem(slots.get(index), template, context.withPlaceholders(Map.of(
                 "material", materialKey.toString(),
                 "material_name", context.materialName(materialKey.toString()),
                 "amount", formatAmount(amount),
-                "price", price.isPresent() ? formatMoney(price.getAsDouble()) : "-",
                 "worth", price.isPresent() ? formatMoney(price.getAsDouble() * amount) : "-",
                 "capacity", capacity < 0L ? "sɪɴɪʀsɪᴢ" : formatAmount(capacity),
-                "fill_percent", fillPercent(amount, capacity),
-                "product_state", context.configManager().guiCollectingState(productEnabled),
-                "effective_product_state", context.configManager().guiCollectingState(effectiveEnabled)
+                "collection_status", collectionStatus(context, materialKey)
             )), materialKey.toString());
             index++;
         }
@@ -64,22 +59,21 @@ public final class MainFarmerMenu implements FarmerMenu {
         }
     }
 
+    private String collectionStatus(MenuRenderContext context, MaterialKey materialKey) {
+        if (!context.farmer().collectingEnabled()) {
+            return "<#FBBF24>ɢᴇɴᴇʟ ᴋᴀᴘᴀʟɪ";
+        }
+        if (!context.farmer().productCollectingEnabled(materialKey)) {
+            return "<#FBBF24>ᴜʀᴜɴ ᴋᴀᴘᴀʟɪ";
+        }
+        return "<#22C55E>ᴀᴋᴛɪғ";
+    }
+
     private String formatAmount(long amount) {
         return String.format(Locale.US, "%,d", amount);
     }
 
     private String formatMoney(double amount) {
         return Double.isFinite(amount) ? String.format(Locale.US, "%,.2f", amount) : "-";
-    }
-
-    private String fillPercent(long amount, long capacity) {
-        if (capacity < 0L) {
-            return "-";
-        }
-        if (capacity <= 0L) {
-            return "0%";
-        }
-        double percent = Math.max(0.0D, Math.min(100.0D, (amount * 100.0D) / capacity));
-        return String.format(Locale.US, "%.1f%%", percent);
     }
 }

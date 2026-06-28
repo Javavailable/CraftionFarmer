@@ -577,13 +577,13 @@ public final class MenuService {
             ? "<#38BDF8>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ"
             : "<#22C55E>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ";
         String body = operation == DialogOperation.WITHDRAW
-            ? "<#CBD5E1>" + materialName + " <#94A3B8>ɪᴄɪɴ ᴄᴇᴋɪʟᴇᴄᴇᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ.\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
-                + "\n<#CBD5E1>ᴇɴᴠᴀɴᴛᴇʀ ᴋᴀᴘᴀsɪᴛᴇsɪ ᴅɪᴋᴋᴀᴛᴇ ᴀʟɪɴɪʀ"
-            : "<#CBD5E1>" + materialName + " <#94A3B8>ɪᴄɪɴ sᴀᴛɪʟᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ.\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
-                + (price.isPresent() ? "\n<#CBD5E1>ᴛᴀʜᴍɪɴɪ ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>" + formatMoney(price.getAsDouble() * maxAmount) : "");
+            ? "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
+                + "\n<#CBD5E1>ᴇɴᴠᴀɴᴛᴇʀ <#94A3B8>• <#E0F2FE>ʏᴇʀ ᴋᴀᴅᴀʀ"
+            : "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
+                + (price.isPresent() ? "\n<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>" + formatMoney(price.getAsDouble() * maxAmount) : "");
 
         ActionButton confirmButton = ActionButton.builder(TextUtil.parse("<#22C55E>ᴏɴᴀʏʟᴀ"))
-            .tooltip(TextUtil.parse("<#BBF7D0>sᴇᴄɪʟᴇɴ ᴍɪᴋᴛᴀʀ ɪʟᴇ ɪsʟᴇᴍɪ ᴛᴀᴍᴀᴍʟᴀ"))
+            .tooltip(TextUtil.parse("<#BBF7D0>ᴏɴᴀʏʟᴀ <#94A3B8>• <#E0F2FE>ᴅᴇᴠᴀᴍ"))
             .width(150)
             .action(DialogAction.customClick(
                 (response, audience) -> handleAmountDialogResponse(operation, materialKey, maxAmount, menuId, previousMenuId, session, response, audience),
@@ -605,7 +605,7 @@ public final class MenuService {
             .body(List.of(DialogBody.plainMessage(TextUtil.parse(body), 300)))
             .inputs(List.of(DialogInput.numberRange(AMOUNT_INPUT_KEY, TextUtil.parse("<#E0F2FE>ᴍɪᴋᴛᴀʀ"), 1.0F, (float) maxAmount)
                 .width(300)
-                .labelFormat("%.0f")
+                .labelFormat("%s: %s")
                 .initial((float) maxAmount)
                 .step(1.0F)
                 .build()))
@@ -771,8 +771,19 @@ public final class MenuService {
         placeholders.put("product_state", this.configManager.guiCollectingState(productEnabled));
         placeholders.put("effective_product_state", this.configManager.guiCollectingState(effectiveEnabled));
         placeholders.put("price_state", price.isPresent() ? formatMoney(price.getAsDouble()) : "ғɪʏᴀᴛ ʏᴏᴋ");
+        placeholders.put("collection_status", productCollectionStatus(farmer, materialKey));
         placeholders.put("product_material", material(materialKey).map(Material::name).orElse("BARREL"));
         return Map.copyOf(placeholders);
+    }
+
+    private String productCollectionStatus(Farmer farmer, MaterialKey materialKey) {
+        if (!farmer.collectingEnabled()) {
+            return "<#FBBF24>ɢᴇɴᴇʟ ᴋᴀᴘᴀʟɪ";
+        }
+        if (!farmer.productCollectingEnabled(materialKey)) {
+            return "<#FBBF24>ᴜʀᴜɴ ᴋᴀᴘᴀʟɪ";
+        }
+        return "<#22C55E>ᴀᴋᴛɪғ";
     }
 
     private Map<String, String> mergedPlaceholders(Map<String, String> base, Map<String, String> extra) {
