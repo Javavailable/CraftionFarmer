@@ -1,7 +1,10 @@
 package com.craftion.farmer.config;
 
 import com.craftion.farmer.farmer.FarmerRole;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Set;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -115,6 +118,37 @@ public final class ConfigManager {
 
     public int npcVisibilityDistance() {
         return this.config.getInt("npc.visibility-distance", 48);
+    }
+
+    public boolean isCollectEnabled() {
+        return this.config.getBoolean("collect.enabled", true);
+    }
+
+    public boolean ignorePlayerDrops() {
+        return this.config.getBoolean("collect.ignore-player-drops", true);
+    }
+
+    public boolean ignoreItemsWithMeta() {
+        return this.config.getBoolean("collect.ignore-items-with-meta", true);
+    }
+
+    public long maxStoragePerItem() {
+        return this.config.getLong("collect.max-storage-per-item", -1L);
+    }
+
+    public long collectSaveDelayTicks() {
+        return Math.max(1L, this.config.getLong("collect.save-delay-ticks", 40L));
+    }
+
+    public Set<Material> allowedCollectMaterials() {
+        Set<Material> materials = new LinkedHashSet<>();
+        for (String materialName : this.config.getStringList("collect.allowed-materials")) {
+            Material material = Material.matchMaterial(materialName);
+            if (material != null && !material.isAir()) {
+                materials.add(material);
+            }
+        }
+        return Set.copyOf(materials);
     }
 
     public ConfigurationSection guiMenu(String menuId) {

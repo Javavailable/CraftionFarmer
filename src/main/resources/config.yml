@@ -35,6 +35,23 @@ npc:
   interaction-cooldown: 0.5
   visibility-distance: 48
 
+collect:
+  enabled: true
+  ignore-player-drops: true
+  ignore-items-with-meta: true
+  max-storage-per-item: -1
+  save-delay-ticks: 40
+  allowed-materials:
+    - WHEAT
+    - CARROT
+    - POTATO
+    - BEETROOT
+    - CACTUS
+    - SUGAR_CANE
+    - BAMBOO
+    - MELON_SLICE
+    - PUMPKIN
+
 gui:
   labels:
     collecting:
