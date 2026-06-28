@@ -12,6 +12,7 @@ import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.gui.FarmerMenuAccess;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
+import com.craftion.farmer.storage.repository.LogRepository;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,7 +25,9 @@ import java.util.concurrent.CompletableFuture;
 public final class ModuleManager {
 
     private final ConfigManager configManager;
+    private final DebugLogger debugLogger;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final LogRepository logRepository;
     private final ModuleStateService moduleStateService;
     private final Map<String, FarmerModule> modules = new LinkedHashMap<>();
     private final ProductionCalcModule productionCalcModule;
@@ -35,19 +38,22 @@ public final class ModuleManager {
         DebugLogger debugLogger,
         FarmerCache farmerCache,
         FarmerPersistenceService farmerPersistenceService,
+        LogRepository logRepository,
         RegionProviderManager regionProviderManager,
         EconomyProviderManager economyProviderManager,
         StorageTransactionService storageTransactionService
     ) {
         this.configManager = Objects.requireNonNull(configManager, "configManager");
+        this.debugLogger = Objects.requireNonNull(debugLogger, "debugLogger");
         this.farmerPersistenceService = Objects.requireNonNull(farmerPersistenceService, "farmerPersistenceService");
+        this.logRepository = Objects.requireNonNull(logRepository, "logRepository");
         this.moduleStateService = new ModuleStateService(configManager, farmerPersistenceService);
         this.productionCalcModule = new ProductionCalcModule();
         register(this.productionCalcModule);
         register(new AutoSellModule(
             configManager,
             Objects.requireNonNull(schedulerAdapter, "schedulerAdapter"),
-            Objects.requireNonNull(debugLogger, "debugLogger"),
+            this.debugLogger,
             Objects.requireNonNull(farmerCache, "farmerCache"),
             this.moduleStateService,
             Objects.requireNonNull(regionProviderManager, "regionProviderManager"),
@@ -108,7 +114,7 @@ public final class ModuleManager {
         }
     }
 
-    public CompletableFuture<ModuleStateResult> toggle(Farmer farmer, String moduleKey, FarmerRole role) {
+    public CompletableFuture<ModuleStateResult> toggle(Farmer farmer, String moduleKey, FarmerRole role, java.util.UUID actorUuid) {
         Optional<FarmerModule> module = module(moduleKey);
         if (module.isEmpty()) {
             return CompletableFuture.completedFuture(new ModuleStateResult(ModuleStateResult.Status.UNKNOWN_MODULE, moduleKey, false));
@@ -123,8 +129,22 @@ public final class ModuleManager {
         return this.moduleStateService.toggle(farmer, module.get()).thenApply(result -> {
             if (result.success()) {
                 module.get().onStateChanged(farmer, result.enabled());
+                appendToggleLog(farmer, module.get(), result.enabled(), actorUuid);
             }
             return result;
+        });
+    }
+
+    private void appendToggleLog(Farmer farmer, FarmerModule module, boolean enabled, java.util.UUID actorUuid) {
+        this.logRepository.append(
+            farmer.farmerId(),
+            actorUuid,
+            "MODULE_TOGGLE",
+            "module=" + module.key() + " enabled=" + enabled
+        ).whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                this.debugLogger.debug("Module toggle log failed for " + farmer.farmerId() + ": " + readableMessage(throwable));
+            }
         });
     }
 
@@ -154,5 +174,14 @@ public final class ModuleManager {
 
     private String normalize(String moduleKey) {
         return moduleKey == null ? "" : moduleKey.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String readableMessage(Throwable throwable) {
+        Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
+        String message = cause.getMessage();
+        if (message == null || message.isBlank()) {
+            return cause.getClass().getSimpleName();
+        }
+        return message;
     }
 }

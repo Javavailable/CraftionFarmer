@@ -303,7 +303,7 @@ public final class MenuService {
             return false;
         }
 
-        this.moduleManager.toggle(session.get().farmer(), action.target(), session.get().role()).whenComplete((result, throwable) -> {
+        this.moduleManager.toggle(session.get().farmer(), action.target(), session.get().role(), context.player().getUniqueId()).whenComplete((result, throwable) -> {
             this.schedulerAdapter.runAtEntity(context.player(), () -> {
                 if (throwable != null) {
                     this.plugin.getLogger().warning("Module toggle failed: " + readableMessage(throwable));

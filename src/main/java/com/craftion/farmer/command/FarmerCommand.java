@@ -8,11 +8,19 @@ import com.craftion.farmer.hook.region.RegionAccessResult;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileResult;
 import com.craftion.farmer.message.MessageService;
+import com.craftion.farmer.module.ProductionEstimate;
+import com.craftion.farmer.storage.repository.FarmerLogEntry;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -30,6 +38,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
     private static final String ADMIN_BYPASS_PERMISSION = "craftionfarmer.admin.bypass";
     private static final String RELOAD_PERMISSION = "craftionfarmer.admin.reload";
     private static final String RECONCILE_PERMISSION = "craftionfarmer.admin.reconcile";
+    private static final DateTimeFormatter LOG_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     private final CraftionFarmerPlugin plugin;
     private final MessageService messageService;
@@ -121,6 +130,15 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("admin") && sender.hasPermission(ADMIN_PERMISSION)) {
             List<String> completions = new ArrayList<>();
             addIfMatches(completions, "info", args[1]);
+            addIfMatches(completions, "logs", args[1]);
+            return completions;
+        }
+
+        if (args.length == 4 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("logs") && sender.hasPermission(ADMIN_PERMISSION)) {
+            List<String> completions = new ArrayList<>();
+            addIfMatches(completions, "10", args[3]);
+            addIfMatches(completions, "25", args[3]);
+            addIfMatches(completions, "50", args[3]);
             return completions;
         }
 
@@ -238,7 +256,17 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        if (args.length < 2 || !args[1].equalsIgnoreCase("info")) {
+        if (args.length < 2) {
+            this.messageService.send(sender, "commands.farmer.admin-usage");
+            return;
+        }
+
+        if (args[1].equalsIgnoreCase("logs")) {
+            handleAdminLogs(sender, args);
+            return;
+        }
+
+        if (!args[1].equalsIgnoreCase("info")) {
             this.messageService.send(sender, "commands.farmer.admin-usage");
             return;
         }
@@ -254,7 +282,37 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
                 this.messageService.send(sender, "commands.farmer.info-failed");
                 return;
             }
-            farmer.ifPresentOrElse(value -> sendFarmerInfo(sender, value), () -> this.messageService.send(sender, "commands.farmer.info-no-farmer"));
+            farmer.ifPresentOrElse(value -> sendAdminFarmerInfo(sender, value), () -> this.messageService.send(sender, "commands.farmer.info-no-farmer"));
+        }));
+    }
+
+    private void handleAdminLogs(CommandSender sender, String[] args) {
+        AdminLogsRequest request = adminLogsRequest(sender, args);
+        if (request == null) {
+            return;
+        }
+        if (!this.plugin.database().isAvailable()) {
+            this.messageService.send(sender, "commands.farmer.admin-logs-database-unavailable");
+            return;
+        }
+
+        this.plugin.farmerPersistenceService().findByRegionId(request.regionId()).thenCompose(farmer -> {
+            if (farmer.isEmpty()) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new AdminLogsResult(null, List.of()));
+            }
+            return this.plugin.logRepository().recent(farmer.get().farmerId(), request.limit())
+                .thenApply(entries -> new AdminLogsResult(farmer.get(), entries));
+        }).whenComplete((result, throwable) -> scheduleResponse(sender, () -> {
+            if (throwable != null) {
+                this.plugin.getLogger().warning("Farmer admin logs failed: " + readableMessage(throwable));
+                this.messageService.send(sender, "commands.farmer.admin-logs-failed");
+                return;
+            }
+            if (result == null || result.farmer() == null) {
+                this.messageService.send(sender, "commands.farmer.info-no-farmer", regionPlaceholders(request.regionId()));
+                return;
+            }
+            sendAdminLogs(sender, result.farmer(), result.entries());
         }));
     }
 
@@ -341,6 +399,21 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         this.messageService.sendList(sender, "commands.farmer.info", farmerPlaceholders(farmer));
     }
 
+    private void sendAdminFarmerInfo(CommandSender sender, Farmer farmer) {
+        this.messageService.sendList(sender, "commands.farmer.admin-info", adminFarmerPlaceholders(farmer));
+    }
+
+    private void sendAdminLogs(CommandSender sender, Farmer farmer, List<FarmerLogEntry> entries) {
+        this.messageService.send(sender, "commands.farmer.admin-logs-header", farmerPlaceholders(farmer));
+        if (entries == null || entries.isEmpty()) {
+            this.messageService.send(sender, "commands.farmer.admin-logs-empty", farmerPlaceholders(farmer));
+            return;
+        }
+        for (FarmerLogEntry entry : entries) {
+            this.messageService.send(sender, "commands.farmer.admin-logs-entry", logPlaceholders(entry));
+        }
+    }
+
     private void sendReconcileResult(CommandSender sender, FarmerReconcileResult result) {
         if (result == null) {
             this.messageService.send(sender, "commands.farmer.reconcile-failed");
@@ -363,6 +436,74 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         return null;
     }
 
+    private AdminLogsRequest adminLogsRequest(CommandSender sender, String[] args) {
+        if (args.length > 4) {
+            this.messageService.send(sender, "commands.farmer.admin-logs-usage");
+            return null;
+        }
+
+        String regionId = null;
+        int limit = 10;
+        if (args.length >= 3 && !args[2].isBlank()) {
+            if (isInteger(args[2])) {
+                limit = limit(args[2]);
+            } else {
+                regionId = args[2].trim();
+            }
+        }
+        if (args.length >= 4 && !args[3].isBlank()) {
+            if (!isInteger(args[3])) {
+                this.messageService.send(sender, "commands.farmer.admin-logs-usage");
+                return null;
+            }
+            limit = limit(args[3]);
+        }
+        if (regionId == null || regionId.isBlank()) {
+            regionId = currentRegion(sender);
+        }
+        if (regionId == null || regionId.isBlank()) {
+            return null;
+        }
+        return new AdminLogsRequest(regionId, limit);
+    }
+
+    private String currentRegion(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            this.messageService.send(sender, "commands.farmer.admin-logs-usage");
+            return null;
+        }
+
+        RegionProvider provider = this.plugin.regionProviderManager().provider();
+        if (provider == null || !provider.isAvailable()) {
+            this.messageService.send(sender, "commands.farmer.provider-unavailable");
+            return null;
+        }
+        return provider.regionIdAt(player.getLocation()).orElseGet(() -> {
+            this.messageService.send(sender, "commands.farmer.admin-logs-no-region");
+            return null;
+        });
+    }
+
+    private boolean isInteger(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
+    }
+
+    private int limit(String value) {
+        try {
+            return Math.max(1, Math.min(50, Integer.parseInt(value)));
+        } catch (NumberFormatException exception) {
+            return 10;
+        }
+    }
+
     private Map<String, String> farmerPlaceholders(Farmer farmer) {
         if (farmer == null) {
             return Map.of();
@@ -370,14 +511,79 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         return Map.of(
             "farmer", farmer.farmerId(),
             "region", farmer.regionId(),
-            "owner", farmer.ownerUuid().toString(),
+            "owner", ownerName(farmer.ownerUuid()),
+            "owner_uuid", farmer.ownerUuid().toString(),
             "level", String.valueOf(farmer.level()),
             "members", String.valueOf(farmer.members().size())
         );
     }
 
+    private Map<String, String> adminFarmerPlaceholders(Farmer farmer) {
+        Map<String, String> base = new java.util.HashMap<>(farmerPlaceholders(farmer));
+        base.put("collecting", stateLabel(farmer.collectingEnabled()));
+        base.put("storage_total", formatAmount(storageTotal(farmer)));
+        base.put("module_states", moduleStates(farmer));
+        base.put("economy_provider", this.plugin.economyProviderManager().provider().name());
+        base.put("economy_state", stateLabel(this.plugin.economyProviderManager().provider().isAvailable()));
+        base.put("region_provider", this.plugin.regionProviderManager().provider().type().name());
+        base.put("region_state", stateLabel(this.plugin.regionProviderManager().provider().isAvailable()));
+        base.put("visual_provider", this.plugin.visualProviderManager().provider().type().name());
+        base.put("visual_state", stateLabel(this.plugin.visualProviderManager().provider().isAvailable()));
+        base.put("placeholder_provider", this.plugin.placeholderProviderManager().provider().name());
+        base.put("placeholder_state", stateLabel(this.plugin.placeholderProviderManager().provider().isAvailable()));
+        ProductionEstimate estimate = this.plugin.moduleManager().productionEstimate(farmer);
+        base.put("production_minute", formatAmount(estimate.perMinute()));
+        base.put("production_hour", formatAmount(estimate.perHour()));
+        return Map.copyOf(base);
+    }
+
+    private Map<String, String> logPlaceholders(FarmerLogEntry entry) {
+        return Map.of(
+            "time", LOG_TIME_FORMATTER.format(Instant.ofEpochMilli(entry.createdAt()).atZone(ZoneId.systemDefault())),
+            "action", entry.action(),
+            "detail", entry.detail().isBlank() ? "-" : entry.detail(),
+            "actor", entry.actorUuid() == null ? "-" : entry.actorUuid().toString(),
+            "farmer", entry.farmerId()
+        );
+    }
+
     private Map<String, String> regionPlaceholders(String regionId) {
         return Map.of("region", regionId == null ? "-" : regionId);
+    }
+
+    private long storageTotal(Farmer farmer) {
+        return farmer.storage().snapshot().values().stream().mapToLong(Long::longValue).sum();
+    }
+
+    private String moduleStates(Farmer farmer) {
+        if (farmer.moduleStates().isEmpty()) {
+            return "-";
+        }
+        return farmer.moduleStates().entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(entry -> entry.getKey() + "=" + stateLabel(entry.getValue()))
+            .collect(Collectors.joining(", "));
+    }
+
+    private String ownerName(UUID ownerUuid) {
+        String name = Bukkit.getOfflinePlayer(ownerUuid).getName();
+        return name == null || name.isBlank() ? ownerUuid.toString() : name;
+    }
+
+    private String stateLabel(boolean enabled) {
+        return enabled ? "ᴀᴋᴛɪғ" : "ᴘᴀsɪғ";
+    }
+
+    private String formatAmount(long amount) {
+        return String.format(Locale.US, "%,d", amount);
+    }
+
+    private void scheduleResponse(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player && player.isOnline()) {
+            this.plugin.scheduler().runAtEntity(player, task);
+            return;
+        }
+        this.plugin.scheduler().runGlobal(task);
     }
 
     private String readableMessage(Throwable throwable) {
@@ -393,5 +599,11 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         if (value.startsWith(input.toLowerCase(Locale.ROOT))) {
             completions.add(value);
         }
+    }
+
+    private record AdminLogsRequest(String regionId, int limit) {
+    }
+
+    private record AdminLogsResult(Farmer farmer, List<FarmerLogEntry> entries) {
     }
 }

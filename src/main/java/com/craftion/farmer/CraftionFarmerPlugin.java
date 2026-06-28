@@ -14,6 +14,7 @@ import com.craftion.farmer.farmer.FarmerCreateService;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.FarmerRemoveService;
 import com.craftion.farmer.gui.MenuService;
+import com.craftion.farmer.hook.placeholder.PlaceholderProviderManager;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
@@ -53,6 +54,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private CollectService collectService;
     private StorageTransactionService storageTransactionService;
     private ModuleManager moduleManager;
+    private PlaceholderProviderManager placeholderProviderManager;
 
     @Override
     public void onLoad() {
@@ -99,10 +101,12 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.debugLogger,
             this.farmerCache,
             this.farmerPersistenceService,
+            this.logRepository,
             this.regionProviderManager,
             this.economyProviderManager,
             this.storageTransactionService
         );
+        this.placeholderProviderManager = new PlaceholderProviderManager(this, this.debugLogger, this.farmerCache, this.moduleManager);
         this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
@@ -158,6 +162,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.skylliaSyncManager.initialize();
         this.collectService.initialize();
         this.menuService.initialize();
+        this.placeholderProviderManager.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
 
@@ -165,6 +170,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     public void onDisable() {
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.shutdown();
+        }
+
+        if (this.placeholderProviderManager != null) {
+            this.placeholderProviderManager.shutdown();
         }
 
         if (this.moduleManager != null) {
@@ -208,6 +217,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
         if (this.moduleManager != null) {
             this.moduleManager.reload();
+        }
+        if (this.placeholderProviderManager != null) {
+            this.placeholderProviderManager.reload();
         }
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.reload();
@@ -283,6 +295,14 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public ModuleManager moduleManager() {
         return this.moduleManager;
+    }
+
+    public PlaceholderProviderManager placeholderProviderManager() {
+        return this.placeholderProviderManager;
+    }
+
+    public LogRepository logRepository() {
+        return this.logRepository;
     }
 
     private void loadFarmerCacheWhenReady() {
