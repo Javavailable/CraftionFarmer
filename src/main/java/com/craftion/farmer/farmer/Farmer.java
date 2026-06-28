@@ -55,6 +55,10 @@ public final class Farmer {
     }
 
     public static Farmer create(String farmerId, String regionId, UUID ownerUuid, LocationSnapshot location) {
+        return create(farmerId, regionId, ownerUuid, location, true);
+    }
+
+    public static Farmer create(String farmerId, String regionId, UUID ownerUuid, LocationSnapshot location, boolean collectingEnabled) {
         Instant now = Instant.now();
         return new Farmer(
             farmerId,
@@ -62,7 +66,7 @@ public final class Farmer {
             ownerUuid,
             location,
             1,
-            false,
+            collectingEnabled,
             new FarmerStorage(),
             List.of(),
             new FarmerSettings(),

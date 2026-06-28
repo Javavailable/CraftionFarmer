@@ -103,6 +103,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.priceProvider
         );
         this.moduleManager = new ModuleManager(
+            this,
             this.configManager,
             this.schedulerAdapter,
             this.debugLogger,
@@ -115,7 +116,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.storageTransactionService
         );
         this.placeholderProviderManager = new PlaceholderProviderManager(this, this.debugLogger, this.farmerCache, this.moduleManager);
-        this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
+        this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.configManager, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
             this.farmerSaveRetryService,

@@ -37,6 +37,7 @@ npc:
 
 collect:
   enabled: true
+  default-state: true
   ignore-player-drops: true
   ignore-items-with-meta: true
   max-storage-per-item: -1
@@ -51,6 +52,9 @@ collect:
     - BAMBOO
     - MELON_SLICE
     - PUMPKIN
+    - COCOA_BEANS
+    - SWEET_BERRIES
+    - NETHER_WART
 
 storage:
   withdraw:
@@ -82,8 +86,22 @@ modules:
     enabled: true
     default-state: true
   auto-harvest:
-    enabled: false
+    enabled: true
     default-state: false
+    prevent-growth-when-full: true
+    check-stock: true
+    require-piston: false
+    check-all-directions: false
+    crops:
+      - WHEAT
+      - CARROT
+      - POTATO
+      - BEETROOT
+      - PUMPKIN
+      - MELON_SLICE
+      - CACTUS
+      - SUGAR_CANE
+      - BAMBOO
   auto-kill:
     enabled: false
     default-state: false
@@ -122,8 +140,8 @@ gui:
   module-descriptions:
     auto-sell: "ᴅᴇᴘᴏᴅᴀᴋɪ ғɪʏᴀᴛʟɪ ᴜʀᴜɴʟᴇʀɪ ʙᴇʟɪʀʟɪ ᴀʀᴀʟɪᴋʟᴀ sᴀᴛᴀʀ"
     production-calc: "sᴏɴ ᴛᴏᴘʟᴀᴍᴀ ᴀᴋɪsɪɴᴀ ɢᴏʀᴇ ᴜʀᴇᴛɪᴍ ᴛᴀʜᴍɪɴɪ ɢᴏsᴛᴇʀɪʀ"
-    auto-harvest: "ɢᴇʟᴇᴄᴇᴋ ᴘᴀᴋᴇᴛ ɪᴄɪɴ ʜᴀsᴀᴛ ᴍɪᴍᴀʀɪsɪ"
-    auto-kill: "ɢᴇʟᴇᴄᴇᴋ ᴘᴀᴋᴇᴛ ɪᴄɪɴ ᴍᴏʙ ᴍɪᴍᴀʀɪsɪ"
+    auto-harvest: "ᴏʟɢᴜɴʟᴀsᴀɴ ᴀᴅᴀ ᴜʀᴜɴʟᴇʀɪɴɪ ᴛᴏᴘʟᴀᴍᴀ ᴀᴋɪsɪɴᴀ ʙɪʀᴀᴋɪʀ"
+    auto-kill: "ʜᴇɴᴜᴢ ᴀᴋᴛɪғ ᴅᴇɢɪʟ ᴠᴇ ᴍᴏᴅᴜʟ ᴏʟᴀʀᴀᴋ ʏᴜᴋʟᴇɴᴍᴇᴢ"
   menus:
     main:
       title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
@@ -240,10 +258,10 @@ gui:
         "20":
           material: REDSTONE_TORCH
           name: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ ᴅᴜʀᴜᴍᴜ"
-          action: "info"
+          action: "collect-toggle"
           lore:
             - "<#FDE68A>ᴍᴇᴠᴄᴜᴛ ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%collecting_state%"
-            - "<#CBD5E1>ᴅᴇɢɪsᴛɪʀᴍᴇ ɪsʟᴇᴍɪ sᴏɴʀᴀᴋɪ ᴘᴀᴋᴇᴛᴛᴇ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴏᴘʟᴀᴍᴀʏɪ ᴀᴄ / ᴋᴀᴘᴀᴛ"
         "22":
           material: OAK_SIGN
           name: "<#38BDF8>ᴜʏᴇ ʏᴏɴᴇᴛɪᴍɪ"

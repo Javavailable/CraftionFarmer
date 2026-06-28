@@ -33,6 +33,9 @@ public record MenuAction(Type type, String target) {
         if (action.equals("info")) {
             return Optional.of(new MenuAction(Type.INFO, ""));
         }
+        if (action.equals("collect-toggle")) {
+            return Optional.of(new MenuAction(Type.COLLECT_TOGGLE, ""));
+        }
         if (action.startsWith("open:")) {
             String target = target(action, "open:");
             return OPEN_TARGETS.contains(target) ? Optional.of(new MenuAction(Type.OPEN, target)) : Optional.empty();
@@ -68,7 +71,7 @@ public record MenuAction(Type type, String target) {
     private static boolean isValidTarget(Type type, String target) {
         return switch (type) {
             case OPEN -> OPEN_TARGETS.contains(target);
-            case CLOSE, BACK, INFO -> target.isEmpty();
+            case CLOSE, BACK, INFO, COLLECT_TOGGLE -> target.isEmpty();
             case WITHDRAW -> isWithdrawTarget(target);
             case SELL -> isSellTarget(target);
             case MODULE_TOGGLE -> isMaterialTarget(target);
@@ -123,6 +126,7 @@ public record MenuAction(Type type, String target) {
         INFO,
         WITHDRAW,
         SELL,
-        MODULE_TOGGLE
+        MODULE_TOGGLE,
+        COLLECT_TOGGLE
     }
 }

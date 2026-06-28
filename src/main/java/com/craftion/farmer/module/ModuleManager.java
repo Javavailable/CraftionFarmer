@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ModuleManager {
 
@@ -35,6 +36,7 @@ public final class ModuleManager {
     private final ProductionCalcModule productionCalcModule;
 
     public ModuleManager(
+        JavaPlugin plugin,
         ConfigManager configManager,
         SchedulerAdapter schedulerAdapter,
         DebugLogger debugLogger,
@@ -46,6 +48,7 @@ public final class ModuleManager {
         EconomyProviderManager economyProviderManager,
         StorageTransactionService storageTransactionService
     ) {
+        Objects.requireNonNull(plugin, "plugin");
         this.configManager = Objects.requireNonNull(configManager, "configManager");
         this.debugLogger = Objects.requireNonNull(debugLogger, "debugLogger");
         this.farmerPersistenceService = Objects.requireNonNull(farmerPersistenceService, "farmerPersistenceService");
@@ -64,8 +67,14 @@ public final class ModuleManager {
             Objects.requireNonNull(economyProviderManager, "economyProviderManager"),
             Objects.requireNonNull(storageTransactionService, "storageTransactionService")
         ));
-        register(new PlaceholderModule("auto-harvest", "DIAMOND_HOE"));
-        register(new PlaceholderModule("auto-kill", "IRON_SWORD"));
+        register(new AutoHarvestModule(
+            plugin,
+            configManager,
+            this.debugLogger,
+            Objects.requireNonNull(farmerCache, "farmerCache"),
+            this.moduleStateService,
+            Objects.requireNonNull(regionProviderManager, "regionProviderManager")
+        ));
     }
 
     public void initialize() {

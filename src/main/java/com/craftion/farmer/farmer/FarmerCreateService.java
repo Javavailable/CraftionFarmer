@@ -1,5 +1,6 @@
 package com.craftion.farmer.farmer;
 
+import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.hook.region.RegionAccessResult;
 import com.craftion.farmer.hook.region.RegionMemberInfo;
 import com.craftion.farmer.hook.region.RegionProvider;
@@ -18,15 +19,18 @@ import org.bukkit.entity.Player;
 public final class FarmerCreateService {
 
     private final FarmerPersistenceService persistenceService;
+    private final ConfigManager configManager;
     private final RegionProviderManager regionProviderManager;
     private final VisualProviderManager visualProviderManager;
 
     public FarmerCreateService(
         FarmerPersistenceService persistenceService,
+        ConfigManager configManager,
         RegionProviderManager regionProviderManager,
         VisualProviderManager visualProviderManager
     ) {
         this.persistenceService = Objects.requireNonNull(persistenceService, "persistenceService");
+        this.configManager = Objects.requireNonNull(configManager, "configManager");
         this.regionProviderManager = Objects.requireNonNull(regionProviderManager, "regionProviderManager");
         this.visualProviderManager = Objects.requireNonNull(visualProviderManager, "visualProviderManager");
     }
@@ -40,7 +44,13 @@ public final class FarmerCreateService {
         }
 
         RegionContext context = optionalContext.get();
-        Farmer farmer = Farmer.create(context.regionId(), context.regionId(), context.ownerUuid(), locationSnapshot(player.getLocation()));
+        Farmer farmer = Farmer.create(
+            context.regionId(),
+            context.regionId(),
+            context.ownerUuid(),
+            locationSnapshot(player.getLocation()),
+            this.configManager.collectDefaultState()
+        );
         Instant now = Instant.now();
         for (Map.Entry<UUID, FarmerRole> entry : context.members().entrySet()) {
             farmer.putMember(new FarmerMember(farmer.farmerId(), entry.getKey(), entry.getValue(), now));
