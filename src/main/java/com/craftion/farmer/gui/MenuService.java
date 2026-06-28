@@ -389,15 +389,15 @@ public final class MenuService {
             return false;
         }
 
-        FarmerMenuSession menuSession = session.get();
-        if (!FarmerMenuAccess.MANAGER.allows(menuSession.role())) {
-            this.messageService.send(context.player(), "commands.farmer.product-toggle-denied", Map.of());
-            return true;
-        }
-
         Optional<MaterialKey> materialKey = materialKey(action.target());
         if (materialKey.isEmpty() || !isConfiguredProduct(materialKey.get())) {
             this.messageService.send(context.player(), "commands.farmer.open-failed");
+            return true;
+        }
+
+        FarmerMenuSession menuSession = session.get();
+        if (!FarmerMenuAccess.MANAGER.allows(menuSession.role())) {
+            this.messageService.send(context.player(), "commands.farmer.product-toggle-denied", materialPlaceholders(materialKey.get()));
             return true;
         }
 
