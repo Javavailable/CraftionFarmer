@@ -132,19 +132,13 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             return;
         }
 
-        Optional<Location> location = location(farmer.location());
-        if (location.isEmpty()) {
-            this.debugLogger.debug("FancyNPCs spawn skipped because world is not loaded: " + farmer.farmerId());
-            return;
-        }
-
-        this.schedulerAdapter.runAtLocation(location.get(), () -> spawnNow(farmer, location.get()));
+        this.schedulerAdapter.runGlobal(() -> runAtFarmerLocation(farmer, location -> rebindNow(farmer, location)));
     }
 
     @Override
     public void remove(Farmer farmer) {
-        if (farmer != null) {
-            remove(farmer.farmerId());
+        if (farmer != null && this.removeOnFarmerDelete) {
+            this.schedulerAdapter.runGlobal(() -> runAtFarmerLocation(farmer, location -> removeNpcById(npcId(farmer.farmerId()), false, "farmer delete")));
         }
     }
 
@@ -154,7 +148,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             return;
         }
 
-        this.schedulerAdapter.runGlobal(() -> removeNpcById(npcId(farmerId), false));
+        this.schedulerAdapter.runGlobal(() -> scheduleRemoveNpcById(npcId(farmerId), false, "farmer delete"));
     }
 
     @Override
@@ -163,10 +157,13 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             return;
         }
 
-        this.schedulerAdapter.runGlobal(() -> removeStaleNpcs(farmers));
-        for (Farmer farmer : farmers) {
-            spawn(farmer);
-        }
+        List<Farmer> farmerList = List.copyOf(farmers);
+        this.schedulerAdapter.runGlobal(() -> {
+            removeStaleNpcs(farmerList);
+            for (Farmer farmer : farmerList) {
+                runAtFarmerLocation(farmer, location -> rebindNow(farmer, location));
+            }
+        });
     }
 
     @Override
@@ -176,13 +173,26 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         }
     }
 
-    private void spawnNow(Farmer farmer, Location location) {
+    private void runAtFarmerLocation(Farmer farmer, Consumer<Location> task) {
+        Optional<Location> location = location(farmer.location());
+        if (location.isEmpty()) {
+            this.debugLogger.debug("FancyNPCs operation skipped because world is not loaded: " + farmer.farmerId());
+            return;
+        }
+
+        this.schedulerAdapter.runAtLocation(location.get(), () -> task.accept(location.get()));
+    }
+
+    private void rebindNow(Farmer farmer, Location location) {
         String npcId = npcId(farmer.farmerId());
         try {
             Object manager = npcManager();
             Object existingNpc = invoke(manager, "getNpcById", new Class<?>[] {String.class}, npcId);
             if (existingNpc != null) {
+                this.debugLogger.debug("Persistent FancyNPC found and rebinding: " + npcId);
                 removeNpc(existingNpc, true);
+            } else {
+                this.debugLogger.debug("Persistent FancyNPC missing and creating: " + npcId);
             }
 
             Object npcData = createNpcData(npcId, farmer, location);
@@ -197,13 +207,17 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             saveNpcsIfNeeded(manager);
             this.debugLogger.debug("FancyNPCs farmer npc spawned: " + npcId + " mode=" + this.configuredApiMode + "/" + this.apiBinding.mode());
         } catch (RuntimeException | LinkageError exception) {
+            this.debugLogger.debug("FancyNPCs farmer npc rebind failed: " + npcId + " reason=" + readableMessage(exception));
             this.plugin.getLogger().warning("FancyNPCs farmer NPC olusturulamadi: " + readableMessage(exception));
         }
     }
 
     private Object createNpcData(String npcId, Farmer farmer, Location location) {
         try {
-            Consumer<Player> onClick = player -> this.schedulerAdapter.runAtEntity(player, () -> this.clickAction.accept(player));
+            Consumer<Player> onClick = player -> this.schedulerAdapter.runAtEntity(player, () -> {
+                this.debugLogger.debug("FancyNPCs farmer npc click callback fired: npc=" + npcId + " player=" + player.getName());
+                this.clickAction.accept(player);
+            });
             return this.apiBinding.npcDataConstructor().newInstance(
                 npcId,
                 npcId,
@@ -246,7 +260,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         for (Object npc : allNpcs()) {
             String npcId = npcId(npc).orElse(null);
             if (npcId != null && npcId.startsWith(this.idPrefix) && !expectedIds.contains(npcId)) {
-                removeNpc(npc, true);
+                scheduleRemoveNpc(npc, npcId, true, "stale");
             }
         }
     }
@@ -255,12 +269,25 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         for (Object npc : allNpcs()) {
             String npcId = npcId(npc).orElse(null);
             if (npcId != null && npcId.startsWith(this.idPrefix)) {
-                removeNpc(npc, true);
+                scheduleRemoveNpc(npc, npcId, true, "shutdown");
             }
         }
     }
 
-    private void removeNpcById(String npcId, boolean force) {
+    private void scheduleRemoveNpcById(String npcId, boolean force, String reason) {
+        try {
+            Object manager = npcManager();
+            Object npc = invoke(manager, "getNpcById", new Class<?>[] {String.class}, npcId);
+            if (npc == null) {
+                return;
+            }
+            scheduleRemoveNpc(npc, npcId, force, reason);
+        } catch (RuntimeException | LinkageError exception) {
+            this.plugin.getLogger().warning("FancyNPCs farmer NPC silinemedi: " + readableMessage(exception));
+        }
+    }
+
+    private void removeNpcById(String npcId, boolean force, String reason) {
         try {
             Object manager = npcManager();
             Object npc = invoke(manager, "getNpcById", new Class<?>[] {String.class}, npcId);
@@ -268,9 +295,22 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
                 return;
             }
             removeNpc(npc, force);
+            if ("stale".equals(reason)) {
+                this.debugLogger.debug("Stale FancyNPC removed: " + npcId);
+            }
         } catch (RuntimeException | LinkageError exception) {
             this.plugin.getLogger().warning("FancyNPCs farmer NPC silinemedi: " + readableMessage(exception));
         }
+    }
+
+    private void scheduleRemoveNpc(Object npc, String npcId, boolean force, String reason) {
+        Optional<Location> location = npcLocation(npc);
+        if (location.isEmpty()) {
+            this.debugLogger.debug("FancyNPCs farmer npc removal failed: " + npcId + " reason=location unavailable");
+            return;
+        }
+
+        this.schedulerAdapter.runAtLocation(location.get(), () -> removeNpcById(npcId, force, reason));
     }
 
     private void removeNpc(Object npc, boolean force) {
@@ -319,6 +359,19 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             Object data = invoke(npc, "getData");
             Object id = invoke(data, "getId");
             if (id instanceof String value && !value.isBlank()) {
+                return Optional.of(value);
+            }
+        } catch (RuntimeException exception) {
+            return Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Location> npcLocation(Object npc) {
+        try {
+            Object data = invoke(npc, "getData");
+            Object location = invoke(data, "getLocation");
+            if (location instanceof Location value && value.getWorld() != null) {
                 return Optional.of(value);
             }
         } catch (RuntimeException exception) {
