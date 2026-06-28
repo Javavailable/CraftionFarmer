@@ -3,6 +3,7 @@ package com.craftion.farmer.gui;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.module.ModuleManager;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -15,6 +16,7 @@ public record MenuRenderContext(
     Player player,
     FarmerMenuSession session,
     ConfigManager configManager,
+    ModuleManager moduleManager,
     ConfigurationSection menuSection,
     Map<String, String> placeholders
 ) {
@@ -23,6 +25,7 @@ public record MenuRenderContext(
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(configManager, "configManager");
+        Objects.requireNonNull(moduleManager, "moduleManager");
         Objects.requireNonNull(menuSection, "menuSection");
         placeholders = Map.copyOf(Objects.requireNonNull(placeholders, "placeholders"));
     }

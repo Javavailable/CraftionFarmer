@@ -19,6 +19,7 @@ import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
 import com.craftion.farmer.hook.visual.VisualProviderManager;
 import com.craftion.farmer.message.MessageService;
+import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
 import com.craftion.farmer.storage.DatabaseManager;
@@ -51,6 +52,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private MenuService menuService;
     private CollectService collectService;
     private StorageTransactionService storageTransactionService;
+    private ModuleManager moduleManager;
 
     @Override
     public void onLoad() {
@@ -91,6 +93,16 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.economyProviderManager,
             this.priceProvider
         );
+        this.moduleManager = new ModuleManager(
+            this.configManager,
+            this.schedulerAdapter,
+            this.debugLogger,
+            this.farmerCache,
+            this.farmerPersistenceService,
+            this.regionProviderManager,
+            this.economyProviderManager,
+            this.storageTransactionService
+        );
         this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
@@ -114,7 +126,8 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.debugLogger,
             this.regionProviderManager,
             this.farmerCache,
-            this.farmerPersistenceService
+            this.farmerPersistenceService,
+            this.moduleManager
         );
         this.menuService = new MenuService(
             this,
@@ -126,7 +139,8 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.farmerPersistenceService,
             this.farmerReconcileService,
             this.messageService,
-            this.storageTransactionService
+            this.storageTransactionService,
+            this.moduleManager
         );
 
         if (!registerCommands()) {
@@ -139,6 +153,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.visualProviderManager.initialize();
         this.economyProviderManager.initialize();
         this.databaseManager.initialize();
+        this.moduleManager.initialize();
         loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
         this.collectService.initialize();
@@ -150,6 +165,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     public void onDisable() {
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.shutdown();
+        }
+
+        if (this.moduleManager != null) {
+            this.moduleManager.shutdown();
         }
 
         if (this.collectService != null) {
@@ -186,6 +205,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
         if (this.economyProviderManager != null) {
             this.economyProviderManager.reload();
+        }
+        if (this.moduleManager != null) {
+            this.moduleManager.reload();
         }
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.reload();
@@ -259,6 +281,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         return this.storageTransactionService;
     }
 
+    public ModuleManager moduleManager() {
+        return this.moduleManager;
+    }
+
     private void loadFarmerCacheWhenReady() {
         if (this.databaseManager == null || this.farmerPersistenceService == null) {
             return;
@@ -271,6 +297,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             }
             if (this.visualProviderManager != null) {
                 this.visualProviderManager.reconcile(farmers);
+            }
+            if (this.moduleManager != null) {
+                this.moduleManager.ensureDefaultStates(farmers);
             }
             this.debugLogger.debug("Farmer cache ready: " + farmers.size());
         });

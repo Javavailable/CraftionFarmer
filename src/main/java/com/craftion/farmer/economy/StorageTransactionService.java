@@ -18,6 +18,7 @@ import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -122,12 +123,22 @@ public final class StorageTransactionService {
             return result(StorageTransactionResult.Status.DENIED, sellTarget.materialKey());
         }
 
-        SalePlanResult planResult = salePlans(session.farmer(), sellTarget);
+        return sellInternal(session.farmer(), sellTarget, player.getUniqueId(), player);
+    }
+
+    public StorageTransactionResult sellAll(Farmer farmer, UUID actorUuid, OfflinePlayer payee) {
+        if (farmer == null || payee == null) {
+            return result(StorageTransactionResult.Status.INVALID_ACTION, null);
+        }
+        return sellInternal(farmer, new SellTarget(null, true), actorUuid, payee);
+    }
+
+    private StorageTransactionResult sellInternal(Farmer farmer, SellTarget sellTarget, UUID actorUuid, OfflinePlayer payee) {
+        SalePlanResult planResult = salePlans(farmer, sellTarget);
         if (planResult.status() != StorageTransactionResult.Status.SUCCESS) {
             return result(planResult.status(), sellTarget.materialKey());
         }
 
-        Farmer farmer = session.farmer();
         List<SaleLine> removedLines = removeSaleLines(farmer, planResult.plans());
         if (removedLines.isEmpty()) {
             return result(StorageTransactionResult.Status.EMPTY_STORAGE, sellTarget.materialKey());
@@ -162,7 +173,7 @@ public final class StorageTransactionService {
             );
         }
 
-        EconomyDepositResult depositResult = economyProvider.deposit(player, net);
+        EconomyDepositResult depositResult = economyProvider.deposit(payee, net);
         if (!depositResult.success()) {
             restore(farmer, removedLines);
             return new StorageTransactionResult(
@@ -178,7 +189,7 @@ public final class StorageTransactionService {
             );
         }
 
-        persistAndLog(farmer, player.getUniqueId(), SELL_ACTION, sellDetail(removedLines, gross, tax, net, depositResult.providerName()));
+        persistAndLog(farmer, actorUuid, SELL_ACTION, sellDetail(removedLines, gross, tax, net, depositResult.providerName()));
         return new StorageTransactionResult(
             StorageTransactionResult.Status.SUCCESS,
             sellTarget.materialKey(),
