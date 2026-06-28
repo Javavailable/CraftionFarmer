@@ -6,6 +6,7 @@ import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.ScheduledTaskHandle;
 import com.craftion.farmer.storage.migration.MigrationRunner;
 import com.craftion.farmer.storage.migration.V1InitialSchema;
+import com.craftion.farmer.storage.migration.V2ProductStatesSchema;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -36,7 +37,7 @@ public final class DatabaseManager {
         this.configManager = configManager;
         this.schedulerAdapter = schedulerAdapter;
         this.debugLogger = debugLogger;
-        this.migrationRunner = new MigrationRunner(List.of(new V1InitialSchema()));
+        this.migrationRunner = new MigrationRunner(List.of(new V1InitialSchema(), new V2ProductStatesSchema()));
     }
 
     public void initialize() {

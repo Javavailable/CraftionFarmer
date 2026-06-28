@@ -24,13 +24,15 @@ public final class FarmerPersistenceService {
         "farmer_members",
         "farmer_storage",
         "farmer_settings",
-        "farmer_modules"
+        "farmer_modules",
+        "farmer_product_states"
     );
     private static final List<String> DELETE_CHILD_TABLES = List.of(
         "farmer_members",
         "farmer_storage",
         "farmer_settings",
         "farmer_modules",
+        "farmer_product_states",
         "farmer_logs"
     );
 
@@ -234,6 +236,7 @@ public final class FarmerPersistenceService {
             loadMembers(connection, farmerId),
             new FarmerSettings(loadSettings(connection, farmerId)),
             loadModules(connection, farmerId),
+            loadProductCollectingStates(connection, farmerId),
             FarmerStatistics.empty(),
             Instant.ofEpochMilli(resultSet.getLong("created_at")),
             Instant.ofEpochMilli(resultSet.getLong("updated_at"))
@@ -305,6 +308,21 @@ public final class FarmerPersistenceService {
         return modules;
     }
 
+    private Map<MaterialKey, Boolean> loadProductCollectingStates(Connection connection, String farmerId) throws SQLException {
+        Map<MaterialKey, Boolean> states = new HashMap<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+            "SELECT material_key, collecting_enabled FROM farmer_product_states WHERE farmer_id = ?"
+        )) {
+            statement.setString(1, farmerId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    states.put(MaterialKey.of(resultSet.getString("material_key")), resultSet.getBoolean("collecting_enabled"));
+                }
+            }
+        }
+        return states;
+    }
+
     private void saveFarmer(Connection connection, Farmer farmer) throws SQLException {
         int updated = updateFarmer(connection, farmer);
         if (updated == 0) {
@@ -315,6 +333,7 @@ public final class FarmerPersistenceService {
         insertStorage(connection, farmer);
         insertSettings(connection, farmer);
         insertModules(connection, farmer);
+        insertProductCollectingStates(connection, farmer);
     }
 
     private boolean saveExistingFarmer(Connection connection, Farmer farmer) throws SQLException {
@@ -327,6 +346,7 @@ public final class FarmerPersistenceService {
         insertStorage(connection, farmer);
         insertSettings(connection, farmer);
         insertModules(connection, farmer);
+        insertProductCollectingStates(connection, farmer);
         return true;
     }
 
@@ -418,6 +438,20 @@ public final class FarmerPersistenceService {
             for (Map.Entry<String, Boolean> entry : farmer.moduleStates().entrySet()) {
                 statement.setString(1, farmer.farmerId());
                 statement.setString(2, entry.getKey());
+                statement.setBoolean(3, entry.getValue());
+                statement.addBatch();
+            }
+            statement.executeBatch();
+        }
+    }
+
+    private void insertProductCollectingStates(Connection connection, Farmer farmer) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+            "INSERT INTO farmer_product_states (farmer_id, material_key, collecting_enabled) VALUES (?, ?, ?)"
+        )) {
+            for (Map.Entry<MaterialKey, Boolean> entry : farmer.productCollectingStates().entrySet()) {
+                statement.setString(1, farmer.farmerId());
+                statement.setString(2, entry.getKey().toString());
                 statement.setBoolean(3, entry.getValue());
                 statement.addBatch();
             }

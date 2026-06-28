@@ -2,7 +2,9 @@ package com.craftion.farmer.config;
 
 import com.craftion.farmer.farmer.FarmerRole;
 import com.craftion.farmer.farmer.MaterialKey;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.OptionalDouble;
 import java.util.Set;
@@ -155,6 +157,23 @@ public final class ConfigManager {
             }
         }
         return Set.copyOf(materials);
+    }
+
+    public List<MaterialKey> collectMaterialKeys() {
+        List<MaterialKey> materialKeys = new ArrayList<>();
+        Set<MaterialKey> seen = new LinkedHashSet<>();
+        for (String materialName : this.config.getStringList("collect.allowed-materials")) {
+            Material material = Material.matchMaterial(materialName);
+            if (material == null || material.isAir()) {
+                continue;
+            }
+
+            MaterialKey materialKey = MaterialKey.of(material.name());
+            if (seen.add(materialKey)) {
+                materialKeys.add(materialKey);
+            }
+        }
+        return List.copyOf(materialKeys);
     }
 
     public boolean allowMemberWithdraw() {

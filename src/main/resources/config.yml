@@ -130,6 +130,9 @@ gui:
     bamboo: "ʙᴀᴍʙᴜ"
     melon_slice: "ᴋᴀʀᴘᴜᴢ"
     pumpkin: "ʙᴀʟ ᴋᴀʙᴀɢɪ"
+    cocoa_beans: "ᴋᴀᴋᴀᴏ"
+    sweet_berries: "ᴛᴀᴛʟɪ ᴍᴇʏᴠᴇ"
+    nether_wart: "ɴᴇᴛʜᴇʀ sɪɢɪʟɪ"
     cobblestone: "ᴋɪʀɪᴋ ᴛᴀs"
     oak_log: "ᴍᴇsᴇ ᴋᴜᴛᴜɢᴜ"
   module-names:
@@ -144,12 +147,12 @@ gui:
     auto-kill: "ʜᴇɴᴜᴢ ᴀᴋᴛɪғ ᴅᴇɢɪʟ ᴠᴇ ᴍᴏᴅᴜʟ ᴏʟᴀʀᴀᴋ ʏᴜᴋʟᴇɴᴍᴇᴢ"
   menus:
     main:
-      title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
+      title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴜʀᴜɴ ᴍᴇʀᴋᴇᴢɪ"
       size: 54
       items:
         "4":
           material: PLAYER_HEAD
-          name: "<#38BDF8>ᴄɪғᴛᴄɪ ʙɪʟɢɪsɪ"
+          name: "<#38BDF8>ᴄɪғᴛᴄɪ ᴋᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟɪ"
           action: "info"
           lore:
             - "<#CBD5E1>ᴀᴅᴀ <#94A3B8>• <#E0F2FE>%region%"
@@ -157,40 +160,68 @@ gui:
             - "<#CBD5E1>sᴇᴠɪʏᴇ <#94A3B8>• <#E0F2FE>%level%"
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%storage_usage%"
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
-        "20":
-          material: BARREL
-          name: "<#22C55E>ᴅᴇᴘᴏ"
-          action: "open:storage"
-          lore:
-            - "<#D1FAE5>ᴛᴏᴘʟᴀɴᴀɴ ᴇsʏᴀʟᴀʀɪ ɢᴏʀᴜɴᴛᴜʟᴇ"
-            - "<#CBD5E1>ᴋᴀʏɪᴛʟɪ ᴇsʏᴀ <#94A3B8>• <#E0F2FE>%storage_usage%"
-        "22":
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ / sᴀᴀᴛ <#94A3B8>• <#E0F2FE>%production_hour%"
+        "45":
           material: HOPPER
           name: "<#38BDF8>ʏᴏɴᴇᴛɪᴍ"
           action: "open:manage"
           lore:
             - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴀʏᴀʀʟᴀʀɪɴɪ ɪɴᴄᴇʟᴇ"
-            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ᴀᴅᴀ sᴀʜɪʙɪ ᴠᴇ ʏᴏɴᴇᴛɪᴄɪ"
-        "24":
-          material: AMETHYST_SHARD
-          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
-          action: "open:modules"
-          lore:
-            - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴍᴏᴅᴜʟʟᴇʀɪɴɪ ɢᴏʀᴜɴᴛᴜʟᴇ"
-            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪʟᴇʙɪʟɪʀ"
-        "31":
+            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪᴄɪ"
+        "46":
           material: OAK_SIGN
           name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
           action: "open:members"
           lore:
             - "<#FDE68A>ᴀᴅᴀ ᴇᴋɪʙɪɴɪ ᴠᴇ ʀᴏʟʟᴇʀɪ ɢᴏʀ"
             - "<#CBD5E1>ᴋᴀʏɪᴛ <#94A3B8>• <#E0F2FE>%members% ᴋɪsɪ"
+        "47":
+          material: AMETHYST_SHARD
+          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
+          action: "open:modules"
+          lore:
+            - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴍᴏᴅᴜʟʟᴇʀɪɴɪ ɢᴏʀᴜɴᴛᴜʟᴇ"
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪʟᴇʙɪʟɪʀ"
+        "48":
+          material: BARREL
+          name: "<#22C55E>ᴅᴇᴘᴏ ʟɪsᴛᴇsɪ"
+          action: "open:storage"
+          lore:
+            - "<#D1FAE5>ᴅᴏʟᴜ ᴅᴇᴘᴏ ᴜʀᴜɴʟᴇʀɪɴɪ ɢᴏʀ"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍ <#94A3B8>• <#E0F2FE>%storage_usage%"
         "49":
           material: BARRIER
           name: "<#FB7185>ᴋᴀᴘᴀᴛ"
           action: "close"
           lore:
             - "<#FFE4E6>ᴍᴇɴᴜʏᴜ ᴋᴀᴘᴀᴛ"
+        "53":
+          material: EMERALD_BLOCK
+          name: "<#22C55E>ᴛᴜᴍ ғɪʏᴀᴛʟɪ ᴜʀᴜɴʟᴇʀɪ sᴀᴛ"
+          action: "sell:all"
+          lore:
+            - "<#D1FAE5>ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴛᴜᴍ ᴅᴇᴘᴏ ᴜʀᴜɴʟᴇʀɪɴɪ sᴀᴛ"
+            - "<#CBD5E1>ᴏᴅᴇᴍᴇ <#94A3B8>• <#E0F2FE>ᴠᴀᴜʟᴛ ᴇᴋᴏɴᴏᴍɪ"
+      product-items:
+        slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34]
+        item:
+          material: "%material%"
+          name: "<#22C55E>%material_name%"
+          action: "open:product:%material%"
+          lore:
+            - "<#D1FAE5>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%effective_product_state%"
+            - "<#CBD5E1>ᴋᴀᴘᴀsɪᴛᴇ <#94A3B8>• <#E0F2FE>%fill_percent%"
+            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
+            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - ""
+            - "<#E0F2FE>sᴏʟ ᴛɪᴋ <#94A3B8>• <#CBD5E1>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
+        empty:
+          material: BARREL
+          name: "<#FBBF24>ᴜʀᴜɴ ʟɪsᴛᴇsɪ ʙᴏs"
+          action: "info"
+          lore:
+            - "<#FDE68A>collect.allowed-materials ʟɪsᴛᴇsɪɴɪ ᴋᴏɴᴛʀᴏʟ ᴇᴛ"
     storage:
       title: "<#22C55E>ᴄɪғᴛᴄɪ ᴅᴇᴘᴏsᴜ"
       size: 54
@@ -229,14 +260,14 @@ gui:
         filled:
           material: "%material%"
           name: "<#22C55E>%material_name%"
-          action: "withdraw:%material%:stack"
-          right-action: "sell:%material%:all"
+          action: "open:product:%material%"
+          right-action: "open:product:%material%"
           lore:
             - "<#D1FAE5>ᴅᴇᴘᴏᴅᴀᴋɪ ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount%"
             - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
             - "<#CBD5E1>ᴛᴀʜᴍɪɴɪ ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙɪʀ sᴛᴀᴄᴋ ᴄᴇᴋ"
-            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙᴜ ᴜʀᴜɴᴜ sᴀᴛ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
+            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
         empty:
           material: BARREL
           name: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
@@ -244,6 +275,79 @@ gui:
           lore:
             - "<#FDE68A>ᴄɪғᴛᴄɪ ʜᴇɴᴜᴢ ᴇsʏᴀ ʙɪʀɪᴋᴛɪʀᴍᴇᴅɪ"
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ sɪsᴛᴇᴍɪ ɪʟᴇ ᴅᴏʟᴍᴀʏᴀ ʙᴀsʟᴀʀ"
+    product:
+      title: "<#38BDF8>%material_name% ᴘᴀɴᴇʟɪ"
+      size: 54
+      items:
+        "4":
+          material: "%product_material%"
+          name: "<#38BDF8>%material_name%"
+          action: "info"
+          lore:
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
+            - "<#CBD5E1>ᴋᴀᴘᴀsɪᴛᴇ <#94A3B8>• <#E0F2FE>%capacity% <#94A3B8>(%fill_percent%)"
+            - "<#CBD5E1>ᴜʀᴜɴ ᴅᴜʀᴜᴍᴜ <#94A3B8>• <#E0F2FE>%product_state%"
+            - "<#CBD5E1>ᴇᴛᴋɪɴ ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%effective_product_state%"
+            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
+            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+        "20":
+          material: REDSTONE_TORCH
+          name: "<#FBBF24>ᴜʀᴜɴ ᴛᴏᴘʟᴀᴍᴀ"
+          action: "product-toggle:%material%"
+          lore:
+            - "<#FDE68A>ᴍᴇᴠᴄᴜᴛ ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%product_state%"
+            - "<#CBD5E1>ɢᴇɴᴇʟ ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙᴜ ᴜʀᴜɴᴜ ᴀᴄ / ᴋᴀᴘᴀᴛ"
+        "22":
+          material: CHEST
+          name: "<#38BDF8>ᴍɪᴋᴛᴀʀ ɪʟᴇ ᴄᴇᴋ"
+          action: "withdraw-dialog:%material%"
+          right-action: "withdraw:%material%:all"
+          lore:
+            - "<#E0F2FE>ᴘᴀᴘᴇʀ sʟɪᴅᴇʀ ɪʟᴇ ᴄᴇᴋɪʟᴇᴄᴇᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴍɪᴋᴛᴀʀ sᴇᴄ"
+            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜɴᴜ ᴄᴇᴋ"
+        "24":
+          material: EMERALD
+          name: "<#22C55E>ᴍɪᴋᴛᴀʀ ɪʟᴇ sᴀᴛ"
+          action: "sell-dialog:%material%"
+          right-action: "sell:%material%:all"
+          lore:
+            - "<#D1FAE5>ᴘᴀᴘᴇʀ sʟɪᴅᴇʀ ɪʟᴇ sᴀᴛɪʟᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ"
+            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴍɪᴋᴛᴀʀ sᴇᴄ"
+            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
+        "30":
+          material: HOPPER
+          name: "<#38BDF8>ʏᴏɴᴇᴛɪᴍ"
+          action: "open:manage"
+          lore:
+            - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴀʏᴀʀʟᴀʀɪɴᴀ ɢɪᴛ"
+        "32":
+          material: AMETHYST_SHARD
+          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
+          action: "open:modules"
+          lore:
+            - "<#E0F2FE>ᴜʀᴇᴛɪᴍ ᴠᴇ ᴏᴛᴏᴍᴀsʏᴏɴ ᴍᴏᴅᴜʟʟᴇʀɪ"
+        "45":
+          material: ARROW
+          name: "<#94A3B8>ɢᴇʀɪ"
+          action: "back"
+          lore:
+            - "<#CBD5E1>ᴏɴᴄᴇᴋɪ ᴍᴇɴᴜʏᴇ ᴅᴏɴ"
+        "49":
+          material: BARRIER
+          name: "<#FB7185>ᴋᴀᴘᴀᴛ"
+          action: "close"
+          lore:
+            - "<#FFE4E6>ᴍᴇɴᴜʏᴜ ᴋᴀᴘᴀᴛ"
+        "53":
+          material: EMERALD_BLOCK
+          name: "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
+          action: "sell:%material%:all"
+          lore:
+            - "<#D1FAE5>ʙᴜ ᴜʀᴜɴᴜɴ ᴛᴜᴍ ᴅᴇᴘᴏsᴜɴᴜ sᴀᴛ"
+            - "<#CBD5E1>ᴏᴅᴇᴍᴇ <#94A3B8>• <#E0F2FE>ᴠᴀᴜʟᴛ ᴇᴋᴏɴᴏᴍɪ"
     manage:
       title: "<#38BDF8>ᴄɪғᴛᴄɪ ʏᴏɴᴇᴛɪᴍɪ"
       size: 54

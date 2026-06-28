@@ -3,10 +3,12 @@ package com.craftion.farmer.gui;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.module.ModuleManager;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -14,15 +16,18 @@ import org.bukkit.entity.Player;
 
 public record MenuRenderContext(
     Player player,
+    String menuId,
     FarmerMenuSession session,
     ConfigManager configManager,
     ModuleManager moduleManager,
     ConfigurationSection menuSection,
+    MaterialKey productMaterialKey,
     Map<String, String> placeholders
 ) {
 
     public MenuRenderContext {
         Objects.requireNonNull(player, "player");
+        menuId = Objects.requireNonNull(menuId, "menuId");
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(configManager, "configManager");
         Objects.requireNonNull(moduleManager, "moduleManager");
@@ -32,6 +37,10 @@ public record MenuRenderContext(
 
     public Farmer farmer() {
         return this.session.farmer();
+    }
+
+    public Optional<MaterialKey> productMaterialKeyOptional() {
+        return Optional.ofNullable(this.productMaterialKey);
     }
 
     public Map<String, String> withPlaceholders(Map<String, String> extraPlaceholders) {

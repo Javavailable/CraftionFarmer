@@ -1,0 +1,1405 @@
+diff --git a/src/main/java/com/craftion/farmer/collect/CollectResult.java b/src/main/java/com/craftion/farmer/collect/CollectResult.java
+index a19bdd2..2d6c895 100644
+--- a/src/main/java/com/craftion/farmer/collect/CollectResult.java
++++ b/src/main/java/com/craftion/farmer/collect/CollectResult.java
+@@ -76,6 +76,7 @@ public record CollectResult(
+         NO_REGION,
+         NO_FARMER,
+         FARMER_DISABLED,
++        PRODUCT_DISABLED,
+         MATERIAL_NOT_ALLOWED,
+         ITEM_HAS_META,
+         PLAYER_DROP,
+diff --git a/src/main/java/com/craftion/farmer/collect/CollectService.java b/src/main/java/com/craftion/farmer/collect/CollectService.java
+index bb689f6..df1f7bd 100644
+--- a/src/main/java/com/craftion/farmer/collect/CollectService.java
++++ b/src/main/java/com/craftion/farmer/collect/CollectService.java
+@@ -133,6 +133,10 @@ public final class CollectService {
+         }
+ 
+         MaterialKey materialKey = MaterialKey.of(material.name());
++        if (!value.productCollectingEnabled(materialKey)) {
++            return CollectResult.skipped(CollectResult.Status.PRODUCT_DISABLED, context, regionId.get());
++        }
++
+         long requestedAmount = itemStack.getAmount();
+         long capacity = capacityFor(value, materialKey);
+         StorageAddResult addResult = value.addStorageAmount(materialKey, requestedAmount, capacity);
+diff --git a/src/main/java/com/craftion/farmer/config/ConfigManager.java b/src/main/java/com/craftion/farmer/config/ConfigManager.java
+index 0ac60ec..49ba2f0 100644
+--- a/src/main/java/com/craftion/farmer/config/ConfigManager.java
++++ b/src/main/java/com/craftion/farmer/config/ConfigManager.java
+@@ -2,7 +2,9 @@ package com.craftion.farmer.config;
+ 
+ import com.craftion.farmer.farmer.FarmerRole;
+ import com.craftion.farmer.farmer.MaterialKey;
++import java.util.ArrayList;
+ import java.util.LinkedHashSet;
++import java.util.List;
+ import java.util.Locale;
+ import java.util.OptionalDouble;
+ import java.util.Set;
+@@ -157,6 +159,23 @@ public final class ConfigManager {
+         return Set.copyOf(materials);
+     }
+ 
++    public List<MaterialKey> collectMaterialKeys() {
++        List<MaterialKey> materialKeys = new ArrayList<>();
++        Set<MaterialKey> seen = new LinkedHashSet<>();
++        for (String materialName : this.config.getStringList("collect.allowed-materials")) {
++            Material material = Material.matchMaterial(materialName);
++            if (material == null || material.isAir()) {
++                continue;
++            }
++
++            MaterialKey materialKey = MaterialKey.of(material.name());
++            if (seen.add(materialKey)) {
++                materialKeys.add(materialKey);
++            }
++        }
++        return List.copyOf(materialKeys);
++    }
++
+     public boolean allowMemberWithdraw() {
+         return this.config.getBoolean("storage.withdraw.allow-members", true);
+     }
+diff --git a/src/main/java/com/craftion/farmer/economy/StorageTransactionService.java b/src/main/java/com/craftion/farmer/economy/StorageTransactionService.java
+index fef6bf0..ec89c14 100644
+--- a/src/main/java/com/craftion/farmer/economy/StorageTransactionService.java
++++ b/src/main/java/com/craftion/farmer/economy/StorageTransactionService.java
+@@ -61,53 +61,66 @@ public final class StorageTransactionService {
+ 
+     public StorageTransactionResult withdraw(Player player, FarmerMenuSession session, String target) {
+         WithdrawTarget withdrawTarget = parseWithdrawTarget(target);
+-        if (player == null || session == null || withdrawTarget == null) {
++        if (withdrawTarget == null) {
+             return result(StorageTransactionResult.Status.INVALID_ACTION, null);
+         }
+-        if (!canWithdraw(session)) {
+-            return result(StorageTransactionResult.Status.DENIED, withdrawTarget.materialKey());
+-        }
+ 
+         Material material = material(withdrawTarget.materialKey());
+         if (material == null) {
+             return result(StorageTransactionResult.Status.INVALID_ACTION, withdrawTarget.materialKey());
+         }
+ 
++        long requestedAmount = withdrawTarget.all() ? Long.MAX_VALUE : maxStack(material);
++        return withdraw(player, session, withdrawTarget.materialKey(), requestedAmount);
++    }
++
++    public StorageTransactionResult withdraw(Player player, FarmerMenuSession session, MaterialKey materialKey, long requestedAmount) {
++        if (player == null || session == null || materialKey == null || requestedAmount <= 0L) {
++            return result(StorageTransactionResult.Status.INVALID_ACTION, materialKey);
++        }
++        if (!canWithdraw(session)) {
++            return result(StorageTransactionResult.Status.DENIED, materialKey);
++        }
++
++        Material material = material(materialKey);
++        if (material == null) {
++            return result(StorageTransactionResult.Status.INVALID_ACTION, materialKey);
++        }
++
+         Farmer farmer = session.farmer();
+-        long storageAmount = farmer.storageAmount(withdrawTarget.materialKey());
++        long storageAmount = farmer.storageAmount(materialKey);
+         if (storageAmount <= 0L) {
+-            return result(StorageTransactionResult.Status.EMPTY_STORAGE, withdrawTarget.materialKey());
++            return result(StorageTransactionResult.Status.EMPTY_STORAGE, materialKey);
+         }
+ 
+-        long maxAmount = withdrawTarget.all() ? storageAmount : Math.min(storageAmount, maxStack(material));
+         long capacity = inventoryCapacity(player, material);
+         if (capacity <= 0L) {
+-            return result(StorageTransactionResult.Status.INVENTORY_FULL, withdrawTarget.materialKey());
++            return result(StorageTransactionResult.Status.INVENTORY_FULL, materialKey);
+         }
+ 
+-        long requestedAmount = Math.min(maxAmount, capacity);
+-        if (requestedAmount <= 0L) {
+-            return result(StorageTransactionResult.Status.INVENTORY_FULL, withdrawTarget.materialKey());
++        long amount = Math.min(requestedAmount, Math.min(storageAmount, capacity));
++        if (amount <= 0L) {
++            return result(StorageTransactionResult.Status.INVENTORY_FULL, materialKey);
+         }
+ 
+-        StorageRemoveResult removeResult = farmer.removeStorageAmount(withdrawTarget.materialKey(), requestedAmount);
++        StorageRemoveResult removeResult = farmer.removeStorageAmount(materialKey, amount);
+         if (!removeResult.changedStorage()) {
+-            return result(StorageTransactionResult.Status.EMPTY_STORAGE, withdrawTarget.materialKey());
++            return result(StorageTransactionResult.Status.EMPTY_STORAGE, materialKey);
+         }
+ 
+         long givenAmount = giveItems(player, material, removeResult.removedAmount());
+         long leftoverAmount = removeResult.removedAmount() - givenAmount;
+         if (leftoverAmount > 0L) {
+-            restore(farmer, withdrawTarget.materialKey(), leftoverAmount);
++            restore(farmer, materialKey, leftoverAmount);
+         }
+         if (givenAmount <= 0L) {
+-            return result(StorageTransactionResult.Status.INVENTORY_FULL, withdrawTarget.materialKey());
++            return result(StorageTransactionResult.Status.INVENTORY_FULL, materialKey);
+         }
+ 
+-        persistAndLog(farmer, player.getUniqueId(), WITHDRAW_ACTION, withdrawDetail(withdrawTarget.materialKey(), givenAmount));
++        persistAndLog(farmer, player.getUniqueId(), WITHDRAW_ACTION, withdrawDetail(materialKey, givenAmount));
+         return new StorageTransactionResult(
+             StorageTransactionResult.Status.SUCCESS,
+-            withdrawTarget.materialKey(),
++            materialKey,
+             givenAmount,
+             1L,
+             0.0D,
+@@ -118,6 +131,21 @@ public final class StorageTransactionService {
+         );
+     }
+ 
++    public long withdrawableAmount(Player player, FarmerMenuSession session, MaterialKey materialKey) {
++        if (player == null || session == null || materialKey == null || !canWithdraw(session)) {
++            return 0L;
++        }
++        Material material = material(materialKey);
++        if (material == null) {
++            return 0L;
++        }
++        long storageAmount = session.farmer().storageAmount(materialKey);
++        if (storageAmount <= 0L) {
++            return 0L;
++        }
++        return Math.min(storageAmount, inventoryCapacity(player, material));
++    }
++
+     public StorageTransactionResult sell(Player player, FarmerMenuSession session, String target) {
+         SellTarget sellTarget = parseSellTarget(target);
+         if (player == null || session == null || sellTarget == null) {
+@@ -130,11 +158,32 @@ public final class StorageTransactionService {
+         return sellInternal(session.farmer(), sellTarget, player.getUniqueId(), player);
+     }
+ 
++    public StorageTransactionResult sell(Player player, FarmerMenuSession session, MaterialKey materialKey, long requestedAmount) {
++        if (player == null || session == null || materialKey == null || requestedAmount <= 0L) {
++            return result(StorageTransactionResult.Status.INVALID_ACTION, materialKey);
++        }
++        if (!canSell(session)) {
++            return result(StorageTransactionResult.Status.DENIED, materialKey);
++        }
++
++        return sellInternal(session.farmer(), new SellTarget(materialKey, false, requestedAmount), player.getUniqueId(), player);
++    }
++
++    public long sellableAmount(FarmerMenuSession session, MaterialKey materialKey) {
++        if (session == null || materialKey == null || !canSell(session)) {
++            return 0L;
++        }
++        if (price(materialKey).isEmpty()) {
++            return 0L;
++        }
++        return session.farmer().storageAmount(materialKey);
++    }
++
+     public StorageTransactionResult sellAll(Farmer farmer, UUID actorUuid, OfflinePlayer payee) {
+         if (farmer == null || payee == null) {
+             return result(StorageTransactionResult.Status.INVALID_ACTION, null);
+         }
+-        return sellInternal(farmer, new SellTarget(null, true), actorUuid, payee);
++        return sellInternal(farmer, new SellTarget(null, true, 0L), actorUuid, payee);
+     }
+ 
+     private StorageTransactionResult sellInternal(Farmer farmer, SellTarget sellTarget, UUID actorUuid, OfflinePlayer payee) {
+@@ -243,7 +292,11 @@ public final class StorageTransactionService {
+         if (price.isEmpty()) {
+             return new SalePlanResult(StorageTransactionResult.Status.NO_PRICE, List.of());
+         }
+-        return new SalePlanResult(StorageTransactionResult.Status.SUCCESS, List.of(new SalePlan(target.materialKey(), amount, price.getAsDouble())));
++        long saleAmount = target.amount() > 0L ? Math.min(amount, target.amount()) : amount;
++        if (saleAmount <= 0L) {
++            return new SalePlanResult(StorageTransactionResult.Status.EMPTY_STORAGE, List.of());
++        }
++        return new SalePlanResult(StorageTransactionResult.Status.SUCCESS, List.of(new SalePlan(target.materialKey(), saleAmount, price.getAsDouble())));
+     }
+ 
+     private List<SaleLine> removeSaleLines(Farmer farmer, List<SalePlan> plans) {
+@@ -413,15 +466,15 @@ public final class StorageTransactionService {
+     private SellTarget parseSellTarget(String target) {
+         String[] parts = parts(target);
+         if (parts.length == 1 && parts[0].equals("all")) {
+-            return new SellTarget(null, true);
++            return new SellTarget(null, true, 0L);
+         }
+         if (parts.length == 1) {
+             MaterialKey materialKey = materialKey(parts[0]);
+-            return materialKey == null ? null : new SellTarget(materialKey, false);
++            return materialKey == null ? null : new SellTarget(materialKey, false, 0L);
+         }
+         if (parts.length == 2 && parts[1].equals("all")) {
+             MaterialKey materialKey = materialKey(parts[0]);
+-            return materialKey == null ? null : new SellTarget(materialKey, false);
++            return materialKey == null ? null : new SellTarget(materialKey, false, 0L);
+         }
+         return null;
+     }
+@@ -454,7 +507,7 @@ public final class StorageTransactionService {
+     private record WithdrawTarget(MaterialKey materialKey, boolean all) {
+     }
+ 
+-    private record SellTarget(MaterialKey materialKey, boolean allMaterials) {
++    private record SellTarget(MaterialKey materialKey, boolean allMaterials, long amount) {
+     }
+ 
+     private record SalePlanResult(StorageTransactionResult.Status status, List<SalePlan> plans) {
+diff --git a/src/main/java/com/craftion/farmer/farmer/Farmer.java b/src/main/java/com/craftion/farmer/farmer/Farmer.java
+index 9f97811..3c22030 100644
+--- a/src/main/java/com/craftion/farmer/farmer/Farmer.java
++++ b/src/main/java/com/craftion/farmer/farmer/Farmer.java
+@@ -17,6 +17,7 @@ public final class Farmer {
+     private final ConcurrentMap<UUID, FarmerMember> members = new ConcurrentHashMap<>();
+     private final FarmerSettings settings;
+     private final ConcurrentMap<String, Boolean> moduleStates = new ConcurrentHashMap<>();
++    private final ConcurrentMap<MaterialKey, Boolean> productCollectingStates = new ConcurrentHashMap<>();
+     private final Instant createdAt;
+     private volatile LocationSnapshot location;
+     private volatile int level;
+@@ -35,6 +36,7 @@ public final class Farmer {
+         Collection<FarmerMember> members,
+         FarmerSettings settings,
+         Map<String, Boolean> moduleStates,
++        Map<MaterialKey, Boolean> productCollectingStates,
+         FarmerStatistics statistics,
+         Instant createdAt,
+         Instant updatedAt
+@@ -52,6 +54,7 @@ public final class Farmer {
+         this.updatedAt = FarmerValidation.requireNonNull(updatedAt, "updatedAt");
+         FarmerValidation.requireNonNull(members, "members").forEach(this::loadMember);
+         FarmerValidation.requireNonNull(moduleStates, "moduleStates").forEach(this::loadModuleState);
++        FarmerValidation.requireNonNull(productCollectingStates, "productCollectingStates").forEach(this::loadProductCollectingState);
+     }
+ 
+     public static Farmer create(String farmerId, String regionId, UUID ownerUuid, LocationSnapshot location) {
+@@ -71,6 +74,7 @@ public final class Farmer {
+             List.of(),
+             new FarmerSettings(),
+             Map.of(),
++            Map.of(),
+             FarmerStatistics.empty(),
+             now,
+             now
+@@ -101,6 +105,7 @@ public final class Farmer {
+             this.members.values(),
+             this.settings,
+             this.moduleStates,
++            this.productCollectingStates,
+             this.statistics,
+             this.createdAt,
+             Instant.now()
+@@ -183,6 +188,15 @@ public final class Farmer {
+         return Map.copyOf(this.moduleStates);
+     }
+ 
++    public Map<MaterialKey, Boolean> productCollectingStates() {
++        return Map.copyOf(this.productCollectingStates);
++    }
++
++    public boolean productCollectingEnabled(MaterialKey materialKey) {
++        FarmerValidation.requireNonNull(materialKey, "materialKey");
++        return this.productCollectingStates.getOrDefault(materialKey, true);
++    }
++
+     public FarmerStatistics statistics() {
+         return this.statistics;
+     }
+@@ -254,6 +268,16 @@ public final class Farmer {
+         touch();
+     }
+ 
++    public void setProductCollectingEnabled(MaterialKey materialKey, boolean enabled) {
++        FarmerValidation.requireNonNull(materialKey, "materialKey");
++        if (enabled) {
++            this.productCollectingStates.remove(materialKey);
++        } else {
++            this.productCollectingStates.put(materialKey, false);
++        }
++        touch();
++    }
++
+     public void updateStatistics(FarmerStatistics statistics) {
+         this.statistics = FarmerValidation.requireNonNull(statistics, "statistics");
+         touch();
+@@ -287,4 +311,13 @@ public final class Farmer {
+     private void loadModuleState(String moduleKey, boolean enabled) {
+         this.moduleStates.put(FarmerValidation.requireNonBlank(moduleKey, "moduleKey"), enabled);
+     }
++
++    private void loadProductCollectingState(MaterialKey materialKey, boolean enabled) {
++        FarmerValidation.requireNonNull(materialKey, "materialKey");
++        if (enabled) {
++            this.productCollectingStates.remove(materialKey);
++        } else {
++            this.productCollectingStates.put(materialKey, false);
++        }
++    }
+ }
+diff --git a/src/main/java/com/craftion/farmer/farmer/FarmerPersistenceService.java b/src/main/java/com/craftion/farmer/farmer/FarmerPersistenceService.java
+index a73e316..f2d54a2 100644
+--- a/src/main/java/com/craftion/farmer/farmer/FarmerPersistenceService.java
++++ b/src/main/java/com/craftion/farmer/farmer/FarmerPersistenceService.java
+@@ -24,13 +24,15 @@ public final class FarmerPersistenceService {
+         "farmer_members",
+         "farmer_storage",
+         "farmer_settings",
+-        "farmer_modules"
++        "farmer_modules",
++        "farmer_product_states"
+     );
+     private static final List<String> DELETE_CHILD_TABLES = List.of(
+         "farmer_members",
+         "farmer_storage",
+         "farmer_settings",
+         "farmer_modules",
++        "farmer_product_states",
+         "farmer_logs"
+     );
+ 
+@@ -234,6 +236,7 @@ public final class FarmerPersistenceService {
+             loadMembers(connection, farmerId),
+             new FarmerSettings(loadSettings(connection, farmerId)),
+             loadModules(connection, farmerId),
++            loadProductCollectingStates(connection, farmerId),
+             FarmerStatistics.empty(),
+             Instant.ofEpochMilli(resultSet.getLong("created_at")),
+             Instant.ofEpochMilli(resultSet.getLong("updated_at"))
+@@ -305,6 +308,21 @@ public final class FarmerPersistenceService {
+         return modules;
+     }
+ 
++    private Map<MaterialKey, Boolean> loadProductCollectingStates(Connection connection, String farmerId) throws SQLException {
++        Map<MaterialKey, Boolean> states = new HashMap<>();
++        try (PreparedStatement statement = connection.prepareStatement(
++            "SELECT material_key, collecting_enabled FROM farmer_product_states WHERE farmer_id = ?"
++        )) {
++            statement.setString(1, farmerId);
++            try (ResultSet resultSet = statement.executeQuery()) {
++                while (resultSet.next()) {
++                    states.put(MaterialKey.of(resultSet.getString("material_key")), resultSet.getBoolean("collecting_enabled"));
++                }
++            }
++        }
++        return states;
++    }
++
+     private void saveFarmer(Connection connection, Farmer farmer) throws SQLException {
+         int updated = updateFarmer(connection, farmer);
+         if (updated == 0) {
+@@ -315,6 +333,7 @@ public final class FarmerPersistenceService {
+         insertStorage(connection, farmer);
+         insertSettings(connection, farmer);
+         insertModules(connection, farmer);
++        insertProductCollectingStates(connection, farmer);
+     }
+ 
+     private boolean saveExistingFarmer(Connection connection, Farmer farmer) throws SQLException {
+@@ -327,6 +346,7 @@ public final class FarmerPersistenceService {
+         insertStorage(connection, farmer);
+         insertSettings(connection, farmer);
+         insertModules(connection, farmer);
++        insertProductCollectingStates(connection, farmer);
+         return true;
+     }
+ 
+@@ -425,6 +445,20 @@ public final class FarmerPersistenceService {
+         }
+     }
+ 
++    private void insertProductCollectingStates(Connection connection, Farmer farmer) throws SQLException {
++        try (PreparedStatement statement = connection.prepareStatement(
++            "INSERT INTO farmer_product_states (farmer_id, material_key, collecting_enabled) VALUES (?, ?, ?)"
++        )) {
++            for (Map.Entry<MaterialKey, Boolean> entry : farmer.productCollectingStates().entrySet()) {
++                statement.setString(1, farmer.farmerId());
++                statement.setString(2, entry.getKey().toString());
++                statement.setBoolean(3, entry.getValue());
++                statement.addBatch();
++            }
++            statement.executeBatch();
++        }
++    }
++
+     private List<String> findFarmerIdsByRegionId(Connection connection, String regionId) throws SQLException {
+         List<String> farmerIds = new ArrayList<>();
+         try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM farmers WHERE region_id = ?")) {
+diff --git a/src/main/java/com/craftion/farmer/gui/MainFarmerMenu.java b/src/main/java/com/craftion/farmer/gui/MainFarmerMenu.java
+index ddd2892..6d609d8 100644
+--- a/src/main/java/com/craftion/farmer/gui/MainFarmerMenu.java
++++ b/src/main/java/com/craftion/farmer/gui/MainFarmerMenu.java
+@@ -1,5 +1,11 @@
+ package com.craftion.farmer.gui;
+ 
++import com.craftion.farmer.farmer.MaterialKey;
++import java.util.Locale;
++import java.util.Map;
++import java.util.OptionalDouble;
++import org.bukkit.configuration.ConfigurationSection;
++
+ public final class MainFarmerMenu implements FarmerMenu {
+ 
+     @Override
+@@ -11,4 +17,67 @@ public final class MainFarmerMenu implements FarmerMenu {
+     public FarmerMenuAccess requiredAccess() {
+         return FarmerMenuAccess.VIEWER;
+     }
++
++    @Override
++    public void render(MenuRenderContext context, MenuLayoutBuilder builder) {
++        ConfigurationSection productSection = context.menuSection().getConfigurationSection("product-items");
++        if (productSection == null) {
++            return;
++        }
++
++        java.util.List<Integer> slots = productSection.getIntegerList("slots");
++        ConfigurationSection template = productSection.getConfigurationSection("item");
++        if (slots.isEmpty() || template == null) {
++            return;
++        }
++
++        int index = 0;
++        for (MaterialKey materialKey : context.configManager().collectMaterialKeys()) {
++            if (index >= slots.size()) {
++                break;
++            }
++
++            long amount = context.farmer().storageAmount(materialKey);
++            OptionalDouble price = context.configManager().price(materialKey);
++            long capacity = context.configManager().maxStoragePerItem();
++            builder.putConfiguredItem(slots.get(index), template, context.withPlaceholders(Map.of(
++                "material", materialKey.toString(),
++                "material_name", context.materialName(materialKey.toString()),
++                "amount", formatAmount(amount),
++                "price", price.isPresent() ? formatMoney(price.getAsDouble()) : "-",
++                "worth", price.isPresent() ? formatMoney(price.getAsDouble() * amount) : "-",
++                "capacity", capacity < 0L ? "sɪɴɪʀsɪᴢ" : formatAmount(capacity),
++                "fill_percent", fillPercent(amount, capacity),
++                "product_state", context.configManager().guiCollectingState(context.farmer().productCollectingEnabled(materialKey)),
++                "effective_product_state", context.configManager().guiCollectingState(context.farmer().collectingEnabled() && context.farmer().productCollectingEnabled(materialKey))
++            )), materialKey.toString());
++            index++;
++        }
++
++        if (index == 0) {
++            ConfigurationSection emptyTemplate = productSection.getConfigurationSection("empty");
++            if (emptyTemplate != null) {
++                builder.putConfiguredItem(slots.get(0), emptyTemplate, context.placeholders(), "BARREL");
++            }
++        }
++    }
++
++    private String formatAmount(long amount) {
++        return String.format(Locale.US, "%,d", amount);
++    }
++
++    private String formatMoney(double amount) {
++        return Double.isFinite(amount) ? String.format(Locale.US, "%,.2f", amount) : "-";
++    }
++
++    private String fillPercent(long amount, long capacity) {
++        if (capacity < 0L) {
++            return "-";
++        }
++        if (capacity <= 0L) {
++            return "0%";
++        }
++        double percent = Math.max(0.0D, Math.min(100.0D, (amount * 100.0D) / capacity));
++        return String.format(Locale.US, "%.1f%%", percent);
++    }
+ }
+diff --git a/src/main/java/com/craftion/farmer/gui/MenuAction.java b/src/main/java/com/craftion/farmer/gui/MenuAction.java
+index cf7cea5..692742a 100644
+--- a/src/main/java/com/craftion/farmer/gui/MenuAction.java
++++ b/src/main/java/com/craftion/farmer/gui/MenuAction.java
+@@ -7,6 +7,7 @@ import java.util.Set;
+ public record MenuAction(Type type, String target) {
+ 
+     private static final Set<String> OPEN_TARGETS = Set.of("main", "storage", "manage", "members", "modules");
++    private static final String PRODUCT_MENU_PREFIX = "product:";
+ 
+     public MenuAction {
+         if (type == null) {
+@@ -36,9 +37,21 @@ public record MenuAction(Type type, String target) {
+         if (action.equals("collect-toggle")) {
+             return Optional.of(new MenuAction(Type.COLLECT_TOGGLE, ""));
+         }
++        if (action.startsWith("product-toggle:")) {
++            String target = target(action, "product-toggle:");
++            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.PRODUCT_TOGGLE, target)) : Optional.empty();
++        }
+         if (action.startsWith("open:")) {
+             String target = target(action, "open:");
+-            return OPEN_TARGETS.contains(target) ? Optional.of(new MenuAction(Type.OPEN, target)) : Optional.empty();
++            return isOpenTarget(target) ? Optional.of(new MenuAction(Type.OPEN, target)) : Optional.empty();
++        }
++        if (action.startsWith("withdraw-dialog:")) {
++            String target = target(action, "withdraw-dialog:");
++            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.WITHDRAW_DIALOG, target)) : Optional.empty();
++        }
++        if (action.startsWith("sell-dialog:")) {
++            String target = target(action, "sell-dialog:");
++            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.SELL_DIALOG, target)) : Optional.empty();
+         }
+         if (action.startsWith("withdraw:")) {
+             String target = target(action, "withdraw:");
+@@ -61,19 +74,31 @@ public record MenuAction(Type type, String target) {
+     }
+ 
+     public static boolean isKnownMenu(String menuId) {
+-        return menuId != null && OPEN_TARGETS.contains(menuId.trim().toLowerCase(Locale.ROOT));
++        return menuId != null && isOpenTarget(menuId.trim().toLowerCase(Locale.ROOT));
+     }
+ 
+     private static String target(String action, String prefix) {
+         return action.substring(prefix.length()).trim().toLowerCase(Locale.ROOT);
+     }
+ 
++    private static boolean isOpenTarget(String target) {
++        return OPEN_TARGETS.contains(target) || isProductMenuTarget(target);
++    }
++
++    private static boolean isProductMenuTarget(String target) {
++        if (target == null || !target.startsWith(PRODUCT_MENU_PREFIX)) {
++            return false;
++        }
++        return isStorageMaterialTarget(target.substring(PRODUCT_MENU_PREFIX.length()));
++    }
++
+     private static boolean isValidTarget(Type type, String target) {
+         return switch (type) {
+-            case OPEN -> OPEN_TARGETS.contains(target);
++            case OPEN -> isOpenTarget(target);
+             case CLOSE, BACK, INFO, COLLECT_TOGGLE -> target.isEmpty();
+             case WITHDRAW -> isWithdrawTarget(target);
+             case SELL -> isSellTarget(target);
++            case WITHDRAW_DIALOG, SELL_DIALOG, PRODUCT_TOGGLE -> isMaterialTarget(target);
+             case MODULE_TOGGLE -> isMaterialTarget(target);
+         };
+     }
+@@ -125,8 +150,11 @@ public record MenuAction(Type type, String target) {
+         BACK,
+         INFO,
+         WITHDRAW,
++        WITHDRAW_DIALOG,
+         SELL,
++        SELL_DIALOG,
+         MODULE_TOGGLE,
+-        COLLECT_TOGGLE
++        COLLECT_TOGGLE,
++        PRODUCT_TOGGLE
+     }
+ }
+diff --git a/src/main/java/com/craftion/farmer/gui/MenuRenderContext.java b/src/main/java/com/craftion/farmer/gui/MenuRenderContext.java
+index 18f38ad..520ed9e 100644
+--- a/src/main/java/com/craftion/farmer/gui/MenuRenderContext.java
++++ b/src/main/java/com/craftion/farmer/gui/MenuRenderContext.java
+@@ -3,10 +3,12 @@ package com.craftion.farmer.gui;
+ import com.craftion.farmer.config.ConfigManager;
+ import com.craftion.farmer.farmer.Farmer;
+ import com.craftion.farmer.farmer.FarmerRole;
++import com.craftion.farmer.farmer.MaterialKey;
+ import com.craftion.farmer.module.ModuleManager;
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.Objects;
++import java.util.Optional;
+ import java.util.UUID;
+ import org.bukkit.Bukkit;
+ import org.bukkit.configuration.ConfigurationSection;
+@@ -14,15 +16,18 @@ import org.bukkit.entity.Player;
+ 
+ public record MenuRenderContext(
+     Player player,
++    String menuId,
+     FarmerMenuSession session,
+     ConfigManager configManager,
+     ModuleManager moduleManager,
+     ConfigurationSection menuSection,
++    MaterialKey productMaterialKey,
+     Map<String, String> placeholders
+ ) {
+ 
+     public MenuRenderContext {
+         Objects.requireNonNull(player, "player");
++        menuId = Objects.requireNonNull(menuId, "menuId");
+         Objects.requireNonNull(session, "session");
+         Objects.requireNonNull(configManager, "configManager");
+         Objects.requireNonNull(moduleManager, "moduleManager");
+@@ -34,6 +39,10 @@ public record MenuRenderContext(
+         return this.session.farmer();
+     }
+ 
++    public Optional<MaterialKey> productMaterialKeyOptional() {
++        return Optional.ofNullable(this.productMaterialKey);
++    }
++
+     public Map<String, String> withPlaceholders(Map<String, String> extraPlaceholders) {
+         Map<String, String> merged = new HashMap<>(this.placeholders);
+         if (extraPlaceholders != null) {
+diff --git a/src/main/java/com/craftion/farmer/gui/MenuService.java b/src/main/java/com/craftion/farmer/gui/MenuService.java
+index 5af7bee..0f54460 100644
+--- a/src/main/java/com/craftion/farmer/gui/MenuService.java
++++ b/src/main/java/com/craftion/farmer/gui/MenuService.java
+@@ -22,14 +22,28 @@ import com.craftion.farmer.module.ProductionEstimate;
+ import com.craftion.farmer.scheduler.SchedulerAdapter;
+ import com.craftion.farmer.storage.DatabaseManager;
+ import com.craftion.farmer.util.TextUtil;
++import io.papermc.paper.dialog.Dialog;
++import io.papermc.paper.dialog.DialogResponseView;
++import io.papermc.paper.registry.data.dialog.ActionButton;
++import io.papermc.paper.registry.data.dialog.DialogBase;
++import io.papermc.paper.registry.data.dialog.action.DialogAction;
++import io.papermc.paper.registry.data.dialog.body.DialogBody;
++import io.papermc.paper.registry.data.dialog.input.DialogInput;
++import io.papermc.paper.registry.data.dialog.type.DialogType;
++import java.time.Duration;
+ import java.util.HashMap;
+ import java.util.LinkedHashMap;
++import java.util.List;
+ import java.util.Locale;
+ import java.util.Map;
+ import java.util.Optional;
++import java.util.OptionalDouble;
+ import java.util.UUID;
+ import java.util.concurrent.CompletableFuture;
++import net.kyori.adventure.audience.Audience;
++import net.kyori.adventure.text.event.ClickCallback;
+ import org.bukkit.Bukkit;
++import org.bukkit.Material;
+ import org.bukkit.configuration.ConfigurationSection;
+ import org.bukkit.entity.Player;
+ import org.bukkit.inventory.Inventory;
+@@ -39,6 +53,10 @@ public final class MenuService {
+ 
+     private static final String USE_PERMISSION = "craftionfarmer.use";
+     private static final String DEFAULT_TITLE = "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ";
++    private static final String PRODUCT_MENU_ID = "product";
++    private static final String PRODUCT_MENU_PREFIX = PRODUCT_MENU_ID + ":";
++    private static final String AMOUNT_INPUT_KEY = "amount";
++    private static final long DIALOG_MAX_AMOUNT = 16_777_216L;
+ 
+     private final JavaPlugin plugin;
+     private final ConfigManager configManager;
+@@ -124,6 +142,7 @@ public final class MenuService {
+         registerMenu(new ManageMenu());
+         registerMenu(new MembersMenu());
+         registerMenu(new ModulesMenu());
++        registerMenu(new ProductMenu());
+     }
+ 
+     private void registerMenu(FarmerMenu menu) {
+@@ -138,9 +157,12 @@ public final class MenuService {
+         this.actionRegistry.register(MenuAction.Type.BACK, this::back);
+         this.actionRegistry.register(MenuAction.Type.INFO, (context, action) -> true);
+         this.actionRegistry.register(MenuAction.Type.WITHDRAW, this::withdraw);
++        this.actionRegistry.register(MenuAction.Type.WITHDRAW_DIALOG, this::openWithdrawDialog);
+         this.actionRegistry.register(MenuAction.Type.SELL, this::sell);
++        this.actionRegistry.register(MenuAction.Type.SELL_DIALOG, this::openSellDialog);
+         this.actionRegistry.register(MenuAction.Type.MODULE_TOGGLE, this::toggleModule);
+         this.actionRegistry.register(MenuAction.Type.COLLECT_TOGGLE, this::toggleCollect);
++        this.actionRegistry.register(MenuAction.Type.PRODUCT_TOGGLE, this::toggleProductCollect);
+     }
+ 
+     private boolean openForPlayer(Player player, String menuId, String previousMenuId) {
+@@ -230,11 +252,16 @@ public final class MenuService {
+ 
+         String normalizedMenuId = normalizeMenuId(menuId);
+         String normalizedPreviousMenuId = normalizePreviousMenuId(previousMenuId);
+-        FarmerMenu menu = normalizedMenuId == null ? null : this.menus.get(normalizedMenuId);
++        FarmerMenu menu = normalizedMenuId == null ? null : this.menus.get(menuKey(normalizedMenuId));
+         if (menu == null) {
+             this.debugLogger.debug("Menu open skipped because menu is not registered: " + menuId);
+             return false;
+         }
++        if (PRODUCT_MENU_ID.equals(menu.id()) && productMaterialKey(normalizedMenuId).isEmpty()) {
++            this.debugLogger.debug("Product menu open skipped because material is unsupported: " + menuId);
++            this.messageService.send(player, "commands.farmer.open-failed");
++            return false;
++        }
+         if (!session.canOpen(menu.requiredAccess())) {
+             this.messageService.send(player, "commands.farmer.gui-denied");
+             return false;
+@@ -245,7 +272,7 @@ public final class MenuService {
+             return false;
+         }
+ 
+-        this.schedulerAdapter.runAtEntity(player, () -> openNow(player, menu, normalizedPreviousMenuId, session));
++        this.schedulerAdapter.runAtEntity(player, () -> openNow(player, normalizedMenuId, menu, normalizedPreviousMenuId, session));
+         return true;
+     }
+ 
+@@ -297,6 +324,101 @@ public final class MenuService {
+         return true;
+     }
+ 
++    private boolean openWithdrawDialog(MenuContext context, MenuAction action) {
++        return openAmountDialog(context, action, DialogOperation.WITHDRAW);
++    }
++
++    private boolean openSellDialog(MenuContext context, MenuAction action) {
++        return openAmountDialog(context, action, DialogOperation.SELL);
++    }
++
++    private boolean openAmountDialog(MenuContext context, MenuAction action, DialogOperation operation) {
++        Optional<FarmerMenuSession> session = context.session();
++        if (session.isEmpty()) {
++            this.messageService.send(context.player(), "commands.farmer.gui-denied");
++            return false;
++        }
++
++        Optional<MaterialKey> materialKey = materialKey(action.target());
++        if (materialKey.isEmpty() || !isConfiguredProduct(materialKey.get())) {
++            this.messageService.send(context.player(), "commands.farmer.open-failed");
++            return false;
++        }
++
++        FarmerMenuSession menuSession = session.get();
++        AmountAvailability availability = amountAvailability(context.player(), menuSession, materialKey.get(), operation);
++        if (availability.status() != StorageTransactionResult.Status.SUCCESS) {
++            StorageTransactionResult result = transactionResult(availability.status(), materialKey.get());
++            if (operation == DialogOperation.WITHDRAW) {
++                sendWithdrawResult(context.player(), result);
++            } else {
++                sendSellResult(context.player(), result);
++            }
++            return true;
++        }
++
++        long sliderMax = Math.min(availability.amount(), DIALOG_MAX_AMOUNT);
++        Dialog dialog = amountDialog(
++            operation,
++            materialKey.get(),
++            sliderMax,
++            context.menuId(),
++            context.holder().previousMenuId().orElse(null),
++            menuSession
++        );
++        context.player().closeInventory();
++        context.player().showDialog(dialog);
++        return true;
++    }
++
++    private boolean toggleProductCollect(MenuContext context, MenuAction action) {
++        Optional<FarmerMenuSession> session = context.session();
++        if (session.isEmpty()) {
++            this.messageService.send(context.player(), "commands.farmer.gui-denied");
++            return false;
++        }
++
++        FarmerMenuSession menuSession = session.get();
++        if (!FarmerMenuAccess.MANAGER.allows(menuSession.role())) {
++            this.messageService.send(context.player(), "commands.farmer.product-toggle-denied");
++            return true;
++        }
++
++        Optional<MaterialKey> materialKey = materialKey(action.target());
++        if (materialKey.isEmpty() || !isConfiguredProduct(materialKey.get())) {
++            this.messageService.send(context.player(), "commands.farmer.open-failed");
++            return true;
++        }
++
++        Farmer farmer = menuSession.farmer();
++        boolean previousState = farmer.productCollectingEnabled(materialKey.get());
++        boolean nextState = !previousState;
++        farmer.setProductCollectingEnabled(materialKey.get(), nextState);
++
++        this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
++            if (throwable != null) {
++                farmer.setProductCollectingEnabled(materialKey.get(), previousState);
++            }
++
++            this.schedulerAdapter.runAtEntity(context.player(), () -> {
++                if (throwable != null) {
++                    this.plugin.getLogger().warning("Product collect toggle failed: " + readableMessage(throwable));
++                    this.messageService.send(context.player(), "commands.farmer.product-toggle-failed", materialPlaceholders(materialKey.get()));
++                    refreshCurrentMenu(context);
++                    return;
++                }
++
++                this.messageService.send(
++                    context.player(),
++                    nextState ? "commands.farmer.product-enabled" : "commands.farmer.product-disabled",
++                    materialPlaceholders(materialKey.get())
++                );
++                refreshCurrentMenu(context);
++            });
++        });
++        return true;
++    }
++
+     private boolean toggleModule(MenuContext context, MenuAction action) {
+         Optional<FarmerMenuSession> session = context.session();
+         if (session.isEmpty()) {
+@@ -393,6 +515,146 @@ public final class MenuService {
+         this.messageService.send(player, path, modulePlaceholders(result.moduleKey(), result.enabled()));
+     }
+ 
++    private AmountAvailability amountAvailability(Player player, FarmerMenuSession session, MaterialKey materialKey, DialogOperation operation) {
++        if (player == null || session == null || materialKey == null) {
++            return new AmountAvailability(StorageTransactionResult.Status.INVALID_ACTION, 0L);
++        }
++
++        long storedAmount = session.farmer().storageAmount(materialKey);
++        if (operation == DialogOperation.WITHDRAW) {
++            FarmerMenuAccess requiredAccess = this.configManager.allowMemberWithdraw() ? FarmerMenuAccess.MEMBER : FarmerMenuAccess.MANAGER;
++            if (!requiredAccess.allows(session.role())) {
++                return new AmountAvailability(StorageTransactionResult.Status.DENIED, 0L);
++            }
++            if (storedAmount <= 0L) {
++                return new AmountAvailability(StorageTransactionResult.Status.EMPTY_STORAGE, 0L);
++            }
++
++            long amount = this.storageTransactionService.withdrawableAmount(player, session, materialKey);
++            if (amount <= 0L) {
++                return new AmountAvailability(StorageTransactionResult.Status.INVENTORY_FULL, 0L);
++            }
++            return new AmountAvailability(StorageTransactionResult.Status.SUCCESS, amount);
++        }
++
++        if (!FarmerMenuAccess.MANAGER.allows(session.role())) {
++            return new AmountAvailability(StorageTransactionResult.Status.DENIED, 0L);
++        }
++        if (storedAmount <= 0L) {
++            return new AmountAvailability(StorageTransactionResult.Status.EMPTY_STORAGE, 0L);
++        }
++        if (this.configManager.price(materialKey).isEmpty()) {
++            return new AmountAvailability(StorageTransactionResult.Status.NO_PRICE, 0L);
++        }
++        return new AmountAvailability(StorageTransactionResult.Status.SUCCESS, this.storageTransactionService.sellableAmount(session, materialKey));
++    }
++
++    private Dialog amountDialog(
++        DialogOperation operation,
++        MaterialKey materialKey,
++        long maxAmount,
++        String menuId,
++        String previousMenuId,
++        FarmerMenuSession session
++    ) {
++        String materialName = materialName(materialKey);
++        String title = operation == DialogOperation.WITHDRAW
++            ? "<#38BDF8>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ"
++            : "<#22C55E>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ";
++        String body = operation == DialogOperation.WITHDRAW
++            ? "<#CBD5E1>" + materialName + " <#94A3B8>ɪᴄɪɴ ᴄᴇᴋɪʟᴇᴄᴇᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ.\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
++            : "<#CBD5E1>" + materialName + " <#94A3B8>ɪᴄɪɴ sᴀᴛɪʟᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ.\n<#CBD5E1>ᴍᴀᴋsɪᴍᴜᴍ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount);
++
++        ActionButton confirmButton = ActionButton.builder(TextUtil.parse("<#22C55E>ᴏɴᴀʏʟᴀ"))
++            .tooltip(TextUtil.parse("<#D1FAE5>sᴇᴄɪʟᴇɴ ᴍɪᴋᴛᴀʀ ɪʟᴇ ɪsʟᴇᴍɪ ᴛᴀᴍᴀᴍʟᴀ"))
++            .width(150)
++            .action(DialogAction.customClick(
++                (response, audience) -> handleAmountDialogResponse(operation, materialKey, maxAmount, menuId, previousMenuId, session, response, audience),
++                dialogOptions()
++            ))
++            .build();
++        ActionButton cancelButton = ActionButton.builder(TextUtil.parse("<#FB7185>ᴠᴀᴢɢᴇᴄ"))
++            .tooltip(TextUtil.parse("<#FFE4E6>ᴜʀᴜɴ ᴍᴇɴᴜsᴜɴᴇ ᴅᴏɴ"))
++            .width(150)
++            .action(DialogAction.customClick(
++                (response, audience) -> handleAmountDialogCancel(menuId, previousMenuId, session, audience),
++                dialogOptions()
++            ))
++            .build();
++        DialogBase base = DialogBase.builder(TextUtil.parse(title))
++            .externalTitle(TextUtil.parse(title))
++            .canCloseWithEscape(true)
++            .afterAction(DialogBase.DialogAfterAction.CLOSE)
++            .body(List.of(DialogBody.plainMessage(TextUtil.parse(body), 300)))
++            .inputs(List.of(DialogInput.numberRange(AMOUNT_INPUT_KEY, TextUtil.parse("<#E0F2FE>ᴍɪᴋᴛᴀʀ"), 1.0F, (float) maxAmount)
++                .width(300)
++                .labelFormat("%.0f")
++                .initial((float) maxAmount)
++                .step(1.0F)
++                .build()))
++            .build();
++
++        return Dialog.create(factory -> factory.empty()
++            .base(base)
++            .type(DialogType.confirmation(confirmButton, cancelButton)));
++    }
++
++    private ClickCallback.Options dialogOptions() {
++        return ClickCallback.Options.builder()
++            .uses(1)
++            .lifetime(Duration.ofMinutes(2L))
++            .build();
++    }
++
++    private void handleAmountDialogResponse(
++        DialogOperation operation,
++        MaterialKey materialKey,
++        long maxAmount,
++        String menuId,
++        String previousMenuId,
++        FarmerMenuSession session,
++        DialogResponseView response,
++        Audience audience
++    ) {
++        if (!(audience instanceof Player player)) {
++            return;
++        }
++
++        long amount = selectedAmount(response.getFloat(AMOUNT_INPUT_KEY), maxAmount);
++        this.schedulerAdapter.runAtEntity(player, () -> {
++            if (!player.isOnline()) {
++                return;
++            }
++
++            StorageTransactionResult result = operation == DialogOperation.WITHDRAW
++                ? this.storageTransactionService.withdraw(player, session, materialKey, amount)
++                : this.storageTransactionService.sell(player, session, materialKey, amount);
++            if (operation == DialogOperation.WITHDRAW) {
++                sendWithdrawResult(player, result);
++            } else {
++                sendSellResult(player, result);
++            }
++            openResolved(player, menuId, previousMenuId, session);
++        });
++    }
++
++    private void handleAmountDialogCancel(String menuId, String previousMenuId, FarmerMenuSession session, Audience audience) {
++        if (audience instanceof Player player) {
++            this.schedulerAdapter.runAtEntity(player, () -> openResolved(player, menuId, previousMenuId, session));
++        }
++    }
++
++    private long selectedAmount(Float value, long maxAmount) {
++        if (value == null || !Float.isFinite(value)) {
++            return 1L;
++        }
++        return clamp(Math.round(value), 1L, maxAmount);
++    }
++
++    private StorageTransactionResult transactionResult(StorageTransactionResult.Status status, MaterialKey materialKey) {
++        return new StorageTransactionResult(status, materialKey, 0L, 0L, 0.0D, 0.0D, 0.0D, "", "");
++    }
++
+     private Map<String, String> transactionPlaceholders(StorageTransactionResult result) {
+         Map<String, String> placeholders = new HashMap<>();
+         placeholders.put("material", materialName(result.materialKey()));
+@@ -414,6 +676,38 @@ public final class MenuService {
+         return Map.copyOf(placeholders);
+     }
+ 
++    private Map<String, String> materialPlaceholders(MaterialKey materialKey) {
++        Map<String, String> placeholders = new HashMap<>();
++        placeholders.put("material", materialKey == null ? "" : materialKey.toString());
++        placeholders.put("material_name", materialName(materialKey));
++        return Map.copyOf(placeholders);
++    }
++
++    private Map<String, String> productPlaceholders(Farmer farmer, MaterialKey materialKey) {
++        long amount = farmer.storageAmount(materialKey);
++        OptionalDouble price = this.configManager.price(materialKey);
++        long capacity = this.configManager.maxStoragePerItem();
++        Map<String, String> placeholders = new HashMap<>();
++        placeholders.put("material", materialKey.toString());
++        placeholders.put("material_name", materialName(materialKey));
++        placeholders.put("amount", formatAmount(amount));
++        placeholders.put("price", price.isPresent() ? formatMoney(price.getAsDouble()) : "-");
++        placeholders.put("worth", price.isPresent() ? formatMoney(price.getAsDouble() * amount) : "-");
++        placeholders.put("capacity", capacity < 0L ? "sɪɴɪʀsɪᴢ" : formatAmount(capacity));
++        placeholders.put("fill_percent", fillPercent(amount, capacity));
++        placeholders.put("product_state", this.configManager.guiCollectingState(farmer.productCollectingEnabled(materialKey)));
++        placeholders.put("effective_product_state", this.configManager.guiCollectingState(farmer.collectingEnabled() && farmer.productCollectingEnabled(materialKey)));
++        placeholders.put("price_state", price.isPresent() ? formatMoney(price.getAsDouble()) : "ғɪʏᴀᴛ ʏᴏᴋ");
++        placeholders.put("product_material", material(materialKey).map(Material::name).orElse("BARREL"));
++        return Map.copyOf(placeholders);
++    }
++
++    private Map<String, String> mergedPlaceholders(Map<String, String> base, Map<String, String> extra) {
++        Map<String, String> merged = new HashMap<>(base);
++        merged.putAll(extra);
++        return Map.copyOf(merged);
++    }
++
+     private void refreshCurrentMenu(MenuContext context) {
+         context.session().ifPresent(session -> openResolved(
+             context.player(),
+@@ -427,7 +721,15 @@ public final class MenuService {
+         return materialKey == null ? "ᴛᴜᴍ ᴜʀᴜɴʟᴇʀ" : this.configManager.guiMaterialName(materialKey.toString());
+     }
+ 
+-    private void openNow(Player player, FarmerMenu menu, String previousMenuId, FarmerMenuSession session) {
++    private Optional<Material> material(MaterialKey materialKey) {
++        if (materialKey == null) {
++            return Optional.empty();
++        }
++        Material material = Material.matchMaterial(materialKey.toString());
++        return material == null || material.isAir() ? Optional.empty() : Optional.of(material);
++    }
++
++    private void openNow(Player player, String menuId, FarmerMenu menu, String previousMenuId, FarmerMenuSession session) {
+         if (!player.isOnline()) {
+             return;
+         }
+@@ -438,12 +740,16 @@ public final class MenuService {
+             return;
+         }
+ 
++        MaterialKey productMaterialKey = productMaterialKey(menuId).orElse(null);
+         Map<String, String> placeholders = placeholders(player, session);
++        if (productMaterialKey != null) {
++            placeholders = mergedPlaceholders(placeholders, productPlaceholders(session.farmer(), productMaterialKey));
++        }
+         int size = menuSize(menuSection);
+-        String title = menuSection.getString("title", DEFAULT_TITLE);
+-        MenuLayoutBuilder builder = new MenuLayoutBuilder(menu.id(), previousMenuId, session, size, title);
++        String title = applyPlaceholders(menuSection.getString("title", DEFAULT_TITLE), placeholders);
++        MenuLayoutBuilder builder = new MenuLayoutBuilder(menuId, previousMenuId, session, size, title);
+         loadStaticItems(menuSection, builder, placeholders);
+-        menu.render(new MenuRenderContext(player, session, this.configManager, this.moduleManager, menuSection, placeholders), builder);
++        menu.render(new MenuRenderContext(player, menuId, session, this.configManager, this.moduleManager, menuSection, productMaterialKey, placeholders), builder);
+ 
+         MenuLayoutBuilder.MenuLayout layout = builder.build();
+         Inventory inventory = Bukkit.createInventory(layout.holder(), layout.size(), TextUtil.parse(layout.title()));
+@@ -467,6 +773,19 @@ public final class MenuService {
+         }
+     }
+ 
++    private String applyPlaceholders(String value, Map<String, String> placeholders) {
++        if (value == null) {
++            return "";
++        }
++        String result = value;
++        if (placeholders != null) {
++            for (Map.Entry<String, String> entry : placeholders.entrySet()) {
++                result = result.replace("%" + entry.getKey() + "%", entry.getValue());
++            }
++        }
++        return result;
++    }
++
+     private Map<String, String> placeholders(Player player, FarmerMenuSession session) {
+         Farmer farmer = session.farmer();
+         Map<String, String> placeholders = new HashMap<>();
+@@ -522,6 +841,33 @@ public final class MenuService {
+         return menuId.trim().toLowerCase(Locale.ROOT);
+     }
+ 
++    private String menuKey(String menuId) {
++        if (menuId == null) {
++            return "";
++        }
++        return menuId.startsWith(PRODUCT_MENU_PREFIX) ? PRODUCT_MENU_ID : menuId;
++    }
++
++    private Optional<MaterialKey> productMaterialKey(String menuId) {
++        if (menuId == null || !menuId.startsWith(PRODUCT_MENU_PREFIX)) {
++            return Optional.empty();
++        }
++        Optional<MaterialKey> materialKey = materialKey(menuId.substring(PRODUCT_MENU_PREFIX.length()));
++        return materialKey.filter(this::isConfiguredProduct);
++    }
++
++    private Optional<MaterialKey> materialKey(String value) {
++        try {
++            return Optional.of(MaterialKey.of(value));
++        } catch (IllegalArgumentException exception) {
++            return Optional.empty();
++        }
++    }
++
++    private boolean isConfiguredProduct(MaterialKey materialKey) {
++        return this.configManager.collectMaterialKeys().contains(materialKey);
++    }
++
+     private String normalizePreviousMenuId(String previousMenuId) {
+         return MenuAction.isKnownMenu(previousMenuId) ? previousMenuId.trim().toLowerCase(Locale.ROOT) : null;
+     }
+@@ -552,6 +898,10 @@ public final class MenuService {
+         return Math.max(min, Math.min(max, value));
+     }
+ 
++    private long clamp(long value, long min, long max) {
++        return Math.max(min, Math.min(max, value));
++    }
++
+     private int memberCount(Farmer farmer) {
+         return (int) farmer.members().keySet().stream().filter(uuid -> !uuid.equals(farmer.ownerUuid())).count() + 1;
+     }
+@@ -564,6 +914,17 @@ public final class MenuService {
+         return String.format(Locale.US, "%,d", amount);
+     }
+ 
++    private String fillPercent(long amount, long capacity) {
++        if (capacity < 0L) {
++            return "-";
++        }
++        if (capacity <= 0L) {
++            return "0%";
++        }
++        double percent = Math.max(0.0D, Math.min(100.0D, (amount * 100.0D) / capacity));
++        return String.format(Locale.US, "%.1f%%", percent);
++    }
++
+     private String formatMoney(double amount) {
+         return String.format(Locale.US, "%,.2f", amount);
+     }
+@@ -584,4 +945,12 @@ public final class MenuService {
+         }
+         return message;
+     }
++
++    private enum DialogOperation {
++        WITHDRAW,
++        SELL
++    }
++
++    private record AmountAvailability(StorageTransactionResult.Status status, long amount) {
++    }
+ }
+diff --git a/src/main/java/com/craftion/farmer/module/AutoHarvestModule.java b/src/main/java/com/craftion/farmer/module/AutoHarvestModule.java
+index a7941e7..c77a87f 100644
+--- a/src/main/java/com/craftion/farmer/module/AutoHarvestModule.java
++++ b/src/main/java/com/craftion/farmer/module/AutoHarvestModule.java
+@@ -147,6 +147,11 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
+         }
+ 
+         MaterialKey materialKey = MaterialKey.of(harvestMaterial.name());
++        if (!value.productCollectingEnabled(materialKey)) {
++            debugSkip("product collection disabled", location, harvestMaterial.name());
++            return;
++        }
++
+         if (this.configManager.autoHarvestCheckStock() && isStorageFull(value, materialKey)) {
+             debugSkip("storage full", location, harvestMaterial.name());
+             if (this.configManager.autoHarvestPreventGrowthWhenFull()) {
+diff --git a/src/main/java/com/craftion/farmer/storage/DatabaseManager.java b/src/main/java/com/craftion/farmer/storage/DatabaseManager.java
+index 6416ed9..0b9fc6a 100644
+--- a/src/main/java/com/craftion/farmer/storage/DatabaseManager.java
++++ b/src/main/java/com/craftion/farmer/storage/DatabaseManager.java
+@@ -6,6 +6,7 @@ import com.craftion.farmer.scheduler.SchedulerAdapter;
+ import com.craftion.farmer.scheduler.ScheduledTaskHandle;
+ import com.craftion.farmer.storage.migration.MigrationRunner;
+ import com.craftion.farmer.storage.migration.V1InitialSchema;
++import com.craftion.farmer.storage.migration.V2ProductStatesSchema;
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+ import java.sql.ResultSet;
+@@ -36,7 +37,7 @@ public final class DatabaseManager {
+         this.configManager = configManager;
+         this.schedulerAdapter = schedulerAdapter;
+         this.debugLogger = debugLogger;
+-        this.migrationRunner = new MigrationRunner(List.of(new V1InitialSchema()));
++        this.migrationRunner = new MigrationRunner(List.of(new V1InitialSchema(), new V2ProductStatesSchema()));
+     }
+ 
+     public void initialize() {
+diff --git a/src/main/resources/config.yml b/src/main/resources/config.yml
+index 0f1384e..898cb06 100644
+--- a/src/main/resources/config.yml
++++ b/src/main/resources/config.yml
+@@ -130,6 +130,9 @@ gui:
+     bamboo: "ʙᴀᴍʙᴜ"
+     melon_slice: "ᴋᴀʀᴘᴜᴢ"
+     pumpkin: "ʙᴀʟ ᴋᴀʙᴀɢɪ"
++    cocoa_beans: "ᴋᴀᴋᴀᴏ"
++    sweet_berries: "ᴛᴀᴛʟɪ ᴍᴇʏᴠᴇ"
++    nether_wart: "ɴᴇᴛʜᴇʀ sɪɢɪʟɪ"
+     cobblestone: "ᴋɪʀɪᴋ ᴛᴀs"
+     oak_log: "ᴍᴇsᴇ ᴋᴜᴛᴜɢᴜ"
+   module-names:
+@@ -144,12 +147,12 @@ gui:
+     auto-kill: "ʜᴇɴᴜᴢ ᴀᴋᴛɪғ ᴅᴇɢɪʟ ᴠᴇ ᴍᴏᴅᴜʟ ᴏʟᴀʀᴀᴋ ʏᴜᴋʟᴇɴᴍᴇᴢ"
+   menus:
+     main:
+-      title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
++      title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴜʀᴜɴ ᴍᴇʀᴋᴇᴢɪ"
+       size: 54
+       items:
+         "4":
+           material: PLAYER_HEAD
+-          name: "<#38BDF8>ᴄɪғᴛᴄɪ ʙɪʟɢɪsɪ"
++          name: "<#38BDF8>ᴄɪғᴛᴄɪ ᴋᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟɪ"
+           action: "info"
+           lore:
+             - "<#CBD5E1>ᴀᴅᴀ <#94A3B8>• <#E0F2FE>%region%"
+@@ -157,40 +160,68 @@ gui:
+             - "<#CBD5E1>sᴇᴠɪʏᴇ <#94A3B8>• <#E0F2FE>%level%"
+             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%storage_usage%"
+             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
+-        "20":
+-          material: BARREL
+-          name: "<#22C55E>ᴅᴇᴘᴏ"
+-          action: "open:storage"
+-          lore:
+-            - "<#D1FAE5>ᴛᴏᴘʟᴀɴᴀɴ ᴇsʏᴀʟᴀʀɪ ɢᴏʀᴜɴᴛᴜʟᴇ"
+-            - "<#CBD5E1>ᴋᴀʏɪᴛʟɪ ᴇsʏᴀ <#94A3B8>• <#E0F2FE>%storage_usage%"
+-        "22":
++            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ / sᴀᴀᴛ <#94A3B8>• <#E0F2FE>%production_hour%"
++        "45":
+           material: HOPPER
+           name: "<#38BDF8>ʏᴏɴᴇᴛɪᴍ"
+           action: "open:manage"
+           lore:
+             - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴀʏᴀʀʟᴀʀɪɴɪ ɪɴᴄᴇʟᴇ"
+-            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ᴀᴅᴀ sᴀʜɪʙɪ ᴠᴇ ʏᴏɴᴇᴛɪᴄɪ"
+-        "24":
++            - "<#CBD5E1>ᴇʀɪsɪᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪᴄɪ"
++        "46":
++          material: OAK_SIGN
++          name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
++          action: "open:members"
++          lore:
++            - "<#FDE68A>ᴀᴅᴀ ᴇᴋɪʙɪɴɪ ᴠᴇ ʀᴏʟʟᴇʀɪ ɢᴏʀ"
++            - "<#CBD5E1>ᴋᴀʏɪᴛ <#94A3B8>• <#E0F2FE>%members% ᴋɪsɪ"
++        "47":
+           material: AMETHYST_SHARD
+           name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
+           action: "open:modules"
+           lore:
+             - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴍᴏᴅᴜʟʟᴇʀɪɴɪ ɢᴏʀᴜɴᴛᴜʟᴇ"
+             - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛɪʟᴇʙɪʟɪʀ"
+-        "31":
+-          material: OAK_SIGN
+-          name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
+-          action: "open:members"
++        "48":
++          material: BARREL
++          name: "<#22C55E>ᴅᴇᴘᴏ ʟɪsᴛᴇsɪ"
++          action: "open:storage"
+           lore:
+-            - "<#FDE68A>ᴀᴅᴀ ᴇᴋɪʙɪɴɪ ᴠᴇ ʀᴏʟʟᴇʀɪ ɢᴏʀ"
+-            - "<#CBD5E1>ᴋᴀʏɪᴛ <#94A3B8>• <#E0F2FE>%members% ᴋɪsɪ"
++            - "<#D1FAE5>ᴅᴏʟᴜ ᴅᴇᴘᴏ ᴜʀᴜɴʟᴇʀɪɴɪ ɢᴏʀ"
++            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍ <#94A3B8>• <#E0F2FE>%storage_usage%"
+         "49":
+           material: BARRIER
+           name: "<#FB7185>ᴋᴀᴘᴀᴛ"
+           action: "close"
+           lore:
+             - "<#FFE4E6>ᴍᴇɴᴜʏᴜ ᴋᴀᴘᴀᴛ"
++        "53":
++          material: EMERALD_BLOCK
++          name: "<#22C55E>ᴛᴜᴍ ғɪʏᴀᴛʟɪ ᴜʀᴜɴʟᴇʀɪ sᴀᴛ"
++          action: "sell:all"
++          lore:
++            - "<#D1FAE5>ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴛᴜᴍ ᴅᴇᴘᴏ ᴜʀᴜɴʟᴇʀɪɴɪ sᴀᴛ"
++            - "<#CBD5E1>ᴏᴅᴇᴍᴇ <#94A3B8>• <#E0F2FE>ᴠᴀᴜʟᴛ ᴇᴋᴏɴᴏᴍɪ"
++      product-items:
++        slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34]
++        item:
++          material: "%material%"
++          name: "<#22C55E>%material_name%"
++          action: "open:product:%material%"
++          lore:
++            - "<#D1FAE5>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
++            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%effective_product_state%"
++            - "<#CBD5E1>ᴋᴀᴘᴀsɪᴛᴇ <#94A3B8>• <#E0F2FE>%fill_percent%"
++            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
++            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
++            - ""
++            - "<#E0F2FE>sᴏʟ ᴛɪᴋ <#94A3B8>• <#CBD5E1>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
++        empty:
++          material: BARREL
++          name: "<#FBBF24>ᴜʀᴜɴ ʟɪsᴛᴇsɪ ʙᴏs"
++          action: "info"
++          lore:
++            - "<#FDE68A>collect.allowed-materials ʟɪsᴛᴇsɪɴɪ ᴋᴏɴᴛʀᴏʟ ᴇᴛ"
+     storage:
+       title: "<#22C55E>ᴄɪғᴛᴄɪ ᴅᴇᴘᴏsᴜ"
+       size: 54
+@@ -229,14 +260,14 @@ gui:
+         filled:
+           material: "%material%"
+           name: "<#22C55E>%material_name%"
+-          action: "withdraw:%material%:stack"
+-          right-action: "sell:%material%:all"
++          action: "open:product:%material%"
++          right-action: "open:product:%material%"
+           lore:
+             - "<#D1FAE5>ᴅᴇᴘᴏᴅᴀᴋɪ ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount%"
+             - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
+             - "<#CBD5E1>ᴛᴀʜᴍɪɴɪ ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙɪʀ sᴛᴀᴄᴋ ᴄᴇᴋ"
+-            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙᴜ ᴜʀᴜɴᴜ sᴀᴛ"
++            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
++            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
+         empty:
+           material: BARREL
+           name: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
+@@ -244,6 +275,79 @@ gui:
+           lore:
+             - "<#FDE68A>ᴄɪғᴛᴄɪ ʜᴇɴᴜᴢ ᴇsʏᴀ ʙɪʀɪᴋᴛɪʀᴍᴇᴅɪ"
+             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ sɪsᴛᴇᴍɪ ɪʟᴇ ᴅᴏʟᴍᴀʏᴀ ʙᴀsʟᴀʀ"
++    product:
++      title: "<#38BDF8>%material_name% ᴘᴀɴᴇʟɪ"
++      size: 54
++      items:
++        "4":
++          material: "%product_material%"
++          name: "<#38BDF8>%material_name%"
++          action: "info"
++          lore:
++            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
++            - "<#CBD5E1>ᴋᴀᴘᴀsɪᴛᴇ <#94A3B8>• <#E0F2FE>%capacity% <#94A3B8>(%fill_percent%)"
++            - "<#CBD5E1>ᴜʀᴜɴ ᴅᴜʀᴜᴍᴜ <#94A3B8>• <#E0F2FE>%product_state%"
++            - "<#CBD5E1>ᴇᴛᴋɪɴ ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%effective_product_state%"
++            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
++            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
++        "20":
++          material: REDSTONE_TORCH
++          name: "<#FBBF24>ᴜʀᴜɴ ᴛᴏᴘʟᴀᴍᴀ"
++          action: "product-toggle:%material%"
++          lore:
++            - "<#FDE68A>ᴍᴇᴠᴄᴜᴛ ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%product_state%"
++            - "<#CBD5E1>ɢᴇɴᴇʟ ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
++            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʙᴜ ᴜʀᴜɴᴜ ᴀᴄ / ᴋᴀᴘᴀᴛ"
++        "22":
++          material: CHEST
++          name: "<#38BDF8>ᴍɪᴋᴛᴀʀ ɪʟᴇ ᴄᴇᴋ"
++          action: "withdraw-dialog:%material%"
++          right-action: "withdraw:%material%:all"
++          lore:
++            - "<#E0F2FE>ᴘᴀᴘᴇʀ sʟɪᴅᴇʀ ɪʟᴇ ᴄᴇᴋɪʟᴇᴄᴇᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ"
++            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴍɪᴋᴛᴀʀ sᴇᴄ"
++            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜɴᴜ ᴄᴇᴋ"
++        "24":
++          material: EMERALD
++          name: "<#22C55E>ᴍɪᴋᴛᴀʀ ɪʟᴇ sᴀᴛ"
++          action: "sell-dialog:%material%"
++          right-action: "sell:%material%:all"
++          lore:
++            - "<#D1FAE5>ᴘᴀᴘᴇʀ sʟɪᴅᴇʀ ɪʟᴇ sᴀᴛɪʟᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ sᴇᴄ"
++            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
++            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴍɪᴋᴛᴀʀ sᴇᴄ"
++            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
++        "30":
++          material: HOPPER
++          name: "<#38BDF8>ʏᴏɴᴇᴛɪᴍ"
++          action: "open:manage"
++          lore:
++            - "<#E0F2FE>ᴄɪғᴛᴄɪ ᴀʏᴀʀʟᴀʀɪɴᴀ ɢɪᴛ"
++        "32":
++          material: AMETHYST_SHARD
++          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
++          action: "open:modules"
++          lore:
++            - "<#E0F2FE>ᴜʀᴇᴛɪᴍ ᴠᴇ ᴏᴛᴏᴍᴀsʏᴏɴ ᴍᴏᴅᴜʟʟᴇʀɪ"
++        "45":
++          material: ARROW
++          name: "<#94A3B8>ɢᴇʀɪ"
++          action: "back"
++          lore:
++            - "<#CBD5E1>ᴏɴᴄᴇᴋɪ ᴍᴇɴᴜʏᴇ ᴅᴏɴ"
++        "49":
++          material: BARRIER
++          name: "<#FB7185>ᴋᴀᴘᴀᴛ"
++          action: "close"
++          lore:
++            - "<#FFE4E6>ᴍᴇɴᴜʏᴜ ᴋᴀᴘᴀᴛ"
++        "53":
++          material: EMERALD_BLOCK
++          name: "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
++          action: "sell:%material%:all"
++          lore:
++            - "<#D1FAE5>ʙᴜ ᴜʀᴜɴᴜɴ ᴛᴜᴍ ᴅᴇᴘᴏsᴜɴᴜ sᴀᴛ"
++            - "<#CBD5E1>ᴏᴅᴇᴍᴇ <#94A3B8>• <#E0F2FE>ᴠᴀᴜʟᴛ ᴇᴋᴏɴᴏᴍɪ"
+     manage:
+       title: "<#38BDF8>ᴄɪғᴛᴄɪ ʏᴏɴᴇᴛɪᴍɪ"
+       size: 54
