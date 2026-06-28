@@ -209,12 +209,9 @@ gui:
           name: "<#22C55E>%material_name%"
           action: "open:product:%material%"
           lore:
-            - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
-            - "<#CBD5E1>ᴅᴏʟᴜʟᴜᴋ <#94A3B8>• <#E0F2FE>%fill_percent%"
-            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>%product_state%"
-            - "<#CBD5E1>ᴇᴛᴋɪɴ <#94A3B8>• <#E0F2FE>%effective_product_state%"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
             - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
         empty:
           material: BARREL
@@ -231,7 +228,7 @@ gui:
           name: "<#22C55E>%material_name%"
           action: "info"
           lore:
-            - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
             - "<#CBD5E1>ᴅᴏʟᴜʟᴜᴋ <#94A3B8>• <#E0F2FE>%fill_percent%"
             - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
@@ -252,17 +249,17 @@ gui:
           name: "<#22C55E>sᴀᴛ"
           action: "sell-dialog:%material%"
           lore:
-            - "<#BBF7D0>ᴍɪᴋᴛᴀʀɪ ᴅɪᴀʟᴏɢ ɪʟᴇ sᴇᴄ"
-            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
+            - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ"
+            - "<#CBD5E1>ᴏɴᴀʏʟᴀ <#94A3B8>• <#22C55E>sᴀᴛ"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
         "24":
           material: CHEST
           name: "<#38BDF8>ᴄᴇᴋ"
           action: "withdraw-dialog:%material%"
           lore:
-            - "<#E0F2FE>ᴍɪᴋᴛᴀʀɪ ᴅɪᴀʟᴏɢ ɪʟᴇ sᴇᴄ"
+            - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ"
+            - "<#CBD5E1>ᴏɴᴀʏʟᴀ <#94A3B8>• <#38BDF8>ᴄᴇᴋ"
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
-            - "<#CBD5E1>ᴇɴᴠᴀɴᴛᴇʀ ᴅᴏʟᴜʏsᴀ ɪsʟᴇᴍ ᴅᴜʀᴜʀ"
         "30":
           material: GOLD_INGOT
           name: "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ"
