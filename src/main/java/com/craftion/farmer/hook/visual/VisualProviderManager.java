@@ -6,6 +6,8 @@ import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Consumer;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -17,18 +19,21 @@ public final class VisualProviderManager {
     private final ConfigManager configManager;
     private final SchedulerAdapter schedulerAdapter;
     private final DebugLogger debugLogger;
+    private final Consumer<Player> npcClickAction;
     private FarmerVisualProvider provider = new NoVisualProvider();
 
     public VisualProviderManager(
         JavaPlugin plugin,
         ConfigManager configManager,
         SchedulerAdapter schedulerAdapter,
-        DebugLogger debugLogger
+        DebugLogger debugLogger,
+        Consumer<Player> npcClickAction
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.schedulerAdapter = schedulerAdapter;
         this.debugLogger = debugLogger;
+        this.npcClickAction = npcClickAction == null ? player -> player.performCommand("farmer open") : npcClickAction;
     }
 
     public void initialize() {
@@ -88,7 +93,8 @@ public final class VisualProviderManager {
                 this.plugin,
                 this.configManager,
                 this.schedulerAdapter,
-                this.debugLogger
+                this.debugLogger,
+                this.npcClickAction
             );
             if (provider.isEmpty()) {
                 this.plugin.getLogger().warning("FancyNPCs visual provider secildi fakat desteklenen FancyNPCs API bulunamadi. Visual provider devre disi birakildi.");

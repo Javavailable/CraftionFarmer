@@ -56,6 +56,11 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("open")) {
+            handleOpen(sender);
+            return true;
+        }
+
         if (args[0].equalsIgnoreCase("info")) {
             handleInfo(sender);
             return true;
@@ -86,6 +91,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             List<String> completions = new ArrayList<>();
             addIfMatches(completions, "help", args[0]);
             if (sender.hasPermission(USE_PERMISSION)) {
+                addIfMatches(completions, "open", args[0]);
                 addIfMatches(completions, "info", args[0]);
             }
             if (sender.hasPermission(CREATE_PERMISSION)) {
@@ -175,6 +181,22 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             }
             sendRemoveResult(sender, result);
         }));
+    }
+
+    private void handleOpen(CommandSender sender) {
+        if (!sender.hasPermission(USE_PERMISSION)) {
+            this.messageService.send(sender, "commands.farmer.no-permission");
+            return;
+        }
+
+        Player player = requirePlayer(sender);
+        if (player == null) {
+            return;
+        }
+
+        if (this.plugin.menuService() == null || !this.plugin.menuService().openMain(player)) {
+            this.messageService.send(sender, "commands.farmer.open-failed");
+        }
     }
 
     private void handleInfo(CommandSender sender) {

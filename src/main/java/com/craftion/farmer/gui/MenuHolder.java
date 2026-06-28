@@ -11,15 +11,21 @@ public final class MenuHolder implements InventoryHolder {
     private final String menuId;
     private final String previousMenuId;
     private final Map<Integer, MenuAction> actions;
+    private final FarmerMenuSession session;
     private Inventory inventory;
 
     public MenuHolder(String menuId, String previousMenuId, Map<Integer, MenuAction> actions) {
+        this(menuId, previousMenuId, actions, null);
+    }
+
+    public MenuHolder(String menuId, String previousMenuId, Map<Integer, MenuAction> actions, FarmerMenuSession session) {
         if (!MenuAction.isKnownMenu(menuId)) {
             throw new IllegalArgumentException("Unsupported menu id: " + menuId);
         }
         this.menuId = menuId;
         this.previousMenuId = previousMenuId == null || previousMenuId.isBlank() ? null : previousMenuId;
         this.actions = Map.copyOf(Objects.requireNonNull(actions, "actions"));
+        this.session = session;
     }
 
     public String menuId() {
@@ -36,6 +42,10 @@ public final class MenuHolder implements InventoryHolder {
 
     public Map<Integer, MenuAction> actions() {
         return this.actions;
+    }
+
+    public Optional<FarmerMenuSession> session() {
+        return Optional.ofNullable(this.session);
     }
 
     public void bind(Inventory inventory) {

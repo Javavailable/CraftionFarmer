@@ -57,7 +57,13 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.debugLogger = new DebugLogger(this, this.configManager);
         this.schedulerAdapter = SchedulerFactory.create(this);
         this.regionProviderManager = new RegionProviderManager(this, this.configManager, this.debugLogger);
-        this.visualProviderManager = new VisualProviderManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
+        this.visualProviderManager = new VisualProviderManager(this, this.configManager, this.schedulerAdapter, this.debugLogger, player -> {
+            if (this.menuService != null) {
+                this.menuService.openMain(player);
+                return;
+            }
+            player.performCommand("farmer open");
+        });
         this.databaseManager = new DatabaseManager(this, this.configManager, this.schedulerAdapter, this.debugLogger);
         this.farmerCache = new FarmerCache();
         this.farmerPersistenceService = new FarmerPersistenceService(this.databaseManager, this.farmerCache, this.debugLogger);
@@ -77,7 +83,17 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.debugLogger
         );
         this.skylliaSyncManager = new SkylliaSyncManager(this, this.configManager, this.farmerReconcileService, this.debugLogger);
-        this.menuService = new MenuService(this, this.configManager, this.schedulerAdapter, this.debugLogger);
+        this.menuService = new MenuService(
+            this,
+            this.configManager,
+            this.schedulerAdapter,
+            this.debugLogger,
+            this.databaseManager,
+            this.regionProviderManager,
+            this.farmerPersistenceService,
+            this.farmerReconcileService,
+            this.messageService
+        );
 
         if (!registerCommands()) {
             return;

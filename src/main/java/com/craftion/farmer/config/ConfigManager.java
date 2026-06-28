@@ -1,5 +1,7 @@
 package com.craftion.farmer.config;
 
+import com.craftion.farmer.farmer.FarmerRole;
+import java.util.Locale;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -122,8 +124,55 @@ public final class ConfigManager {
         return this.config.getConfigurationSection("gui.menus." + menuId);
     }
 
+    public String guiCollectingState(boolean enabled) {
+        return guiLabel("collecting." + (enabled ? "enabled" : "disabled"), enabled ? "ᴀᴋᴛɪғ" : "ᴅᴜʀᴀᴋʟᴀᴛɪʟᴅɪ");
+    }
+
+    public String guiModuleState(boolean enabled) {
+        return guiLabel("modules." + (enabled ? "enabled" : "disabled"), enabled ? "ᴀᴋᴛɪғ" : "ᴘᴀsɪғ");
+    }
+
+    public String guiRoleName(FarmerRole role) {
+        FarmerRole safeRole = role == null ? FarmerRole.VIEWER : role;
+        String fallback = switch (safeRole) {
+            case OWNER -> "ᴀᴅᴀ sᴀʜɪʙɪ";
+            case MANAGER -> "ʏᴏɴᴇᴛɪᴄɪ";
+            case MEMBER -> "ᴜʏᴇ";
+            case VIEWER -> "ɢᴏʀᴜɴᴛᴜʟᴇʏᴇɴ";
+        };
+        return guiLabel("roles." + safeRole.name().toLowerCase(Locale.ROOT), fallback);
+    }
+
+    public String guiMaterialName(String materialKey) {
+        String normalizedKey = normalizeGuiKey(materialKey);
+        return this.config.getString("gui.material-names." + normalizedKey, fallbackLabel(normalizedKey));
+    }
+
+    public String guiModuleName(String moduleKey) {
+        String normalizedKey = normalizeGuiKey(moduleKey);
+        return this.config.getString("gui.module-names." + normalizedKey, fallbackLabel(normalizedKey));
+    }
+
+    public String guiLabel(String key, String fallback) {
+        if (key == null || key.isBlank()) {
+            return fallback;
+        }
+        return this.config.getString("gui.labels." + key, fallback);
+    }
+
     public String databaseType() {
         return this.config.getString("database.type", "SQLITE");
+    }
+
+    private String normalizeGuiKey(String key) {
+        if (key == null || key.isBlank()) {
+            return "unknown";
+        }
+        return key.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private String fallbackLabel(String key) {
+        return key == null || key.isBlank() ? "-" : key.replace('_', ' ');
     }
 
     public String sqliteFile() {
