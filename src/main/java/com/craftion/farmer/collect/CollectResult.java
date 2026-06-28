@@ -76,6 +76,7 @@ public record CollectResult(
         NO_REGION,
         NO_FARMER,
         FARMER_DISABLED,
+        PRODUCT_DISABLED,
         MATERIAL_NOT_ALLOWED,
         ITEM_HAS_META,
         PLAYER_DROP,

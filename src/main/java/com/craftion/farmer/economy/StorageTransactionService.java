@@ -61,11 +61,8 @@ public final class StorageTransactionService {
 
     public StorageTransactionResult withdraw(Player player, FarmerMenuSession session, String target) {
         WithdrawTarget withdrawTarget = parseWithdrawTarget(target);
-        if (player == null || session == null || withdrawTarget == null) {
+        if (withdrawTarget == null) {
             return result(StorageTransactionResult.Status.INVALID_ACTION, null);
-        }
-        if (!canWithdraw(session)) {
-            return result(StorageTransactionResult.Status.DENIED, withdrawTarget.materialKey());
         }
 
         Material material = material(withdrawTarget.materialKey());
@@ -73,41 +70,57 @@ public final class StorageTransactionService {
             return result(StorageTransactionResult.Status.INVALID_ACTION, withdrawTarget.materialKey());
         }
 
-        Farmer farmer = session.farmer();
-        long storageAmount = farmer.storageAmount(withdrawTarget.materialKey());
-        if (storageAmount <= 0L) {
-            return result(StorageTransactionResult.Status.EMPTY_STORAGE, withdrawTarget.materialKey());
+        long requestedAmount = withdrawTarget.all() ? Long.MAX_VALUE : maxStack(material);
+        return withdraw(player, session, withdrawTarget.materialKey(), requestedAmount);
+    }
+
+    public StorageTransactionResult withdraw(Player player, FarmerMenuSession session, MaterialKey materialKey, long requestedAmount) {
+        if (player == null || session == null || materialKey == null || requestedAmount <= 0L) {
+            return result(StorageTransactionResult.Status.INVALID_ACTION, materialKey);
+        }
+        if (!canWithdraw(session)) {
+            return result(StorageTransactionResult.Status.DENIED, materialKey);
         }
 
-        long maxAmount = withdrawTarget.all() ? storageAmount : Math.min(storageAmount, maxStack(material));
+        Material material = material(materialKey);
+        if (material == null) {
+            return result(StorageTransactionResult.Status.INVALID_ACTION, materialKey);
+        }
+
+        Farmer farmer = session.farmer();
+        long storageAmount = farmer.storageAmount(materialKey);
+        if (storageAmount <= 0L) {
+            return result(StorageTransactionResult.Status.EMPTY_STORAGE, materialKey);
+        }
+
         long capacity = inventoryCapacity(player, material);
         if (capacity <= 0L) {
-            return result(StorageTransactionResult.Status.INVENTORY_FULL, withdrawTarget.materialKey());
+            return result(StorageTransactionResult.Status.INVENTORY_FULL, materialKey);
         }
 
-        long requestedAmount = Math.min(maxAmount, capacity);
-        if (requestedAmount <= 0L) {
-            return result(StorageTransactionResult.Status.INVENTORY_FULL, withdrawTarget.materialKey());
+        long amount = Math.min(requestedAmount, Math.min(storageAmount, capacity));
+        if (amount <= 0L) {
+            return result(StorageTransactionResult.Status.INVENTORY_FULL, materialKey);
         }
 
-        StorageRemoveResult removeResult = farmer.removeStorageAmount(withdrawTarget.materialKey(), requestedAmount);
+        StorageRemoveResult removeResult = farmer.removeStorageAmount(materialKey, amount);
         if (!removeResult.changedStorage()) {
-            return result(StorageTransactionResult.Status.EMPTY_STORAGE, withdrawTarget.materialKey());
+            return result(StorageTransactionResult.Status.EMPTY_STORAGE, materialKey);
         }
 
         long givenAmount = giveItems(player, material, removeResult.removedAmount());
         long leftoverAmount = removeResult.removedAmount() - givenAmount;
         if (leftoverAmount > 0L) {
-            restore(farmer, withdrawTarget.materialKey(), leftoverAmount);
+            restore(farmer, materialKey, leftoverAmount);
         }
         if (givenAmount <= 0L) {
-            return result(StorageTransactionResult.Status.INVENTORY_FULL, withdrawTarget.materialKey());
+            return result(StorageTransactionResult.Status.INVENTORY_FULL, materialKey);
         }
 
-        persistAndLog(farmer, player.getUniqueId(), WITHDRAW_ACTION, withdrawDetail(withdrawTarget.materialKey(), givenAmount));
+        persistAndLog(farmer, player.getUniqueId(), WITHDRAW_ACTION, withdrawDetail(materialKey, givenAmount));
         return new StorageTransactionResult(
             StorageTransactionResult.Status.SUCCESS,
-            withdrawTarget.materialKey(),
+            materialKey,
             givenAmount,
             1L,
             0.0D,
@@ -116,6 +129,21 @@ public final class StorageTransactionService {
             "",
             ""
         );
+    }
+
+    public long withdrawableAmount(Player player, FarmerMenuSession session, MaterialKey materialKey) {
+        if (player == null || session == null || materialKey == null || !canWithdraw(session)) {
+            return 0L;
+        }
+        Material material = material(materialKey);
+        if (material == null) {
+            return 0L;
+        }
+        long storageAmount = session.farmer().storageAmount(materialKey);
+        if (storageAmount <= 0L) {
+            return 0L;
+        }
+        return Math.min(storageAmount, inventoryCapacity(player, material));
     }
 
     public StorageTransactionResult sell(Player player, FarmerMenuSession session, String target) {
@@ -130,11 +158,32 @@ public final class StorageTransactionService {
         return sellInternal(session.farmer(), sellTarget, player.getUniqueId(), player);
     }
 
+    public StorageTransactionResult sell(Player player, FarmerMenuSession session, MaterialKey materialKey, long requestedAmount) {
+        if (player == null || session == null || materialKey == null || requestedAmount <= 0L) {
+            return result(StorageTransactionResult.Status.INVALID_ACTION, materialKey);
+        }
+        if (!canSell(session)) {
+            return result(StorageTransactionResult.Status.DENIED, materialKey);
+        }
+
+        return sellInternal(session.farmer(), new SellTarget(materialKey, false, requestedAmount), player.getUniqueId(), player);
+    }
+
+    public long sellableAmount(FarmerMenuSession session, MaterialKey materialKey) {
+        if (session == null || materialKey == null || !canSell(session)) {
+            return 0L;
+        }
+        if (price(materialKey).isEmpty()) {
+            return 0L;
+        }
+        return session.farmer().storageAmount(materialKey);
+    }
+
     public StorageTransactionResult sellAll(Farmer farmer, UUID actorUuid, OfflinePlayer payee) {
         if (farmer == null || payee == null) {
             return result(StorageTransactionResult.Status.INVALID_ACTION, null);
         }
-        return sellInternal(farmer, new SellTarget(null, true), actorUuid, payee);
+        return sellInternal(farmer, new SellTarget(null, true, 0L), actorUuid, payee);
     }
 
     private StorageTransactionResult sellInternal(Farmer farmer, SellTarget sellTarget, UUID actorUuid, OfflinePlayer payee) {
@@ -243,7 +292,11 @@ public final class StorageTransactionService {
         if (price.isEmpty()) {
             return new SalePlanResult(StorageTransactionResult.Status.NO_PRICE, List.of());
         }
-        return new SalePlanResult(StorageTransactionResult.Status.SUCCESS, List.of(new SalePlan(target.materialKey(), amount, price.getAsDouble())));
+        long saleAmount = target.amount() > 0L ? Math.min(amount, target.amount()) : amount;
+        if (saleAmount <= 0L) {
+            return new SalePlanResult(StorageTransactionResult.Status.EMPTY_STORAGE, List.of());
+        }
+        return new SalePlanResult(StorageTransactionResult.Status.SUCCESS, List.of(new SalePlan(target.materialKey(), saleAmount, price.getAsDouble())));
     }
 
     private List<SaleLine> removeSaleLines(Farmer farmer, List<SalePlan> plans) {
@@ -413,15 +466,15 @@ public final class StorageTransactionService {
     private SellTarget parseSellTarget(String target) {
         String[] parts = parts(target);
         if (parts.length == 1 && parts[0].equals("all")) {
-            return new SellTarget(null, true);
+            return new SellTarget(null, true, 0L);
         }
         if (parts.length == 1) {
             MaterialKey materialKey = materialKey(parts[0]);
-            return materialKey == null ? null : new SellTarget(materialKey, false);
+            return materialKey == null ? null : new SellTarget(materialKey, false, 0L);
         }
         if (parts.length == 2 && parts[1].equals("all")) {
             MaterialKey materialKey = materialKey(parts[0]);
-            return materialKey == null ? null : new SellTarget(materialKey, false);
+            return materialKey == null ? null : new SellTarget(materialKey, false, 0L);
         }
         return null;
     }
@@ -454,7 +507,7 @@ public final class StorageTransactionService {
     private record WithdrawTarget(MaterialKey materialKey, boolean all) {
     }
 
-    private record SellTarget(MaterialKey materialKey, boolean allMaterials) {
+    private record SellTarget(MaterialKey materialKey, boolean allMaterials, long amount) {
     }
 
     private record SalePlanResult(StorageTransactionResult.Status status, List<SalePlan> plans) {

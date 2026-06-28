@@ -7,6 +7,7 @@ import java.util.Set;
 public record MenuAction(Type type, String target) {
 
     private static final Set<String> OPEN_TARGETS = Set.of("main", "storage", "manage", "members", "modules");
+    private static final String PRODUCT_MENU_PREFIX = "product:";
 
     public MenuAction {
         if (type == null) {
@@ -36,9 +37,21 @@ public record MenuAction(Type type, String target) {
         if (action.equals("collect-toggle")) {
             return Optional.of(new MenuAction(Type.COLLECT_TOGGLE, ""));
         }
+        if (action.startsWith("product-toggle:")) {
+            String target = target(action, "product-toggle:");
+            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.PRODUCT_TOGGLE, target)) : Optional.empty();
+        }
         if (action.startsWith("open:")) {
             String target = target(action, "open:");
-            return OPEN_TARGETS.contains(target) ? Optional.of(new MenuAction(Type.OPEN, target)) : Optional.empty();
+            return isOpenTarget(target) ? Optional.of(new MenuAction(Type.OPEN, target)) : Optional.empty();
+        }
+        if (action.startsWith("withdraw-dialog:")) {
+            String target = target(action, "withdraw-dialog:");
+            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.WITHDRAW_DIALOG, target)) : Optional.empty();
+        }
+        if (action.startsWith("sell-dialog:")) {
+            String target = target(action, "sell-dialog:");
+            return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.SELL_DIALOG, target)) : Optional.empty();
         }
         if (action.startsWith("withdraw:")) {
             String target = target(action, "withdraw:");
@@ -61,19 +74,31 @@ public record MenuAction(Type type, String target) {
     }
 
     public static boolean isKnownMenu(String menuId) {
-        return menuId != null && OPEN_TARGETS.contains(menuId.trim().toLowerCase(Locale.ROOT));
+        return menuId != null && isOpenTarget(menuId.trim().toLowerCase(Locale.ROOT));
     }
 
     private static String target(String action, String prefix) {
         return action.substring(prefix.length()).trim().toLowerCase(Locale.ROOT);
     }
 
+    private static boolean isOpenTarget(String target) {
+        return OPEN_TARGETS.contains(target) || isProductMenuTarget(target);
+    }
+
+    private static boolean isProductMenuTarget(String target) {
+        if (target == null || !target.startsWith(PRODUCT_MENU_PREFIX)) {
+            return false;
+        }
+        return isStorageMaterialTarget(target.substring(PRODUCT_MENU_PREFIX.length()));
+    }
+
     private static boolean isValidTarget(Type type, String target) {
         return switch (type) {
-            case OPEN -> OPEN_TARGETS.contains(target);
+            case OPEN -> isOpenTarget(target);
             case CLOSE, BACK, INFO, COLLECT_TOGGLE -> target.isEmpty();
             case WITHDRAW -> isWithdrawTarget(target);
             case SELL -> isSellTarget(target);
+            case WITHDRAW_DIALOG, SELL_DIALOG, PRODUCT_TOGGLE -> isMaterialTarget(target);
             case MODULE_TOGGLE -> isMaterialTarget(target);
         };
     }
@@ -125,8 +150,11 @@ public record MenuAction(Type type, String target) {
         BACK,
         INFO,
         WITHDRAW,
+        WITHDRAW_DIALOG,
         SELL,
+        SELL_DIALOG,
         MODULE_TOGGLE,
-        COLLECT_TOGGLE
+        COLLECT_TOGGLE,
+        PRODUCT_TOGGLE
     }
 }
