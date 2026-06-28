@@ -39,6 +39,13 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
     private static final List<ApiPackage> MODERN_APIS = List.of(
         new ApiPackage(
             FancyNpcsApiMode.MODERN,
+            "com.fancyinnovations.fancynpcs.api.FancyNpcsPlugin",
+            "com.fancyinnovations.fancynpcs.api.NpcData",
+            "com.fancyinnovations.fancynpcs.api.skins.SkinData",
+            "com.fancyinnovations.fancynpcs.api.Npc"
+        ),
+        new ApiPackage(
+            FancyNpcsApiMode.MODERN,
             "io.github.fancyplugins.fancynpcs.api.FancyNpcsPlugin",
             "io.github.fancyplugins.fancynpcs.api.NpcData",
             "io.github.fancyplugins.fancynpcs.api.skins.SkinData",
