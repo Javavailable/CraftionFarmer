@@ -7,6 +7,7 @@ import java.util.Set;
 public record MenuAction(Type type, String target) {
 
     private static final Set<String> OPEN_TARGETS = Set.of("main", "storage", "manage", "members", "modules");
+    private static final String MAIN_MENU_PREFIX = "main:";
     private static final String PRODUCT_MENU_PREFIX = "product:";
 
     public MenuAction {
@@ -82,7 +83,23 @@ public record MenuAction(Type type, String target) {
     }
 
     private static boolean isOpenTarget(String target) {
-        return OPEN_TARGETS.contains(target) || isProductMenuTarget(target);
+        return OPEN_TARGETS.contains(target) || isMainPageTarget(target) || isProductMenuTarget(target);
+    }
+
+    private static boolean isMainPageTarget(String target) {
+        if (target == null || !target.startsWith(MAIN_MENU_PREFIX)) {
+            return false;
+        }
+        String page = target.substring(MAIN_MENU_PREFIX.length());
+        if (page.isBlank() || page.length() > 9) {
+            return false;
+        }
+        for (int index = 0; index < page.length(); index++) {
+            if (!Character.isDigit(page.charAt(index))) {
+                return false;
+            }
+        }
+        return Integer.parseInt(page) > 0;
     }
 
     private static boolean isProductMenuTarget(String target) {

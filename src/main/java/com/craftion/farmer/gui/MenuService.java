@@ -47,12 +47,15 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MenuService {
 
     private static final String USE_PERMISSION = "craftionfarmer.use";
     private static final String DEFAULT_TITLE = "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ";
+    private static final String MAIN_MENU_ID = "main";
+    private static final String MAIN_MENU_PREFIX = MAIN_MENU_ID + ":";
     private static final String PRODUCT_MENU_ID = "product";
     private static final String PRODUCT_MENU_PREFIX = PRODUCT_MENU_ID + ":";
     private static final String AMOUNT_INPUT_KEY = "amount";
@@ -150,9 +153,14 @@ public final class MenuService {
     }
 
     private void registerDefaultActions() {
-        this.actionRegistry.register(MenuAction.Type.OPEN, (context, action) -> context.session()
-            .map(session -> openResolved(context.player(), action.target(), context.menuId(), session))
-            .orElseGet(() -> openForPlayer(context.player(), action.target(), context.menuId())));
+        this.actionRegistry.register(MenuAction.Type.OPEN, (context, action) -> {
+            if (isProductMenuId(action.target())) {
+                return openProductDialog(context, action);
+            }
+            return context.session()
+                .map(session -> openResolved(context.player(), action.target(), context.menuId(), session))
+                .orElseGet(() -> openForPlayer(context.player(), action.target(), context.menuId()));
+        });
         this.actionRegistry.register(MenuAction.Type.CLOSE, (context, action) -> close(context.player()));
         this.actionRegistry.register(MenuAction.Type.BACK, this::back);
         this.actionRegistry.register(MenuAction.Type.INFO, (context, action) -> true);
@@ -332,6 +340,295 @@ public final class MenuService {
         return openAmountDialog(context, action, DialogOperation.SELL);
     }
 
+    private boolean openProductDialog(MenuContext context, MenuAction action) {
+        Optional<FarmerMenuSession> session = context.session();
+        if (session.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return false;
+        }
+
+        Optional<MaterialKey> materialKey = productMaterialKey(action.target());
+        if (materialKey.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.open-failed");
+            return true;
+        }
+
+        FarmerMenuSession menuSession = session.get();
+        if (!menuSession.canOpen(FarmerMenuAccess.MEMBER)) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return true;
+        }
+
+        showProductDialog(
+            context.player(),
+            materialKey.get(),
+            context.menuId(),
+            context.holder().previousMenuId().orElse(null),
+            menuSession
+        );
+        return true;
+    }
+
+    private void showProductDialog(
+        Player player,
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session
+    ) {
+        this.schedulerAdapter.runAtEntity(player, () -> showProductDialogNow(player, materialKey, menuId, previousMenuId, session));
+    }
+
+    private void showProductDialogNow(
+        Player player,
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session
+    ) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (!isConfiguredProduct(materialKey)) {
+            this.messageService.send(player, "commands.farmer.open-failed");
+            openResolved(player, menuId, previousMenuId, session);
+            return;
+        }
+
+        player.closeInventory();
+        player.showDialog(productDialog(materialKey, menuId, previousMenuId, session));
+    }
+
+    private Dialog productDialog(MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session) {
+        Map<String, String> productPlaceholders = productPlaceholders(session.farmer(), materialKey);
+        String materialName = productPlaceholders.get("material_name");
+        String title = "<#38BDF8>" + materialName + " <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ";
+        String description = "<#CBD5E1>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ\n<#94A3B8>ᴅᴇᴘᴏ, sᴀᴛɪs ᴠᴇ ᴛᴏᴘʟᴀᴍᴀ";
+        String body = "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("amount")
+            + " <#94A3B8>/ <#E0F2FE>" + productPlaceholders.get("capacity")
+            + "\n<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("worth")
+            + "\n<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("price_state")
+            + "\n<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• " + productPlaceholders.get("collection_status");
+
+        List<DialogBody> bodyItems = List.of(
+            DialogBody.item(new ItemStack(material(materialKey).orElse(Material.BARREL)))
+                .description(DialogBody.plainMessage(TextUtil.parse(description), 240))
+                .showDecorations(true)
+                .showTooltip(true)
+                .width(64)
+                .height(64)
+                .build(),
+            DialogBody.plainMessage(TextUtil.parse(body), 320)
+        );
+        List<ActionButton> buttons = List.of(
+            productButton(
+                "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ",
+                "<#FDE68A>ᴜʀᴜɴᴜ ᴀᴄ / ᴋᴀᴘᴀᴛ",
+                150,
+                (response, audience) -> handleProductToggle(materialKey, menuId, previousMenuId, session, audience)
+            ),
+            productButton(
+                "<#22C55E>ᴍɪᴋᴛᴀʀʟᴀ sᴀᴛ",
+                "<#BBF7D0>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ sᴇᴄ",
+                150,
+                (response, audience) -> handleProductAmountDialog(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
+            ),
+            productButton(
+                "<#38BDF8>ᴍɪᴋᴛᴀʀʟᴀ ᴄᴇᴋ",
+                "<#E0F2FE>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ sᴇᴄ",
+                150,
+                (response, audience) -> handleProductAmountDialog(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
+            ),
+            productButton(
+                "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ",
+                "<#BBF7D0>ʙᴜ ᴜʀᴜɴᴜɴ ᴛᴜᴍᴜɴᴜ sᴀᴛ",
+                150,
+                (response, audience) -> handleProductTransaction(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
+            ),
+            productButton(
+                "<#38BDF8>sɪɢᴀɴɪ ᴄᴇᴋ",
+                "<#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴɪ ᴄᴇᴋ",
+                150,
+                (response, audience) -> handleProductTransaction(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
+            )
+        );
+        ActionButton exitButton = productButton(
+            "<#94A3B8>ɢᴇʀɪ",
+            "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪɴᴇ ᴅᴏɴ",
+            150,
+            (response, audience) -> handleProductDialogBack(menuId, previousMenuId, session, audience)
+        );
+        DialogBase base = DialogBase.builder(TextUtil.parse(title))
+            .externalTitle(TextUtil.parse(title))
+            .canCloseWithEscape(true)
+            .afterAction(DialogBase.DialogAfterAction.CLOSE)
+            .body(bodyItems)
+            .build();
+
+        return Dialog.create(factory -> factory.empty()
+            .base(base)
+            .type(DialogType.multiAction(buttons, exitButton, 2)));
+    }
+
+    private ActionButton productButton(String label, String tooltip, int width, io.papermc.paper.registry.data.dialog.action.DialogActionCallback callback) {
+        return ActionButton.builder(TextUtil.parse(label))
+            .tooltip(TextUtil.parse(tooltip))
+            .width(width)
+            .action(DialogAction.customClick(callback, dialogOptions()))
+            .build();
+    }
+
+    private void handleProductDialogBack(String menuId, String previousMenuId, FarmerMenuSession session, Audience audience) {
+        if (audience instanceof Player player) {
+            this.schedulerAdapter.runAtEntity(player, () -> openResolved(player, menuId, previousMenuId, session));
+        }
+    }
+
+    private void handleProductAmountDialog(
+        DialogOperation operation,
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session,
+        Audience audience
+    ) {
+        if (!(audience instanceof Player player)) {
+            return;
+        }
+
+        this.schedulerAdapter.runAtEntity(player, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!isConfiguredProduct(materialKey)) {
+                this.messageService.send(player, "commands.farmer.open-failed");
+                openResolved(player, menuId, previousMenuId, session);
+                return;
+            }
+
+            FarmerMenuAccess requiredAccess = operation == DialogOperation.WITHDRAW ? withdrawAccess() : FarmerMenuAccess.MANAGER;
+            if (!hasCurrentAccess(player, session, requiredAccess)) {
+                this.messageService.send(player, "commands.farmer.gui-denied");
+                showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                return;
+            }
+
+            AmountAvailability availability = amountAvailability(player, session, materialKey, operation);
+            if (availability.status() != StorageTransactionResult.Status.SUCCESS) {
+                StorageTransactionResult result = transactionResult(availability.status(), materialKey);
+                if (operation == DialogOperation.WITHDRAW) {
+                    sendWithdrawResult(player, result);
+                } else {
+                    sendSellResult(player, result);
+                }
+                showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                return;
+            }
+
+            long sliderMax = Math.min(availability.amount(), DIALOG_MAX_AMOUNT);
+            player.showDialog(amountDialog(operation, materialKey, sliderMax, menuId, previousMenuId, session, true));
+        });
+    }
+
+    private void handleProductTransaction(
+        DialogOperation operation,
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session,
+        Audience audience
+    ) {
+        if (!(audience instanceof Player player)) {
+            return;
+        }
+
+        this.schedulerAdapter.runAtEntity(player, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!isConfiguredProduct(materialKey)) {
+                this.messageService.send(player, "commands.farmer.open-failed");
+                openResolved(player, menuId, previousMenuId, session);
+                return;
+            }
+
+            FarmerMenuAccess requiredAccess = operation == DialogOperation.WITHDRAW ? withdrawAccess() : FarmerMenuAccess.MANAGER;
+            if (!hasCurrentAccess(player, session, requiredAccess)) {
+                this.messageService.send(player, "commands.farmer.gui-denied");
+                showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                return;
+            }
+
+            StorageTransactionResult result = operation == DialogOperation.WITHDRAW
+                ? this.storageTransactionService.withdraw(player, session, materialKey + ":all")
+                : this.storageTransactionService.sell(player, session, materialKey + ":all");
+            if (operation == DialogOperation.WITHDRAW) {
+                sendWithdrawResult(player, result);
+            } else {
+                sendSellResult(player, result);
+            }
+            showProductDialog(player, materialKey, menuId, previousMenuId, session);
+        });
+    }
+
+    private void handleProductToggle(
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session,
+        Audience audience
+    ) {
+        if (!(audience instanceof Player player)) {
+            return;
+        }
+
+        this.schedulerAdapter.runAtEntity(player, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!isConfiguredProduct(materialKey)) {
+                this.messageService.send(player, "commands.farmer.open-failed");
+                openResolved(player, menuId, previousMenuId, session);
+                return;
+            }
+            if (!hasCurrentAccess(player, session, FarmerMenuAccess.MANAGER)) {
+                this.messageService.send(player, "commands.farmer.product-toggle-denied", materialPlaceholders(materialKey));
+                showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                return;
+            }
+
+            Farmer farmer = session.farmer();
+            boolean previousState = farmer.productCollectingEnabled(materialKey);
+            boolean nextState = !previousState;
+            farmer.setProductCollectingEnabled(materialKey, nextState);
+
+            this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
+                if (throwable != null) {
+                    farmer.setProductCollectingEnabled(materialKey, previousState);
+                }
+
+                this.schedulerAdapter.runAtEntity(player, () -> {
+                    if (!player.isOnline()) {
+                        return;
+                    }
+                    if (throwable != null) {
+                        this.plugin.getLogger().warning("Product collect toggle failed: " + readableMessage(throwable));
+                        this.messageService.send(player, "commands.farmer.product-toggle-failed", materialPlaceholders(materialKey));
+                        showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                        return;
+                    }
+
+                    this.messageService.send(
+                        player,
+                        nextState ? "commands.farmer.product-enabled" : "commands.farmer.product-disabled",
+                        materialPlaceholders(materialKey)
+                    );
+                    showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                });
+            });
+        });
+    }
+
     private boolean openAmountDialog(MenuContext context, MenuAction action, DialogOperation operation) {
         Optional<FarmerMenuSession> session = context.session();
         if (session.isEmpty()) {
@@ -370,7 +667,8 @@ public final class MenuService {
             sliderMax,
             context.menuId(),
             context.holder().previousMenuId().orElse(null),
-            menuSession
+            menuSession,
+            false
         );
         this.schedulerAdapter.runAtEntity(context.player(), () -> {
             if (!context.player().isOnline()) {
@@ -569,7 +867,8 @@ public final class MenuService {
         long maxAmount,
         String menuId,
         String previousMenuId,
-        FarmerMenuSession session
+        FarmerMenuSession session,
+        boolean returnToProductDialog
     ) {
         String materialName = materialName(materialKey);
         OptionalDouble price = this.configManager.price(materialKey);
@@ -577,15 +876,26 @@ public final class MenuService {
             ? "<#38BDF8>ᴄᴇᴋɪᴍ"
             : "<#22C55E>sᴀᴛɪs";
         String body = operation == DialogOperation.WITHDRAW
-            ? "<#CBD5E1>" + materialName + " <#94A3B8>• <#38BDF8>ᴄᴇᴋ\n<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
-            : "<#CBD5E1>" + materialName + " <#94A3B8>• <#22C55E>sᴀᴛ\n<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
+            ? "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>ᴄᴇᴋɪᴍ\n<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
+                + "\n<#CBD5E1>ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴ"
+            : "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>sᴀᴛɪs\n<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
                 + (price.isPresent() ? "\n<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>" + formatMoney(price.getAsDouble() * maxAmount) : "");
 
         ActionButton confirmButton = ActionButton.builder(TextUtil.parse("<#22C55E>ᴏɴᴀʏʟᴀ"))
             .tooltip(TextUtil.parse("<#BBF7D0>ᴏɴᴀʏʟᴀ <#94A3B8>• <#E0F2FE>ᴅᴇᴠᴀᴍ"))
             .width(150)
             .action(DialogAction.customClick(
-                (response, audience) -> handleAmountDialogResponse(operation, materialKey, maxAmount, menuId, previousMenuId, session, response, audience),
+                (response, audience) -> handleAmountDialogResponse(
+                    operation,
+                    materialKey,
+                    maxAmount,
+                    menuId,
+                    previousMenuId,
+                    session,
+                    returnToProductDialog,
+                    response,
+                    audience
+                ),
                 dialogOptions()
             ))
             .build();
@@ -593,7 +903,7 @@ public final class MenuService {
             .tooltip(TextUtil.parse("<#BBF7D0>ɢᴇʀɪ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"))
             .width(150)
             .action(DialogAction.customClick(
-                (response, audience) -> handleAmountDialogCancel(menuId, previousMenuId, session, audience),
+                (response, audience) -> handleAmountDialogCancel(materialKey, menuId, previousMenuId, session, returnToProductDialog, audience),
                 dialogOptions()
             ))
             .build();
@@ -604,7 +914,7 @@ public final class MenuService {
             .body(List.of(DialogBody.plainMessage(TextUtil.parse(body), 300)))
             .inputs(List.of(DialogInput.numberRange(AMOUNT_INPUT_KEY, TextUtil.parse("<#E0F2FE>ᴍɪᴋᴛᴀʀ"), 1.0F, (float) maxAmount)
                 .width(300)
-                .labelFormat("%s: %s")
+                .labelFormat("%s • %s")
                 .initial((float) maxAmount)
                 .step(1.0F)
                 .build()))
@@ -629,6 +939,7 @@ public final class MenuService {
         String menuId,
         String previousMenuId,
         FarmerMenuSession session,
+        boolean returnToProductDialog,
         DialogResponseView response,
         Audience audience
     ) {
@@ -643,12 +954,14 @@ public final class MenuService {
             }
             if (!isConfiguredProduct(materialKey)) {
                 this.messageService.send(player, "commands.farmer.open-failed");
+                returnAfterAmountDialog(player, materialKey, menuId, previousMenuId, session, returnToProductDialog);
                 return;
             }
 
             FarmerMenuAccess requiredAccess = operation == DialogOperation.WITHDRAW ? withdrawAccess() : FarmerMenuAccess.MANAGER;
             if (!hasCurrentAccess(player, session, requiredAccess)) {
                 this.messageService.send(player, "commands.farmer.gui-denied");
+                returnAfterAmountDialog(player, materialKey, menuId, previousMenuId, session, returnToProductDialog);
                 return;
             }
 
@@ -660,7 +973,7 @@ public final class MenuService {
                 } else {
                     sendSellResult(player, result);
                 }
-                openResolved(player, menuId, previousMenuId, session);
+                returnAfterAmountDialog(player, materialKey, menuId, previousMenuId, session, returnToProductDialog);
                 return;
             }
 
@@ -672,7 +985,7 @@ public final class MenuService {
                 } else {
                     sendSellResult(player, result);
                 }
-                openResolved(player, menuId, previousMenuId, session);
+                returnAfterAmountDialog(player, materialKey, menuId, previousMenuId, session, returnToProductDialog);
                 return;
             }
 
@@ -684,14 +997,39 @@ public final class MenuService {
             } else {
                 sendSellResult(player, result);
             }
-            openResolved(player, menuId, previousMenuId, session);
+            returnAfterAmountDialog(player, materialKey, menuId, previousMenuId, session, returnToProductDialog);
         });
     }
 
-    private void handleAmountDialogCancel(String menuId, String previousMenuId, FarmerMenuSession session, Audience audience) {
+    private void handleAmountDialogCancel(
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session,
+        boolean returnToProductDialog,
+        Audience audience
+    ) {
         if (audience instanceof Player player) {
-            this.schedulerAdapter.runAtEntity(player, () -> openResolved(player, menuId, previousMenuId, session));
+            this.schedulerAdapter.runAtEntity(
+                player,
+                () -> returnAfterAmountDialog(player, materialKey, menuId, previousMenuId, session, returnToProductDialog)
+            );
         }
+    }
+
+    private void returnAfterAmountDialog(
+        Player player,
+        MaterialKey materialKey,
+        String menuId,
+        String previousMenuId,
+        FarmerMenuSession session,
+        boolean returnToProductDialog
+    ) {
+        if (returnToProductDialog) {
+            showProductDialog(player, materialKey, menuId, previousMenuId, session);
+            return;
+        }
+        openResolved(player, menuId, previousMenuId, session);
     }
 
     private long selectedAmount(Float value, long maxAmount) {
@@ -930,11 +1268,25 @@ public final class MenuService {
         if (menuId == null) {
             return "";
         }
-        return menuId.startsWith(PRODUCT_MENU_PREFIX) ? PRODUCT_MENU_ID : menuId;
+        if (isProductMenuId(menuId)) {
+            return PRODUCT_MENU_ID;
+        }
+        if (isMainMenuId(menuId)) {
+            return MAIN_MENU_ID;
+        }
+        return menuId;
+    }
+
+    private boolean isMainMenuId(String menuId) {
+        return MAIN_MENU_ID.equals(menuId) || (menuId != null && menuId.startsWith(MAIN_MENU_PREFIX));
+    }
+
+    private boolean isProductMenuId(String menuId) {
+        return menuId != null && menuId.startsWith(PRODUCT_MENU_PREFIX);
     }
 
     private Optional<MaterialKey> productMaterialKey(String menuId) {
-        if (menuId == null || !menuId.startsWith(PRODUCT_MENU_PREFIX)) {
+        if (!isProductMenuId(menuId)) {
             return Optional.empty();
         }
         Optional<MaterialKey> materialKey = materialKey(menuId.substring(PRODUCT_MENU_PREFIX.length()));
