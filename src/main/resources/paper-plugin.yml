@@ -39,3 +39,7 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    PlaceholderAPI:
+      load: AFTER
+      required: false
+      join-classpath: true
