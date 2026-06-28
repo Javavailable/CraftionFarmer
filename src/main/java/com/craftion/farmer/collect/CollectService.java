@@ -8,6 +8,7 @@ import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.MaterialKey;
+import com.craftion.farmer.farmer.StorageAddResult;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.scheduler.ScheduledTaskHandle;
@@ -130,11 +131,10 @@ public final class CollectService {
 
         MaterialKey materialKey = MaterialKey.of(material.name());
         long requestedAmount = itemStack.getAmount();
-        long currentAmount = value.storage().amount(materialKey);
         long capacity = capacityFor(value, materialKey);
-        long collectableAmount = collectableAmount(requestedAmount, currentAmount, capacity);
-        if (collectableAmount <= 0L) {
-            callStorageFull(value, materialKey, requestedAmount, currentAmount, capacity);
+        StorageAddResult addResult = value.addStorageAmount(materialKey, requestedAmount, capacity);
+        if (!addResult.changedStorage()) {
+            callStorageFull(value, materialKey, requestedAmount, addResult.storageAmount(), capacity);
             return CollectResult.collected(
                 CollectResult.Status.STORAGE_FULL,
                 context,
@@ -142,30 +142,27 @@ public final class CollectService {
                 value.regionId(),
                 materialKey,
                 0L,
-                requestedAmount,
-                currentAmount,
+                addResult.remainingAmount(),
+                addResult.storageAmount(),
                 capacity
             );
         }
 
-        long newAmount = currentAmount + collectableAmount;
-        value.setStorageAmount(materialKey, newAmount);
         markDirty(value.farmerId());
 
-        long remainingAmount = requestedAmount - collectableAmount;
-        if (remainingAmount > 0L) {
-            callStorageFull(value, materialKey, requestedAmount, newAmount, capacity);
+        if (addResult.remainingAmount() > 0L) {
+            callStorageFull(value, materialKey, requestedAmount, addResult.storageAmount(), capacity);
         }
 
         return CollectResult.collected(
-            remainingAmount > 0L ? CollectResult.Status.PARTIAL : CollectResult.Status.COLLECTED,
+            addResult.remainingAmount() > 0L ? CollectResult.Status.PARTIAL : CollectResult.Status.COLLECTED,
             context,
             value.farmerId(),
             value.regionId(),
             materialKey,
-            collectableAmount,
-            remainingAmount,
-            newAmount,
+            addResult.collectedAmount(),
+            addResult.remainingAmount(),
+            addResult.storageAmount(),
             capacity
         );
     }
@@ -232,19 +229,6 @@ public final class CollectService {
 
     private long capacityFor(Farmer farmer, MaterialKey materialKey) {
         return this.configManager.maxStoragePerItem();
-    }
-
-    private long collectableAmount(long requestedAmount, long currentAmount, long capacity) {
-        if (capacity < 0L) {
-            if (currentAmount >= Long.MAX_VALUE) {
-                return 0L;
-            }
-            return Math.min(requestedAmount, Long.MAX_VALUE - currentAmount);
-        }
-        if (currentAmount >= capacity) {
-            return 0L;
-        }
-        return Math.min(requestedAmount, capacity - currentAmount);
     }
 
     private void callStorageFull(Farmer farmer, MaterialKey materialKey, long requestedAmount, long storageAmount, long capacity) {
