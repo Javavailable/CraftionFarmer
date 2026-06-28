@@ -94,6 +94,10 @@ public final class FarmerPersistenceService {
         return saveAll(farmers);
     }
 
+    public void saveAllCachedBlocking() throws SQLException {
+        saveAllBlocking(List.copyOf(this.farmerCache.snapshot().values()));
+    }
+
     public CompletableFuture<Void> saveAll(Collection<Farmer> farmers) {
         List<Farmer> validatedFarmers = List.copyOf(FarmerValidation.requireNonNull(farmers, "farmers"));
         if (validatedFarmers.isEmpty()) {
@@ -108,6 +112,21 @@ public final class FarmerPersistenceService {
         })).thenRun(() -> validatedFarmers.forEach(this.farmerCache::put));
     }
 
+    public void saveAllBlocking(Collection<Farmer> farmers) throws SQLException {
+        List<Farmer> validatedFarmers = List.copyOf(FarmerValidation.requireNonNull(farmers, "farmers"));
+        if (validatedFarmers.isEmpty()) {
+            return;
+        }
+
+        this.databaseManager.supplyBlocking(connection -> withTransaction(connection, () -> {
+            for (Farmer farmer : validatedFarmers) {
+                saveFarmer(connection, farmer);
+            }
+            return null;
+        }));
+        validatedFarmers.forEach(this.farmerCache::put);
+    }
+
     public CompletableFuture<List<String>> saveExistingAll(Collection<Farmer> farmers) {
         List<Farmer> validatedFarmers = List.copyOf(FarmerValidation.requireNonNull(farmers, "farmers"));
         if (validatedFarmers.isEmpty()) {
@@ -115,6 +134,23 @@ public final class FarmerPersistenceService {
         }
 
         return this.databaseManager.supplyAsync(connection -> withTransaction(connection, () -> {
+            List<String> missingFarmerIds = new ArrayList<>();
+            for (Farmer farmer : validatedFarmers) {
+                if (!saveExistingFarmer(connection, farmer)) {
+                    missingFarmerIds.add(farmer.farmerId());
+                }
+            }
+            return List.copyOf(missingFarmerIds);
+        }));
+    }
+
+    public List<String> saveExistingAllBlocking(Collection<Farmer> farmers) throws SQLException {
+        List<Farmer> validatedFarmers = List.copyOf(FarmerValidation.requireNonNull(farmers, "farmers"));
+        if (validatedFarmers.isEmpty()) {
+            return List.of();
+        }
+
+        return this.databaseManager.supplyBlocking(connection -> withTransaction(connection, () -> {
             List<String> missingFarmerIds = new ArrayList<>();
             for (Farmer farmer : validatedFarmers) {
                 if (!saveExistingFarmer(connection, farmer)) {

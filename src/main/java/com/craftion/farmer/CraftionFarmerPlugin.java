@@ -10,6 +10,7 @@ import com.craftion.farmer.economy.ConfigPriceProvider;
 import com.craftion.farmer.economy.EconomyProviderManager;
 import com.craftion.farmer.economy.PriceProvider;
 import com.craftion.farmer.economy.StorageTransactionService;
+import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerCreateService;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
@@ -29,7 +30,7 @@ import com.craftion.farmer.storage.DatabaseManager;
 import com.craftion.farmer.storage.repository.DatabaseLogRepository;
 import com.craftion.farmer.storage.repository.LogRepository;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -332,7 +333,11 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
                 return;
             }
             if (this.visualProviderManager != null) {
-                this.visualProviderManager.reconcile(farmers);
+                List<Farmer> loadedFarmers = List.copyOf(farmers);
+                this.visualProviderManager.reconcile(loadedFarmers);
+                scheduleVisualReconcileRetry(loadedFarmers, 20L);
+                scheduleVisualReconcileRetry(loadedFarmers, 60L);
+                scheduleVisualReconcileRetry(loadedFarmers, 120L);
             }
             if (this.moduleManager != null) {
                 this.moduleManager.ensureDefaultStates(farmers);
@@ -341,13 +346,26 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         });
     }
 
+    private void scheduleVisualReconcileRetry(List<Farmer> farmers, long delayTicks) {
+        if (!isEnabled() || this.schedulerAdapter == null || this.visualProviderManager == null) {
+            return;
+        }
+
+        this.schedulerAdapter.runDelayed(() -> {
+            if (!isEnabled() || this.visualProviderManager == null) {
+                return;
+            }
+            this.visualProviderManager.reconcile(farmers);
+        }, delayTicks);
+    }
+
     private void saveCachedFarmersOnDisable() {
         if (this.databaseManager == null || this.farmerPersistenceService == null || !this.databaseManager.isAvailable()) {
             return;
         }
 
         try {
-            this.farmerPersistenceService.saveAllCached().get(10L, TimeUnit.SECONDS);
+            this.farmerPersistenceService.saveAllCachedBlocking();
         } catch (Exception exception) {
             getLogger().warning("Farmer cache kaydedilemedi: " + readableMessage(exception));
         }

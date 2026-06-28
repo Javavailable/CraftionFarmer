@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Item;
@@ -226,7 +225,7 @@ public final class CollectService {
             return;
         }
         try {
-            this.farmerPersistenceService.saveAll(farmers).get(10L, TimeUnit.SECONDS);
+            this.farmerPersistenceService.saveAllBlocking(farmers);
         } catch (Exception exception) {
             this.plugin.getLogger().warning("Collect storage kapatilirken kaydedilemedi: " + readableMessage(exception));
         }
