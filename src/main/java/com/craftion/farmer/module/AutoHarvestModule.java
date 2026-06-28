@@ -141,12 +141,17 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
             return;
         }
 
+        MaterialKey materialKey = MaterialKey.of(harvestMaterial.name());
+        if (!value.productCollectingEnabled(materialKey)) {
+            debugSkip("product collection disabled", location, harvestMaterial.name());
+            return;
+        }
+
         if (this.configManager.autoHarvestRequirePiston() && !hasPiston(event.getBlock())) {
             debugSkip("piston required", location, harvestMaterial.name());
             return;
         }
 
-        MaterialKey materialKey = MaterialKey.of(harvestMaterial.name());
         if (this.configManager.autoHarvestCheckStock() && isStorageFull(value, materialKey)) {
             debugSkip("storage full", location, harvestMaterial.name());
             if (this.configManager.autoHarvestPreventGrowthWhenFull()) {
