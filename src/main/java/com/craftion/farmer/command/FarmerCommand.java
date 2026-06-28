@@ -160,7 +160,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         }
 
         boolean bypassAccess = sender.hasPermission(ADMIN_BYPASS_PERMISSION);
-        this.plugin.farmerCreateService().create(player, bypassAccess).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+        this.plugin.farmerCreateService().create(player, bypassAccess).whenComplete((result, throwable) -> scheduleResponse(sender, () -> {
             if (throwable != null) {
                 this.plugin.getLogger().warning("Farmer create failed: " + readableMessage(throwable));
                 this.messageService.send(sender, "commands.farmer.create-failed");
@@ -183,7 +183,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
 
         boolean bypassAccess = sender.hasPermission(ADMIN_BYPASS_PERMISSION);
         if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
-            this.plugin.farmerRemoveService().confirm(player, bypassAccess).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+            this.plugin.farmerRemoveService().confirm(player, bypassAccess).whenComplete((result, throwable) -> scheduleResponse(sender, () -> {
                 if (throwable != null) {
                     this.plugin.getLogger().warning("Farmer remove failed: " + readableMessage(throwable));
                     this.messageService.send(sender, "commands.farmer.remove-failed");
@@ -194,7 +194,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        this.plugin.farmerRemoveService().prepare(player, bypassAccess).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+        this.plugin.farmerRemoveService().prepare(player, bypassAccess).whenComplete((result, throwable) -> scheduleResponse(sender, () -> {
             if (throwable != null) {
                 this.plugin.getLogger().warning("Farmer remove prepare failed: " + readableMessage(throwable));
                 this.messageService.send(sender, "commands.farmer.remove-failed");
@@ -243,7 +243,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        this.plugin.farmerPersistenceService().findByRegionId(access.regionId()).whenComplete((farmer, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+        this.plugin.farmerPersistenceService().findByRegionId(access.regionId()).whenComplete((farmer, throwable) -> scheduleResponse(sender, () -> {
             if (throwable != null) {
                 this.plugin.getLogger().warning("Farmer info failed: " + readableMessage(throwable));
                 this.messageService.send(sender, "commands.farmer.info-failed");
@@ -279,7 +279,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        this.plugin.farmerPersistenceService().findByRegionId(args[2]).whenComplete((farmer, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+        this.plugin.farmerPersistenceService().findByRegionId(args[2]).whenComplete((farmer, throwable) -> scheduleResponse(sender, () -> {
             if (throwable != null) {
                 this.plugin.getLogger().warning("Farmer admin info failed: " + readableMessage(throwable));
                 this.messageService.send(sender, "commands.farmer.info-failed");
@@ -346,7 +346,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         }
 
         this.messageService.send(sender, "commands.farmer.reconcile-started");
-        this.plugin.farmerReconcileService().reconcileRegion(args[1]).whenComplete((result, throwable) -> this.plugin.scheduler().runGlobal(() -> {
+        this.plugin.farmerReconcileService().reconcileRegion(args[1]).whenComplete((result, throwable) -> scheduleResponse(sender, () -> {
             if (throwable != null) {
                 this.messageService.send(sender, "commands.farmer.reconcile-failed");
                 return;

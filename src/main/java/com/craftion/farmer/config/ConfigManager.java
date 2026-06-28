@@ -126,6 +126,10 @@ public final class ConfigManager {
         return this.config.getBoolean("collect.enabled", true);
     }
 
+    public boolean collectDefaultState() {
+        return this.config.getBoolean("collect.default-state", true);
+    }
+
     public boolean ignorePlayerDrops() {
         return this.config.getBoolean("collect.ignore-player-drops", true);
     }
@@ -203,6 +207,33 @@ public final class ConfigManager {
         return Math.max(5L, this.config.getLong("modules.auto-sell.interval-seconds", 60L));
     }
 
+    public boolean autoHarvestCheckStock() {
+        return this.config.getBoolean("modules.auto-harvest.check-stock", true);
+    }
+
+    public boolean autoHarvestPreventGrowthWhenFull() {
+        return this.config.getBoolean("modules.auto-harvest.prevent-growth-when-full", true);
+    }
+
+    public boolean autoHarvestRequirePiston() {
+        return this.config.getBoolean("modules.auto-harvest.require-piston", false);
+    }
+
+    public boolean autoHarvestCheckAllDirections() {
+        return this.config.getBoolean("modules.auto-harvest.check-all-directions", false);
+    }
+
+    public Set<Material> autoHarvestCrops() {
+        Set<Material> materials = new LinkedHashSet<>();
+        for (String materialName : this.config.getStringList("modules.auto-harvest.crops")) {
+            Material material = normalizedHarvestMaterial(Material.matchMaterial(materialName));
+            if (material != null && !material.isAir()) {
+                materials.add(material);
+            }
+        }
+        return Set.copyOf(materials);
+    }
+
     public String guiModuleDescription(String moduleKey) {
         String normalizedKey = normalizeGuiKey(moduleKey);
         return this.config.getString("gui.module-descriptions." + normalizedKey, "ᴍᴏᴅᴜʟ ʙɪʟɢɪsɪ");
@@ -260,6 +291,27 @@ public final class ConfigManager {
             return "unknown";
         }
         return key.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private Material normalizedHarvestMaterial(Material material) {
+        if (material == null || material.isAir()) {
+            return null;
+        }
+        return switch (material) {
+            case WHEAT -> Material.WHEAT;
+            case CARROTS, CARROT -> Material.CARROT;
+            case POTATOES, POTATO -> Material.POTATO;
+            case BEETROOTS, BEETROOT -> Material.BEETROOT;
+            case MELON, MELON_SLICE -> Material.MELON_SLICE;
+            case PUMPKIN -> Material.PUMPKIN;
+            case CACTUS -> Material.CACTUS;
+            case SUGAR_CANE -> Material.SUGAR_CANE;
+            case BAMBOO -> Material.BAMBOO;
+            case COCOA, COCOA_BEANS -> Material.COCOA_BEANS;
+            case SWEET_BERRY_BUSH, SWEET_BERRIES -> Material.SWEET_BERRIES;
+            case NETHER_WART -> Material.NETHER_WART;
+            default -> null;
+        };
     }
 
     private String fallbackLabel(String key) {

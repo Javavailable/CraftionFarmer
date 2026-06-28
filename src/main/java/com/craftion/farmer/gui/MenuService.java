@@ -140,6 +140,7 @@ public final class MenuService {
         this.actionRegistry.register(MenuAction.Type.WITHDRAW, this::withdraw);
         this.actionRegistry.register(MenuAction.Type.SELL, this::sell);
         this.actionRegistry.register(MenuAction.Type.MODULE_TOGGLE, this::toggleModule);
+        this.actionRegistry.register(MenuAction.Type.COLLECT_TOGGLE, this::toggleCollect);
     }
 
     private boolean openForPlayer(Player player, String menuId, String previousMenuId) {
@@ -314,6 +315,44 @@ public final class MenuService {
                 if (result.success()) {
                     refreshCurrentMenu(context);
                 }
+            });
+        });
+        return true;
+    }
+
+    private boolean toggleCollect(MenuContext context, MenuAction action) {
+        Optional<FarmerMenuSession> session = context.session();
+        if (session.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return false;
+        }
+
+        FarmerMenuSession menuSession = session.get();
+        if (!FarmerMenuAccess.MANAGER.allows(menuSession.role())) {
+            this.messageService.send(context.player(), "commands.farmer.collect-toggle-denied");
+            return true;
+        }
+
+        Farmer farmer = menuSession.farmer();
+        boolean previousState = farmer.collectingEnabled();
+        boolean nextState = !previousState;
+        farmer.setCollectingEnabled(nextState);
+
+        this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                farmer.setCollectingEnabled(previousState);
+            }
+
+            this.schedulerAdapter.runAtEntity(context.player(), () -> {
+                if (throwable != null) {
+                    this.plugin.getLogger().warning("Collect toggle failed: " + readableMessage(throwable));
+                    this.messageService.send(context.player(), "commands.farmer.collect-toggle-failed");
+                    refreshCurrentMenu(context);
+                    return;
+                }
+
+                this.messageService.send(context.player(), nextState ? "commands.farmer.collect-enabled" : "commands.farmer.collect-disabled");
+                refreshCurrentMenu(context);
             });
         });
         return true;
