@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,16 +91,21 @@ public final class FarmerPersistenceService {
 
     public CompletableFuture<Void> saveAllCached() {
         List<Farmer> farmers = List.copyOf(this.farmerCache.snapshot().values());
-        if (farmers.isEmpty()) {
+        return saveAll(farmers);
+    }
+
+    public CompletableFuture<Void> saveAll(Collection<Farmer> farmers) {
+        List<Farmer> validatedFarmers = List.copyOf(FarmerValidation.requireNonNull(farmers, "farmers"));
+        if (validatedFarmers.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
 
         return this.databaseManager.executeAsync(connection -> withTransaction(connection, () -> {
-            for (Farmer farmer : farmers) {
+            for (Farmer farmer : validatedFarmers) {
                 saveFarmer(connection, farmer);
             }
             return null;
-        }));
+        })).thenRun(() -> validatedFarmers.forEach(this.farmerCache::put));
     }
 
     public CompletableFuture<Boolean> deleteByRegionId(String regionId) {

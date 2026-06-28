@@ -1,6 +1,7 @@
 package com.craftion.farmer;
 
 import com.craftion.farmer.command.FarmerCommand;
+import com.craftion.farmer.collect.CollectService;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.config.MessageManager;
 import com.craftion.farmer.debug.DebugLogger;
@@ -39,6 +40,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private FarmerReconcileService farmerReconcileService;
     private SkylliaSyncManager skylliaSyncManager;
     private MenuService menuService;
+    private CollectService collectService;
 
     @Override
     public void onLoad() {
@@ -83,6 +85,15 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.debugLogger
         );
         this.skylliaSyncManager = new SkylliaSyncManager(this, this.configManager, this.farmerReconcileService, this.debugLogger);
+        this.collectService = new CollectService(
+            this,
+            this.configManager,
+            this.schedulerAdapter,
+            this.debugLogger,
+            this.regionProviderManager,
+            this.farmerCache,
+            this.farmerPersistenceService
+        );
         this.menuService = new MenuService(
             this,
             this.configManager,
@@ -106,6 +117,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.databaseManager.initialize();
         loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
+        this.collectService.initialize();
         this.menuService.initialize();
         getLogger().info("CraftionFarmer has been enabled.");
     }
@@ -114,6 +126,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     public void onDisable() {
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.shutdown();
+        }
+
+        if (this.collectService != null) {
+            this.collectService.shutdown();
         }
 
         this.menuService = null;
@@ -146,6 +162,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         }
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.reload();
+        }
+        if (this.collectService != null) {
+            this.collectService.reload();
         }
         if (this.menuService != null) {
             this.menuService.reload();
@@ -199,6 +218,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     public MenuService menuService() {
         return this.menuService;
+    }
+
+    public CollectService collectService() {
+        return this.collectService;
     }
 
     private void loadFarmerCacheWhenReady() {

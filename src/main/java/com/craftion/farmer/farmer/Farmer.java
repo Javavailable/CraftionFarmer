@@ -116,7 +116,33 @@ public final class Farmer {
     }
 
     public FarmerStorage storage() {
-        return this.storage.copy();
+        synchronized (this) {
+            return this.storage.copy();
+        }
+    }
+
+    public long storageAmount(MaterialKey materialKey) {
+        synchronized (this) {
+            return this.storage.amount(materialKey);
+        }
+    }
+
+    public StorageAddResult addStorageAmount(MaterialKey materialKey, long requestedAmount, long capacity) {
+        FarmerValidation.requireNonNull(materialKey, "materialKey");
+        FarmerValidation.requireNonNegative(requestedAmount, "requestedAmount");
+
+        synchronized (this) {
+            long currentAmount = this.storage.amount(materialKey);
+            long collectableAmount = collectableAmount(requestedAmount, currentAmount, capacity);
+            if (collectableAmount <= 0L) {
+                return new StorageAddResult(materialKey, requestedAmount, 0L, requestedAmount, currentAmount, capacity);
+            }
+
+            long newAmount = currentAmount + collectableAmount;
+            this.storage.setAmount(materialKey, newAmount);
+            touch();
+            return new StorageAddResult(materialKey, requestedAmount, collectableAmount, requestedAmount - collectableAmount, newAmount, capacity);
+        }
     }
 
     public Map<UUID, FarmerMember> members() {
@@ -159,13 +185,17 @@ public final class Farmer {
     }
 
     public void setStorageAmount(MaterialKey materialKey, long amount) {
-        this.storage.setAmount(materialKey, amount);
-        touch();
+        synchronized (this) {
+            this.storage.setAmount(materialKey, amount);
+            touch();
+        }
     }
 
     public void removeStorage(MaterialKey materialKey) {
-        this.storage.remove(materialKey);
-        touch();
+        synchronized (this) {
+            this.storage.remove(materialKey);
+            touch();
+        }
     }
 
     public void putMember(FarmerMember member) {
@@ -205,6 +235,19 @@ public final class Farmer {
 
     private void touch() {
         this.updatedAt = Instant.now();
+    }
+
+    private long collectableAmount(long requestedAmount, long currentAmount, long capacity) {
+        if (capacity < 0L) {
+            if (currentAmount >= Long.MAX_VALUE) {
+                return 0L;
+            }
+            return Math.min(requestedAmount, Long.MAX_VALUE - currentAmount);
+        }
+        if (currentAmount >= capacity) {
+            return 0L;
+        }
+        return Math.min(requestedAmount, capacity - currentAmount);
     }
 
     private void loadMember(FarmerMember member) {
