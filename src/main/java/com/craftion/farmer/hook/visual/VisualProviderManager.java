@@ -5,6 +5,7 @@ import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import java.util.Collection;
+import java.util.Optional;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -83,7 +84,18 @@ public final class VisualProviderManager {
                 return new NoVisualProvider();
             }
 
-            return new FancyNpcsVisualProvider(this.plugin, this.configManager, this.schedulerAdapter, this.debugLogger);
+            Optional<FancyNpcsVisualProvider> provider = FancyNpcsVisualProvider.create(
+                this.plugin,
+                this.configManager,
+                this.schedulerAdapter,
+                this.debugLogger
+            );
+            if (provider.isEmpty()) {
+                this.plugin.getLogger().warning("FancyNPCs visual provider secildi fakat desteklenen FancyNPCs API bulunamadi. Visual provider devre disi birakildi.");
+                return new NoVisualProvider();
+            }
+
+            return provider.get();
         }
 
         return new NoVisualProvider();

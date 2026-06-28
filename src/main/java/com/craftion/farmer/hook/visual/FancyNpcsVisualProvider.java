@@ -7,8 +7,10 @@ import com.craftion.farmer.farmer.LocationSnapshot;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -27,14 +29,35 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
 
-    private static final String FANCY_NPCS_PLUGIN_CLASS = "de.oliver.fancynpcs.api.FancyNpcsPlugin";
-    private static final String NPC_DATA_CLASS = "de.oliver.fancynpcs.api.NpcData";
-    private static final String SKIN_DATA_CLASS = "de.oliver.fancynpcs.api.skins.SkinData";
+    private static final ApiPackage LEGACY_API = new ApiPackage(
+        FancyNpcsApiMode.LEGACY,
+        "de.oliver.fancynpcs.api.FancyNpcsPlugin",
+        "de.oliver.fancynpcs.api.NpcData",
+        "de.oliver.fancynpcs.api.skins.SkinData",
+        "de.oliver.fancynpcs.api.Npc"
+    );
+    private static final List<ApiPackage> MODERN_APIS = List.of(
+        new ApiPackage(
+            FancyNpcsApiMode.MODERN,
+            "io.github.fancyplugins.fancynpcs.api.FancyNpcsPlugin",
+            "io.github.fancyplugins.fancynpcs.api.NpcData",
+            "io.github.fancyplugins.fancynpcs.api.skins.SkinData",
+            "io.github.fancyplugins.fancynpcs.api.Npc"
+        ),
+        new ApiPackage(
+            FancyNpcsApiMode.MODERN,
+            "com.fancyplugins.fancynpcs.api.FancyNpcsPlugin",
+            "com.fancyplugins.fancynpcs.api.NpcData",
+            "com.fancyplugins.fancynpcs.api.skins.SkinData",
+            "com.fancyplugins.fancynpcs.api.Npc"
+        )
+    );
 
     private final JavaPlugin plugin;
     private final SchedulerAdapter schedulerAdapter;
     private final DebugLogger debugLogger;
-    private final FancyNpcsApiMode apiMode;
+    private final FancyNpcsApiMode configuredApiMode;
+    private final ApiBinding apiBinding;
     private final String idPrefix;
     private final boolean saveNpcsToFile;
     private final boolean removeOnFarmerDelete;
@@ -46,16 +69,30 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
     private final float interactionCooldown;
     private final int visibilityDistance;
 
-    public FancyNpcsVisualProvider(
+    public static Optional<FancyNpcsVisualProvider> create(
         JavaPlugin plugin,
         ConfigManager configManager,
         SchedulerAdapter schedulerAdapter,
         DebugLogger debugLogger
     ) {
+        FancyNpcsApiMode configuredApiMode = FancyNpcsApiMode.from(configManager.fancyNpcsApiMode());
+        Optional<ApiBinding> binding = resolveBinding(configuredApiMode, debugLogger);
+        return binding.map(value -> new FancyNpcsVisualProvider(plugin, configManager, schedulerAdapter, debugLogger, configuredApiMode, value));
+    }
+
+    private FancyNpcsVisualProvider(
+        JavaPlugin plugin,
+        ConfigManager configManager,
+        SchedulerAdapter schedulerAdapter,
+        DebugLogger debugLogger,
+        FancyNpcsApiMode configuredApiMode,
+        ApiBinding apiBinding
+    ) {
         this.plugin = plugin;
         this.schedulerAdapter = schedulerAdapter;
         this.debugLogger = debugLogger;
-        this.apiMode = FancyNpcsApiMode.from(configManager.fancyNpcsApiMode());
+        this.configuredApiMode = configuredApiMode;
+        this.apiBinding = apiBinding;
         this.idPrefix = normalizeIdPrefix(configManager.fancyNpcsIdPrefix());
         this.saveNpcsToFile = configManager.saveFancyNpcsToFile();
         this.removeOnFarmerDelete = configManager.removeFancyNpcOnFarmerDelete();
@@ -143,48 +180,20 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             Function<Object, Object> adapter = (Function<Object, Object>) invoke(pluginApi, "getNpcAdapter");
             Object npc = adapter.apply(npcData);
             invokeIfPresent(npc, "setSaveToFile", new Class<?>[] {boolean.class}, this.saveNpcsToFile);
-            Class<?> npcClass = Class.forName("de.oliver.fancynpcs.api.Npc");
-            invoke(manager, "registerNpc", new Class<?>[] {npcClass}, npc);
+            invoke(manager, "registerNpc", new Class<?>[] {this.apiBinding.npcClass()}, npc);
             invoke(npc, "create");
             invoke(npc, "spawnForAll");
             saveNpcsIfNeeded(manager);
-            this.debugLogger.debug("FancyNPCs farmer npc spawned: " + npcId + " mode=" + this.apiMode);
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+            this.debugLogger.debug("FancyNPCs farmer npc spawned: " + npcId + " mode=" + this.configuredApiMode + "/" + this.apiBinding.mode());
+        } catch (RuntimeException | LinkageError exception) {
             this.plugin.getLogger().warning("FancyNPCs farmer NPC olusturulamadi: " + readableMessage(exception));
         }
     }
 
     private Object createNpcData(String npcId, Farmer farmer, Location location) {
         try {
-            Class<?> npcDataClass = Class.forName(NPC_DATA_CLASS);
-            Class<?> skinDataClass = Class.forName(SKIN_DATA_CLASS);
-            Constructor<?> constructor = npcDataClass.getConstructor(
-                String.class,
-                String.class,
-                UUID.class,
-                String.class,
-                skinDataClass,
-                Location.class,
-                boolean.class,
-                boolean.class,
-                boolean.class,
-                boolean.class,
-                NamedTextColor.class,
-                EntityType.class,
-                Map.class,
-                boolean.class,
-                int.class,
-                Consumer.class,
-                Map.class,
-                float.class,
-                float.class,
-                int.class,
-                Map.class,
-                boolean.class
-            );
-
-            Consumer<Player> onClick = player -> this.schedulerAdapter.runGlobal(() -> player.performCommand("farmer info"));
-            return constructor.newInstance(
+            Consumer<Player> onClick = player -> this.schedulerAdapter.runAtEntity(player, () -> player.performCommand("farmer info"));
+            return this.apiBinding.npcDataConstructor().newInstance(
                 npcId,
                 npcId,
                 farmer.ownerUuid(),
@@ -261,10 +270,9 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
 
             Object manager = npcManager();
             invoke(npc, "removeForAll");
-            Class<?> npcClass = Class.forName("de.oliver.fancynpcs.api.Npc");
-            invoke(manager, "removeNpc", new Class<?>[] {npcClass}, npc);
+            invoke(manager, "removeNpc", new Class<?>[] {this.apiBinding.npcClass()}, npc);
             saveNpcsIfNeeded(manager);
-        } catch (ReflectiveOperationException exception) {
+        } catch (RuntimeException exception) {
             throw new IllegalStateException("FancyNPCs npc could not be removed.", exception);
         }
     }
@@ -289,8 +297,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
 
     private Object fancyNpcsPlugin() {
         try {
-            Class<?> pluginClass = Class.forName(FANCY_NPCS_PLUGIN_CLASS);
-            return pluginClass.getMethod("get").invoke(null);
+            return this.apiBinding.pluginClass().getMethod("get").invoke(null);
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("FancyNPCs API is not available.", exception);
         }
@@ -386,6 +393,71 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         return color == null ? NamedTextColor.AQUA : color;
     }
 
+    private static Optional<ApiBinding> resolveBinding(FancyNpcsApiMode apiMode, DebugLogger debugLogger) {
+        List<ApiPackage> packages = switch (apiMode) {
+            case LEGACY -> List.of(LEGACY_API);
+            case MODERN -> MODERN_APIS;
+            case AUTO -> autoPackages();
+        };
+
+        for (ApiPackage apiPackage : packages) {
+            Optional<ApiBinding> binding = bind(apiPackage);
+            if (binding.isPresent()) {
+                debugLogger.debug("FancyNPCs API binding selected: " + apiPackage.mode() + " " + apiPackage.pluginClassName());
+                return binding;
+            }
+        }
+
+        debugLogger.debug("FancyNPCs API binding unsupported for mode: " + apiMode);
+        return Optional.empty();
+    }
+
+    private static List<ApiPackage> autoPackages() {
+        List<ApiPackage> packages = new ArrayList<>(MODERN_APIS);
+        packages.add(LEGACY_API);
+        return packages;
+    }
+
+    private static Optional<ApiBinding> bind(ApiPackage apiPackage) {
+        try {
+            ClassLoader classLoader = FancyNpcsVisualProvider.class.getClassLoader();
+            Class<?> pluginClass = Class.forName(apiPackage.pluginClassName(), false, classLoader);
+            Class<?> npcDataClass = Class.forName(apiPackage.npcDataClassName(), false, classLoader);
+            Class<?> skinDataClass = Class.forName(apiPackage.skinDataClassName(), false, classLoader);
+            Class<?> npcClass = Class.forName(apiPackage.npcClassName(), false, classLoader);
+            Constructor<?> npcDataConstructor = npcDataClass.getConstructor(
+                String.class,
+                String.class,
+                UUID.class,
+                String.class,
+                skinDataClass,
+                Location.class,
+                boolean.class,
+                boolean.class,
+                boolean.class,
+                boolean.class,
+                NamedTextColor.class,
+                EntityType.class,
+                Map.class,
+                boolean.class,
+                int.class,
+                Consumer.class,
+                Map.class,
+                float.class,
+                float.class,
+                int.class,
+                Map.class,
+                boolean.class
+            );
+            pluginClass.getMethod("get");
+            pluginClass.getMethod("getNpcAdapter");
+            pluginClass.getMethod("getNpcManager");
+            return Optional.of(new ApiBinding(apiPackage.mode(), pluginClass, npcClass, npcDataConstructor));
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            return Optional.empty();
+        }
+    }
+
     private String readableMessage(Throwable throwable) {
         Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
         String message = cause.getMessage();
@@ -393,5 +465,22 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             return cause.getClass().getSimpleName();
         }
         return message;
+    }
+
+    private record ApiPackage(
+        FancyNpcsApiMode mode,
+        String pluginClassName,
+        String npcDataClassName,
+        String skinDataClassName,
+        String npcClassName
+    ) {
+    }
+
+    private record ApiBinding(
+        FancyNpcsApiMode mode,
+        Class<?> pluginClass,
+        Class<?> npcClass,
+        Constructor<?> npcDataConstructor
+    ) {
     }
 }
