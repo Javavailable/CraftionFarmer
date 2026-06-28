@@ -108,6 +108,23 @@ public final class FarmerPersistenceService {
         })).thenRun(() -> validatedFarmers.forEach(this.farmerCache::put));
     }
 
+    public CompletableFuture<List<String>> saveExistingAll(Collection<Farmer> farmers) {
+        List<Farmer> validatedFarmers = List.copyOf(FarmerValidation.requireNonNull(farmers, "farmers"));
+        if (validatedFarmers.isEmpty()) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        return this.databaseManager.supplyAsync(connection -> withTransaction(connection, () -> {
+            List<String> missingFarmerIds = new ArrayList<>();
+            for (Farmer farmer : validatedFarmers) {
+                if (!saveExistingFarmer(connection, farmer)) {
+                    missingFarmerIds.add(farmer.farmerId());
+                }
+            }
+            return List.copyOf(missingFarmerIds);
+        }));
+    }
+
     public CompletableFuture<Boolean> deleteByRegionId(String regionId) {
         String normalizedRegionId = FarmerValidation.requireNonBlank(regionId, "regionId");
         return this.databaseManager.supplyAsync(connection -> withTransaction(connection, () -> {
@@ -262,6 +279,19 @@ public final class FarmerPersistenceService {
         insertStorage(connection, farmer);
         insertSettings(connection, farmer);
         insertModules(connection, farmer);
+    }
+
+    private boolean saveExistingFarmer(Connection connection, Farmer farmer) throws SQLException {
+        int updated = updateFarmer(connection, farmer);
+        if (updated == 0) {
+            return false;
+        }
+        deleteChildRows(connection, farmer.farmerId(), REPLACE_CHILD_TABLES);
+        insertMembers(connection, farmer);
+        insertStorage(connection, farmer);
+        insertSettings(connection, farmer);
+        insertModules(connection, farmer);
+        return true;
     }
 
     private int updateFarmer(Connection connection, Farmer farmer) throws SQLException {

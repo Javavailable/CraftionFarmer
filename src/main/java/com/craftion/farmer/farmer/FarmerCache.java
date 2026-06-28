@@ -67,7 +67,7 @@ public final class FarmerCache {
 
     public Optional<Farmer> removeByRegionId(String regionId) {
         Optional<Farmer> farmer = getByRegionId(regionId);
-        farmer.ifPresent(value -> this.farmers.remove(value.farmerId()));
+        farmer.ifPresent(value -> remove(value.farmerId()));
         return farmer;
     }
 

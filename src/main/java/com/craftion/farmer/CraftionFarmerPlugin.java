@@ -91,7 +91,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.priceProvider = new ConfigPriceProvider(this.configManager);
         this.farmerCache = new FarmerCache();
         this.farmerPersistenceService = new FarmerPersistenceService(this.databaseManager, this.farmerCache, this.debugLogger);
-        this.farmerSaveRetryService = new FarmerSaveRetryService(this, this.schedulerAdapter, this.debugLogger, this.farmerPersistenceService);
+        this.farmerSaveRetryService = new FarmerSaveRetryService(this, this.schedulerAdapter, this.debugLogger, this.farmerPersistenceService, this.farmerCache);
         this.storageTransactionService = new StorageTransactionService(
             this,
             this.configManager,
@@ -118,6 +118,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
+            this.farmerSaveRetryService,
             this.regionProviderManager,
             this.visualProviderManager,
             Duration.ofSeconds(30L)

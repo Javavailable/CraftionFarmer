@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 public final class FarmerRemoveService {
 
     private final FarmerPersistenceService persistenceService;
+    private final FarmerSaveRetryService saveRetryService;
     private final RegionProviderManager regionProviderManager;
     private final VisualProviderManager visualProviderManager;
     private final Duration confirmTimeout;
@@ -24,11 +25,13 @@ public final class FarmerRemoveService {
 
     public FarmerRemoveService(
         FarmerPersistenceService persistenceService,
+        FarmerSaveRetryService saveRetryService,
         RegionProviderManager regionProviderManager,
         VisualProviderManager visualProviderManager,
         Duration confirmTimeout
     ) {
         this.persistenceService = Objects.requireNonNull(persistenceService, "persistenceService");
+        this.saveRetryService = Objects.requireNonNull(saveRetryService, "saveRetryService");
         this.regionProviderManager = Objects.requireNonNull(regionProviderManager, "regionProviderManager");
         this.visualProviderManager = Objects.requireNonNull(visualProviderManager, "visualProviderManager");
         this.confirmTimeout = Objects.requireNonNull(confirmTimeout, "confirmTimeout");
@@ -76,6 +79,7 @@ public final class FarmerRemoveService {
                 if (!deleted) {
                     return FarmerRemoveResult.of(FarmerRemoveResult.Status.NO_FARMER, pendingRemoval.regionId());
                 }
+                this.saveRetryService.forget(farmer.get().farmerId());
                 this.visualProviderManager.remove(farmer.get());
                 return FarmerRemoveResult.of(FarmerRemoveResult.Status.REMOVED, pendingRemoval.regionId());
             });

@@ -22,6 +22,7 @@ public final class FarmerSaveRetryService {
     private final SchedulerAdapter schedulerAdapter;
     private final DebugLogger debugLogger;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final FarmerCache farmerCache;
     private final ConcurrentMap<String, DirtyFarmer> dirtyFarmers = new ConcurrentHashMap<>();
     private final AtomicBoolean retryRunning = new AtomicBoolean(false);
     private final Object taskLock = new Object();
@@ -32,12 +33,14 @@ public final class FarmerSaveRetryService {
         JavaPlugin plugin,
         SchedulerAdapter schedulerAdapter,
         DebugLogger debugLogger,
-        FarmerPersistenceService farmerPersistenceService
+        FarmerPersistenceService farmerPersistenceService,
+        FarmerCache farmerCache
     ) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.schedulerAdapter = Objects.requireNonNull(schedulerAdapter, "schedulerAdapter");
         this.debugLogger = Objects.requireNonNull(debugLogger, "debugLogger");
         this.farmerPersistenceService = Objects.requireNonNull(farmerPersistenceService, "farmerPersistenceService");
+        this.farmerCache = Objects.requireNonNull(farmerCache, "farmerCache");
     }
 
     public void markDirty(Farmer farmer, String reason) {
@@ -47,12 +50,22 @@ public final class FarmerSaveRetryService {
 
         String normalizedReason = reason == null || reason.isBlank() ? "unspecified" : reason.trim();
         this.dirtyFarmers.compute(farmer.farmerId(), (farmerId, current) -> new DirtyFarmer(
-            farmer,
+            farmer.farmerId(),
             normalizedReason,
             current == null ? 0 : current.attempts()
         ));
         this.debugLogger.debug("Retry scheduled for farmer save: farmer=" + farmer.farmerId() + " reason=" + normalizedReason);
         scheduleRetry();
+    }
+
+    public void forget(String farmerId) {
+        if (farmerId == null || farmerId.isBlank()) {
+            return;
+        }
+        DirtyFarmer removed = this.dirtyFarmers.remove(farmerId.trim());
+        if (removed != null) {
+            this.debugLogger.debug("Dirty farmer save forgotten: farmer=" + removed.farmerId() + " reason=" + removed.reason());
+        }
     }
 
     public void flushNow() {
@@ -67,23 +80,30 @@ public final class FarmerSaveRetryService {
             return;
         }
 
-        CompletableFuture<Void> retryFuture;
-        try {
-            retryFuture = this.farmerPersistenceService.saveAll(farmers(entries));
-        } catch (RuntimeException exception) {
-            requeue(entries, exception, true);
+        SaveBatch batch = saveBatch(entries);
+        if (batch.entries().isEmpty()) {
             this.retryRunning.set(false);
             return;
         }
 
-        this.activeRetry = retryFuture;
-        retryFuture.whenComplete((ignored, throwable) -> {
+        CompletableFuture<List<String>> retryFuture;
+        try {
+            retryFuture = this.farmerPersistenceService.saveExistingAll(batch.farmers());
+        } catch (RuntimeException exception) {
+            requeue(batch.entries(), exception, true);
+            this.retryRunning.set(false);
+            return;
+        }
+
+        this.activeRetry = retryFuture.thenApply(ignored -> null);
+        retryFuture.whenComplete((missingFarmerIds, throwable) -> {
             try {
                 if (throwable != null) {
-                    requeue(entries, throwable, true);
+                    requeue(batch.entries(), throwable, true);
                     return;
                 }
-                this.debugLogger.debug("Retry succeeded for dirty farmer saves: count=" + entries.size());
+                int missingCount = handleMissing(missingFarmerIds);
+                this.debugLogger.debug("Retry succeeded for dirty farmer saves: count=" + (batch.entries().size() - missingCount));
             } finally {
                 this.retryRunning.set(false);
                 if (!this.dirtyFarmers.isEmpty()) {
@@ -98,17 +118,18 @@ public final class FarmerSaveRetryService {
         cancelScheduledRetry();
         waitForActiveRetry(safeTimeout);
 
-        List<DirtyFarmer> entries = drainDirtyFarmers();
-        if (entries.isEmpty()) {
+        SaveBatch batch = saveBatch(drainDirtyFarmers());
+        if (batch.entries().isEmpty()) {
             return true;
         }
 
         try {
-            this.farmerPersistenceService.saveAll(farmers(entries)).get(safeTimeout.toMillis(), TimeUnit.MILLISECONDS);
-            this.debugLogger.debug("Blocking retry flush succeeded: count=" + entries.size());
+            List<String> missingFarmerIds = this.farmerPersistenceService.saveExistingAll(batch.farmers()).get(safeTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            int missingCount = handleMissing(missingFarmerIds);
+            this.debugLogger.debug("Blocking retry flush succeeded: count=" + (batch.entries().size() - missingCount));
             return true;
         } catch (Exception exception) {
-            requeue(entries, exception, false);
+            requeue(batch.entries(), exception, false);
             this.plugin.getLogger().warning("Dirty farmer save flush failed on shutdown: " + readableMessage(exception));
             return false;
         }
@@ -159,25 +180,29 @@ public final class FarmerSaveRetryService {
     private List<DirtyFarmer> drainDirtyFarmers() {
         List<DirtyFarmer> entries = List.copyOf(this.dirtyFarmers.values());
         for (DirtyFarmer entry : entries) {
-            this.dirtyFarmers.remove(entry.farmer().farmerId(), entry);
+            this.dirtyFarmers.remove(entry.farmerId(), entry);
         }
         return entries;
     }
 
-    private List<Farmer> farmers(List<DirtyFarmer> entries) {
+    private SaveBatch saveBatch(List<DirtyFarmer> entries) {
+        List<DirtyFarmer> activeEntries = new ArrayList<>(entries.size());
         List<Farmer> farmers = new ArrayList<>(entries.size());
         for (DirtyFarmer entry : entries) {
-            farmers.add(entry.farmer());
+            this.farmerCache.get(entry.farmerId()).ifPresentOrElse(farmer -> {
+                activeEntries.add(entry);
+                farmers.add(farmer);
+            }, () -> this.debugLogger.debug("Dirty farmer save skipped because farmer is no longer cached: farmer=" + entry.farmerId()));
         }
-        return farmers;
+        return new SaveBatch(List.copyOf(activeEntries), List.copyOf(farmers));
     }
 
     private void requeue(List<DirtyFarmer> entries, Throwable throwable, boolean schedule) {
         for (DirtyFarmer entry : entries) {
             DirtyFarmer requeued = entry.nextAttempt();
-            this.dirtyFarmers.put(entry.farmer().farmerId(), requeued);
+            this.dirtyFarmers.put(entry.farmerId(), requeued);
             this.plugin.getLogger().warning(
-                "Retry failed and requeued farmer save: farmer=" + entry.farmer().farmerId()
+                "Retry failed and requeued farmer save: farmer=" + entry.farmerId()
                     + " reason=" + entry.reason()
                     + " attempt=" + requeued.attempts()
                     + " error=" + readableMessage(throwable)
@@ -186,6 +211,17 @@ public final class FarmerSaveRetryService {
         if (schedule) {
             scheduleRetry();
         }
+    }
+
+    private int handleMissing(List<String> missingFarmerIds) {
+        if (missingFarmerIds == null || missingFarmerIds.isEmpty()) {
+            return 0;
+        }
+        for (String farmerId : missingFarmerIds) {
+            this.debugLogger.debug("Dirty farmer save skipped because farmer no longer exists in database: farmer=" + farmerId);
+            this.farmerCache.remove(farmerId);
+        }
+        return missingFarmerIds.size();
     }
 
     private String readableMessage(Throwable throwable) {
@@ -200,10 +236,13 @@ public final class FarmerSaveRetryService {
         return message;
     }
 
-    private record DirtyFarmer(Farmer farmer, String reason, int attempts) {
+    private record SaveBatch(List<DirtyFarmer> entries, List<Farmer> farmers) {
+    }
+
+    private record DirtyFarmer(String farmerId, String reason, int attempts) {
 
         private DirtyFarmer nextAttempt() {
-            return new DirtyFarmer(this.farmer, this.reason, this.attempts + 1);
+            return new DirtyFarmer(this.farmerId, this.reason, this.attempts + 1);
         }
     }
 }
