@@ -76,6 +76,9 @@ prices:
   bamboo: 1.0
   melon_slice: 1.0
   pumpkin: 4.0
+  cocoa_beans: 2.0
+  sweet_berries: 2.0
+  nether_wart: 3.0
 
 modules:
   auto-sell:
@@ -102,6 +105,9 @@ modules:
       - CACTUS
       - SUGAR_CANE
       - BAMBOO
+      - COCOA_BEANS
+      - SWEET_BERRIES
+      - NETHER_WART
   auto-kill:
     enabled: false
     default-state: false
@@ -211,14 +217,35 @@ gui:
           lore:
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
-            - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• %collection_status%"
+            - "<#94A3B8>sᴏʟ ᴛɪᴋ <#E0F2FE>ᴘᴀɴᴇʟ"
         empty:
           material: BARREL
           name: "<#FBBF24>ᴜʀᴜɴ ʟɪsᴛᴇsɪ ʙᴏs"
           action: "info"
           lore:
-            - "<#FBBF24>collect.allowed-materials ɪᴄɪɴ ɢᴇᴄᴇʀʟɪ ᴜʀᴜɴ ʏᴏᴋ"
+            - "<#FBBF24>ʏᴀᴘɪʟᴀɴᴅɪʀᴍᴀᴅᴀ ᴜʀᴜɴ ʏᴏᴋ"
+        previous-page:
+          slot: 30
+          material: ARROW
+          name: "<#94A3B8>ᴏɴᴄᴇᴋɪ"
+          action: "open:main:%previous_page%"
+          lore:
+            - "<#CBD5E1>sᴀʏғᴀ <#94A3B8>• <#E0F2FE>%previous_page% <#94A3B8>/ <#E0F2FE>%pages%"
+        page-indicator:
+          slot: 31
+          material: MAP
+          name: "<#38BDF8>sᴀʏғᴀ <#E0F2FE>%page%<#94A3B8>/<#E0F2FE>%pages%"
+          action: "info"
+          lore:
+            - "<#CBD5E1>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>%first_product%-%last_product% <#94A3B8>/ <#E0F2FE>%products%"
+        next-page:
+          slot: 32
+          material: ARROW
+          name: "<#38BDF8>sᴏɴʀᴀᴋɪ"
+          action: "open:main:%next_page%"
+          lore:
+            - "<#CBD5E1>sᴀʏғᴀ <#94A3B8>• <#E0F2FE>%next_page% <#94A3B8>/ <#E0F2FE>%pages%"
     product:
       title: "<#38BDF8>%material_name% <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ"
       size: 54
