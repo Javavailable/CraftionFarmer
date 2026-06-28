@@ -3,6 +3,7 @@ package com.craftion.farmer.storage;
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.debug.DebugLogger;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
+import com.craftion.farmer.scheduler.ScheduledTaskHandle;
 import com.craftion.farmer.storage.migration.MigrationRunner;
 import com.craftion.farmer.storage.migration.V1InitialSchema;
 import java.sql.Connection;
@@ -74,7 +75,7 @@ public final class DatabaseManager {
 
     public <T> CompletableFuture<T> supplyAsync(SqlFunction<T> function) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        this.schedulerAdapter.runAsync(() -> {
+        ScheduledTaskHandle task = this.schedulerAdapter.runAsync(() -> {
             ConnectionProvider currentProvider = this.provider.get();
             if (currentProvider == null) {
                 future.completeExceptionally(new IllegalStateException("Database connection is not available."));
@@ -87,7 +88,21 @@ public final class DatabaseManager {
                 future.completeExceptionally(exception);
             }
         });
+        if (task.isCancelled()) {
+            future.completeExceptionally(new IllegalStateException("Database task could not be scheduled."));
+        }
         return future;
+    }
+
+    public <T> T supplyBlocking(SqlFunction<T> function) throws SQLException {
+        ConnectionProvider currentProvider = this.provider.get();
+        if (currentProvider == null) {
+            throw new IllegalStateException("Database connection is not available.");
+        }
+
+        try (Connection connection = currentProvider.getConnection()) {
+            return function.apply(connection);
+        }
     }
 
     public CompletableFuture<Void> executeAsync(SqlConsumer consumer) {
@@ -122,7 +137,10 @@ public final class DatabaseManager {
         CompletableFuture<Void> nextReadyFuture = new CompletableFuture<>();
         this.readyFuture.set(nextReadyFuture);
         this.debugLogger.debug(reason + ": " + nextSettings.type());
-        this.schedulerAdapter.runAsync(() -> initializeProvider(nextSettings, initializeGeneration, nextReadyFuture));
+        ScheduledTaskHandle task = this.schedulerAdapter.runAsync(() -> initializeProvider(nextSettings, initializeGeneration, nextReadyFuture));
+        if (task.isCancelled()) {
+            nextReadyFuture.completeExceptionally(new IllegalStateException("Database initialization could not be scheduled."));
+        }
     }
 
     private void initializeProvider(DatabaseSettings nextSettings, long initializeGeneration, CompletableFuture<Void> nextReadyFuture) {

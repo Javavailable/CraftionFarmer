@@ -25,6 +25,12 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
@@ -34,7 +40,8 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         "de.oliver.fancynpcs.api.FancyNpcsPlugin",
         "de.oliver.fancynpcs.api.NpcData",
         "de.oliver.fancynpcs.api.skins.SkinData",
-        "de.oliver.fancynpcs.api.Npc"
+        "de.oliver.fancynpcs.api.Npc",
+        "de.oliver.fancynpcs.api.events.NpcInteractEvent"
     );
     private static final List<ApiPackage> MODERN_APIS = List.of(
         new ApiPackage(
@@ -42,21 +49,24 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             "com.fancyinnovations.fancynpcs.api.FancyNpcsPlugin",
             "com.fancyinnovations.fancynpcs.api.NpcData",
             "com.fancyinnovations.fancynpcs.api.skins.SkinData",
-            "com.fancyinnovations.fancynpcs.api.Npc"
+            "com.fancyinnovations.fancynpcs.api.Npc",
+            "com.fancyinnovations.fancynpcs.api.events.NpcInteractEvent"
         ),
         new ApiPackage(
             FancyNpcsApiMode.MODERN,
             "io.github.fancyplugins.fancynpcs.api.FancyNpcsPlugin",
             "io.github.fancyplugins.fancynpcs.api.NpcData",
             "io.github.fancyplugins.fancynpcs.api.skins.SkinData",
-            "io.github.fancyplugins.fancynpcs.api.Npc"
+            "io.github.fancyplugins.fancynpcs.api.Npc",
+            "io.github.fancyplugins.fancynpcs.api.events.NpcInteractEvent"
         ),
         new ApiPackage(
             FancyNpcsApiMode.MODERN,
             "com.fancyplugins.fancynpcs.api.FancyNpcsPlugin",
             "com.fancyplugins.fancynpcs.api.NpcData",
             "com.fancyplugins.fancynpcs.api.skins.SkinData",
-            "com.fancyplugins.fancynpcs.api.Npc"
+            "com.fancyplugins.fancynpcs.api.Npc",
+            "com.fancyplugins.fancynpcs.api.events.NpcInteractEvent"
         )
     );
 
@@ -76,6 +86,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
     private final boolean turnToPlayer;
     private final float interactionCooldown;
     private final int visibilityDistance;
+    private Listener clickEventListener;
 
     public static Optional<FancyNpcsVisualProvider> create(
         JavaPlugin plugin,
@@ -114,6 +125,7 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         this.turnToPlayer = configManager.npcTurnToPlayer();
         this.interactionCooldown = Math.max(0.0F, (float) configManager.npcInteractionCooldown());
         this.visibilityDistance = Math.max(0, configManager.npcVisibilityDistance());
+        registerClickEventBridge();
     }
 
     @Override
@@ -168,9 +180,55 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
 
     @Override
     public void shutdown() {
-        if (!this.saveNpcsToFile) {
-            this.schedulerAdapter.runGlobal(this::removeAllManagedNpcs);
+        unregisterClickEventBridge();
+        if (this.saveNpcsToFile) {
+            this.debugLogger.debug("FancyNPCs shutdown cleanup skipped because save-to-file is enabled.");
+            return;
         }
+        this.debugLogger.debug("FancyNPCs shutdown cleanup skipped to avoid disabled-plugin scheduler registration.");
+    }
+
+    private void registerClickEventBridge() {
+        Optional<Class<? extends Event>> eventClass = this.apiBinding.npcInteractEventClass();
+        if (eventClass.isEmpty()) {
+            this.debugLogger.debug("FancyNPCs interact event bridge unavailable for binding: " + this.apiBinding.mode());
+            return;
+        }
+
+        this.clickEventListener = new Listener() {
+        };
+        EventExecutor executor = (listener, event) -> handleNpcClickEvent(event);
+        this.plugin.getServer().getPluginManager().registerEvent(eventClass.get(), this.clickEventListener, EventPriority.HIGHEST, executor, this.plugin, false);
+        this.debugLogger.debug("FancyNPCs interact event bridge registered: " + eventClass.get().getName());
+    }
+
+    private void unregisterClickEventBridge() {
+        if (this.clickEventListener == null) {
+            return;
+        }
+        HandlerList.unregisterAll(this.clickEventListener);
+        this.clickEventListener = null;
+        this.debugLogger.debug("FancyNPCs interact event bridge unregistered.");
+    }
+
+    private void handleNpcClickEvent(Event event) {
+        Optional<String> npcId = npcIdFromEvent(event);
+        if (npcId.isEmpty() || !npcId.get().startsWith(this.idPrefix)) {
+            return;
+        }
+
+        Optional<Player> player = playerFromEvent(event);
+        if (player.isEmpty()) {
+            this.debugLogger.debug("FancyNPCs farmer npc event click skipped: npc=" + npcId.get() + " reason=missing player");
+            return;
+        }
+
+        cancelEvent(event);
+        Player value = player.get();
+        this.schedulerAdapter.runAtEntity(value, () -> {
+            this.debugLogger.debug("FancyNPCs farmer npc event click fired: npc=" + npcId.get() + " player=" + value.getName());
+            this.clickAction.accept(value);
+        });
     }
 
     private void runAtFarmerLocation(Farmer farmer, Consumer<Location> task) {
@@ -265,15 +323,6 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         }
     }
 
-    private void removeAllManagedNpcs() {
-        for (Object npc : allNpcs()) {
-            String npcId = npcId(npc).orElse(null);
-            if (npcId != null && npcId.startsWith(this.idPrefix)) {
-                scheduleRemoveNpc(npc, npcId, true, "shutdown");
-            }
-        }
-    }
-
     private void scheduleRemoveNpcById(String npcId, boolean force, String reason) {
         try {
             Object manager = npcManager();
@@ -357,6 +406,29 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
     private Optional<String> npcId(Object npc) {
         try {
             Object data = invoke(npc, "getData");
+            return npcDataId(data);
+        } catch (RuntimeException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<String> npcIdFromEvent(Event event) {
+        Optional<Object> npc = invokeOptional(event, "getNpc")
+            .or(() -> invokeOptional(event, "getNPC"));
+        if (npc.isPresent()) {
+            Optional<String> npcId = npcId(npc.get());
+            if (npcId.isPresent()) {
+                return npcId;
+            }
+        }
+
+        return invokeOptional(event, "getNpcData")
+            .or(() -> invokeOptional(event, "getData"))
+            .flatMap(this::npcDataId);
+    }
+
+    private Optional<String> npcDataId(Object data) {
+        try {
             Object id = invoke(data, "getId");
             if (id instanceof String value && !value.isBlank()) {
                 return Optional.of(value);
@@ -365,6 +437,21 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             return Optional.empty();
         }
         return Optional.empty();
+    }
+
+    private Optional<Player> playerFromEvent(Event event) {
+        return invokeOptional(event, "getPlayer")
+            .or(() -> invokeOptional(event, "getClicker"))
+            .filter(Player.class::isInstance)
+            .map(Player.class::cast);
+    }
+
+    private void cancelEvent(Event event) {
+        if (event instanceof Cancellable cancellable) {
+            cancellable.setCancelled(true);
+            return;
+        }
+        invokeIfPresent(event, "setCancelled", new Class<?>[] {boolean.class}, true);
     }
 
     private Optional<Location> npcLocation(Object npc) {
@@ -400,6 +487,15 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
 
     private Object invoke(Object target, String methodName) {
         return invoke(target, methodName, new Class<?>[0]);
+    }
+
+    private Optional<Object> invokeOptional(Object target, String methodName) {
+        try {
+            Method method = target.getClass().getMethod(methodName);
+            return Optional.ofNullable(method.invoke(target));
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            return Optional.empty();
+        }
     }
 
     private Object invoke(Object target, String methodName, Class<?>[] parameterTypes, Object... args) {
@@ -516,10 +612,24 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
             pluginClass.getMethod("get");
             pluginClass.getMethod("getNpcAdapter");
             pluginClass.getMethod("getNpcManager");
-            return Optional.of(new ApiBinding(apiPackage.mode(), pluginClass, npcClass, npcDataConstructor));
+            Optional<Class<? extends Event>> npcInteractEventClass = eventClass(apiPackage.npcInteractEventClassName(), classLoader);
+            return Optional.of(new ApiBinding(apiPackage.mode(), pluginClass, npcClass, npcDataConstructor, npcInteractEventClass));
         } catch (ReflectiveOperationException | LinkageError exception) {
             return Optional.empty();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Optional<Class<? extends Event>> eventClass(String className, ClassLoader classLoader) {
+        try {
+            Class<?> eventClass = Class.forName(className, false, classLoader);
+            if (Event.class.isAssignableFrom(eventClass)) {
+                return Optional.of((Class<? extends Event>) eventClass);
+            }
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            return Optional.empty();
+        }
+        return Optional.empty();
     }
 
     private String readableMessage(Throwable throwable) {
@@ -536,7 +646,8 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         String pluginClassName,
         String npcDataClassName,
         String skinDataClassName,
-        String npcClassName
+        String npcClassName,
+        String npcInteractEventClassName
     ) {
     }
 
@@ -544,7 +655,8 @@ public final class FancyNpcsVisualProvider implements FarmerVisualProvider {
         FancyNpcsApiMode mode,
         Class<?> pluginClass,
         Class<?> npcClass,
-        Constructor<?> npcDataConstructor
+        Constructor<?> npcDataConstructor,
+        Optional<Class<? extends Event>> npcInteractEventClass
     ) {
     }
 }

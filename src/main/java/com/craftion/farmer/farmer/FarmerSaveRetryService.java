@@ -124,7 +124,7 @@ public final class FarmerSaveRetryService {
         }
 
         try {
-            List<String> missingFarmerIds = this.farmerPersistenceService.saveExistingAll(batch.farmers()).get(safeTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            List<String> missingFarmerIds = this.farmerPersistenceService.saveExistingAllBlocking(batch.farmers());
             int missingCount = handleMissing(missingFarmerIds);
             this.debugLogger.debug("Blocking retry flush succeeded: count=" + (batch.entries().size() - missingCount));
             return true;

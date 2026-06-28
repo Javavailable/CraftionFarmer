@@ -26,6 +26,9 @@ public final class PaperSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runAsync(Runnable task) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         OneShotTask oneShotTask = new OneShotTask(task);
         BukkitTask bukkitTask = scheduler().runTaskAsynchronously(this.plugin, oneShotTask);
         return trackOneShot(bukkitTask, oneShotTask);
@@ -33,6 +36,9 @@ public final class PaperSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runGlobal(Runnable task) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         OneShotTask oneShotTask = new OneShotTask(task);
         BukkitTask bukkitTask = scheduler().runTask(this.plugin, oneShotTask);
         return trackOneShot(bukkitTask, oneShotTask);
@@ -40,6 +46,9 @@ public final class PaperSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runDelayed(Runnable task, long delayTicks) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         OneShotTask oneShotTask = new OneShotTask(task);
         BukkitTask bukkitTask = scheduler().runTaskLater(this.plugin, oneShotTask, normalizeDelay(delayTicks));
         return trackOneShot(bukkitTask, oneShotTask);
@@ -47,6 +56,9 @@ public final class PaperSchedulerAdapter implements SchedulerAdapter {
 
     @Override
     public ScheduledTaskHandle runRepeating(Runnable task, long delayTicks, long periodTicks) {
+        if (!canSchedule()) {
+            return ScheduledTaskHandle.cancelled();
+        }
         BukkitTask bukkitTask = scheduler().runTaskTimer(this.plugin, requireTask(task), normalizeDelay(delayTicks), normalizePeriod(periodTicks));
         return track(bukkitTask);
     }
@@ -90,6 +102,10 @@ public final class PaperSchedulerAdapter implements SchedulerAdapter {
 
     private void untrack(ScheduledTaskHandle handle) {
         this.tasks.remove(handle);
+    }
+
+    private boolean canSchedule() {
+        return this.plugin.isEnabled();
     }
 
     private Runnable requireTask(Runnable task) {
