@@ -79,6 +79,7 @@ public final class ModulesMenu implements FarmerMenu {
         placeholders.put("module_description", context.configManager().guiModuleDescription(card.key()));
         placeholders.put("module_interval", context.moduleManager().intervalLabel(card.key()));
         placeholders.put("module_metric", moduleMetric(context, card));
+        placeholders.put("module_metric_label", moduleMetricLabel(card));
         placeholders.put("module_material", card.iconMaterial());
         placeholders.put("module_access", moduleAccess(context, access));
         placeholders.put("module_permission", modulePermission(context, access));
@@ -89,11 +90,11 @@ public final class ModulesMenu implements FarmerMenu {
     }
 
     private String moduleState(MenuRenderContext context, ModuleAccessResult access, boolean enabled) {
-        if (access.status() == ModuleAccessResult.Status.UNAVAILABLE) {
-            return context.configManager().guiLabel("modules.coming-soon", "ʏᴀᴋɪɴᴅᴀ");
+        if (access.status() == ModuleAccessResult.Status.ROLE_DENIED || access.status() == ModuleAccessResult.Status.PERMISSION_DENIED) {
+            return context.configManager().guiLabel("modules.locked", "ᴋɪʟɪᴛʟɪ");
         }
-        if (!access.configEnabled()) {
-            return context.configManager().guiLabel("modules.unavailable", "ᴋᴀᴘᴀʟɪ");
+        if (access.status() == ModuleAccessResult.Status.UNAVAILABLE || access.status() == ModuleAccessResult.Status.CONFIG_DISABLED) {
+            return context.configManager().guiLabel("modules.coming-soon", "ʏᴀᴋɪɴᴅᴀ");
         }
         return context.configManager().guiModuleState(enabled);
     }
@@ -106,8 +107,8 @@ public final class ModulesMenu implements FarmerMenu {
             return context.configManager().guiLabel("modules.unavailable", "ᴋᴀᴘᴀʟɪ");
         }
         return access.roleAllowed()
-            ? context.configManager().guiLabel("modules.access-ok", "ʏᴏɴᴇᴛɪᴍ")
-            : context.configManager().guiLabel("modules.access-denied", "ᴇʀɪsɪᴍ ʏᴏᴋ");
+            ? context.configManager().guiLabel("modules.access-ok", "ᴀᴋᴛɪғ")
+            : context.configManager().guiLabel("modules.access-denied", "ʏᴇᴛᴋɪ ʏᴏᴋ");
     }
 
     private String modulePermission(MenuRenderContext context, ModuleAccessResult access) {
@@ -124,7 +125,7 @@ public final class ModulesMenu implements FarmerMenu {
             return context.configManager().guiLabel("modules.coming-soon", "ʏᴀᴋɪɴᴅᴀ");
         }
         return access.configEnabled()
-            ? context.configManager().guiLabel("modules.config-enabled", "ᴀᴄɪᴋ")
+            ? context.configManager().guiLabel("modules.config-enabled", "ᴀᴋᴛɪғ")
             : context.configManager().guiLabel("modules.unavailable", "ᴋᴀᴘᴀʟɪ");
     }
 
@@ -133,11 +134,20 @@ public final class ModulesMenu implements FarmerMenu {
             case ALLOWED -> enabled
                 ? context.configManager().guiLabel("modules.action-disable", "ᴋᴀᴘᴀᴛ")
                 : context.configManager().guiLabel("modules.action-enable", "ᴀᴄ");
-            case ROLE_DENIED -> context.configManager().guiLabel("modules.access-denied", "ᴇʀɪsɪᴍ ʏᴏᴋ");
+            case ROLE_DENIED -> context.configManager().guiLabel("modules.access-denied", "ʏᴇᴛᴋɪ ʏᴏᴋ");
             case PERMISSION_DENIED -> context.configManager().guiLabel("modules.permission-required", "ɢᴇʀᴇᴋɪʀ");
             case CONFIG_DISABLED -> context.configManager().guiLabel("modules.unavailable", "ᴋᴀᴘᴀʟɪ");
             case UNAVAILABLE -> context.configManager().guiLabel("modules.coming-soon", "ʏᴀᴋɪɴᴅᴀ");
             case UNKNOWN_MODULE -> context.configManager().guiLabel("modules.unavailable", "ᴋᴀᴘᴀʟɪ");
+        };
+    }
+
+    private String moduleMetricLabel(ModuleCardDescriptor card) {
+        return switch (card.key()) {
+            case "auto-sell" -> "ᴀʀᴀʟɪᴋ";
+            case "production-calc" -> "ᴜʀᴇᴛɪᴍ";
+            case "auto-harvest" -> "ᴜʀᴜɴ";
+            default -> "ᴅᴜʀᴜᴍ";
         };
     }
 
