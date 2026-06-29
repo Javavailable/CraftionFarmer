@@ -294,18 +294,6 @@ gui:
           id: info
           material: AMETHYST_SHARD
           action: "info"
-        "20":
-          id: production
-          material: CLOCK
-          action: "info"
-        "22":
-          id: auto-sell
-          material: EMERALD
-          action: "info"
-        "24":
-          id: status
-          material: LEVER
-          action: "info"
         "45":
           id: back
           material: ARROW
@@ -315,7 +303,7 @@ gui:
           material: BARRIER
           action: "close"
       module-items:
-        slots: [28, 29, 30, 31, 32, 33, 34]
+        slots: [19, 20, 21, 22, 23, 24, 25]
         enabled:
           id: enabled
           material: "%module_material%"

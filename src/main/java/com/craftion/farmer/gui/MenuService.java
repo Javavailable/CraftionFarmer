@@ -1086,6 +1086,9 @@ public final class MenuService {
         placeholders.put("production_minute", formatAmount(productionEstimate.perMinute()));
         placeholders.put("production_hour", formatAmount(productionEstimate.perHour()));
         placeholders.put("production_day", formatAmount(productionEstimate.perDay()));
+        placeholders.put("production_value_minute", formatMoney(productionEstimate.valuePerMinute()));
+        placeholders.put("production_value_hour", formatMoney(productionEstimate.valuePerHour()));
+        placeholders.put("production_value_day", formatMoney(productionEstimate.valuePerDay()));
         return Map.copyOf(placeholders);
     }
 
@@ -1187,6 +1190,9 @@ public final class MenuService {
         placeholders.put("production_minute", formatAmount(productionEstimate.perMinute()));
         placeholders.put("production_hour", formatAmount(productionEstimate.perHour()));
         placeholders.put("production_day", formatAmount(productionEstimate.perDay()));
+        placeholders.put("production_value_minute", formatMoney(productionEstimate.valuePerMinute()));
+        placeholders.put("production_value_hour", formatMoney(productionEstimate.valuePerHour()));
+        placeholders.put("production_value_day", formatMoney(productionEstimate.valuePerDay()));
         placeholders.put("auto_sell_interval", autoSellIntervalLabel());
         return Map.copyOf(placeholders);
     }
@@ -1328,7 +1334,7 @@ public final class MenuService {
     }
 
     private String formatMoney(double amount) {
-        return String.format(Locale.US, "%,.2f", amount);
+        return String.format(Locale.US, "%,.2f TL", amount);
     }
 
     private String playerName(UUID playerUuid) {

@@ -96,6 +96,9 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
             case "production_minute" -> formatAmount(production(farmer).perMinute());
             case "production_hour" -> formatAmount(production(farmer).perHour());
             case "production_day" -> formatAmount(production(farmer).perDay());
+            case "production_value_minute" -> formatMoney(production(farmer).valuePerMinute());
+            case "production_value_hour" -> formatMoney(production(farmer).valuePerHour());
+            case "production_value_day" -> formatMoney(production(farmer).valuePerDay());
             default -> "-";
         };
     }
@@ -118,6 +121,10 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
 
     private String formatAmount(long amount) {
         return String.format(Locale.US, "%,d", amount);
+    }
+
+    private String formatMoney(double amount) {
+        return String.format(Locale.US, "%,.2f TL", amount);
     }
 
     private String text(String value) {

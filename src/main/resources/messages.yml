@@ -82,7 +82,7 @@ commands:
       - "<#CBD5E1>sᴇᴠɪʏᴇ <#94A3B8>• <#E0F2FE>%level%"
       - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting%"
       - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%storage_total%"
-      - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+      - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_value_hour%/sᴀᴀᴛ <#94A3B8>(%production_hour% ᴜʀᴜɴ)"
       - "<#CBD5E1>ᴍᴏᴅᴜʟ <#94A3B8>• <#E0F2FE>%module_states%"
     admin-logs-usage: "<#94A3B8>ᴋᴜʟʟᴀɴɪᴍ <#E2E8F0>/farmer admin logs [ada] [limit]"
     admin-logs-no-region: "<#FB7185>ᴀᴅᴀ ʙᴜʟᴜɴᴀᴍᴀᴅɪ"
@@ -206,7 +206,7 @@ gui:
             - "<#CBD5E1>sᴇᴠɪʏᴇ <#94A3B8>• <#E0F2FE>%level%"
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%storage_usage%"
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
-            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_value_hour%/sᴀᴀᴛ <#94A3B8>(%production_hour% ᴜʀᴜɴ)"
         storage:
           name: "<#22C55E>ᴅᴇᴘᴏ"
           lore:
@@ -228,7 +228,7 @@ gui:
           lore:
             - "<#BBF7D0>ᴄɪғᴛᴄɪɴɪɴ ᴇᴋ ɪsʟᴇᴠʟᴇʀɪ"
             - ""
-            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_value_hour%/sᴀᴀᴛ <#94A3B8>(%production_hour% ᴜʀᴜɴ)"
             - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
         members:
           name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
@@ -241,11 +241,9 @@ gui:
           name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
           lore:
             - "<#BBF7D0>ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴛᴜᴍ ᴜʀᴜɴʟᴇʀɪ sᴀᴛ"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+          lore: []
       product-items:
         item:
           name: "<#22C55E>%material_name%"
@@ -253,7 +251,6 @@ gui:
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛ"
         empty:
           name: "<#FBBF24>ᴜʀᴜɴ ʏᴏᴋ"
           lore:
@@ -299,20 +296,16 @@ gui:
           name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
           lore:
             - "<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
         withdraw-space:
           name: "<#38BDF8>sɪɢᴀɴ ᴋᴀᴅᴀʀ ᴀʟ"
           lore:
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀʟ"
         back:
           name: "<#94A3B8>ɢᴇʀɪ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ʟɪsᴛᴇsɪ"
+          lore: []
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+          lore: []
     storage:
       title: "<#22C55E>ᴅᴇᴘᴏ"
       items:
@@ -324,16 +317,13 @@ gui:
             - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%storage_usage%"
         back:
           name: "<#94A3B8>ɢᴇʀɪ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+          lore: []
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+          lore: []
         sell-all:
           name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
+          lore: []
       storage-items:
         filled:
           name: "<#22C55E>%material_name%"
@@ -341,8 +331,6 @@ gui:
             - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount%"
             - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>64 ᴀʟ"
-            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>sᴀᴛ"
         empty:
           name: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
           lore:
@@ -371,12 +359,10 @@ gui:
             - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
         back:
           name: "<#94A3B8>ɢᴇʀɪ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+          lore: []
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+          lore: []
     members:
       title: "<#FBBF24>ᴀᴅᴀ ᴜʏᴇʟᴇʀɪ"
       items:
@@ -386,12 +372,10 @@ gui:
             - "<#CBD5E1>ᴜʏᴇ <#94A3B8>• <#E0F2FE>%members%"
         back:
           name: "<#94A3B8>ɢᴇʀɪ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+          lore: []
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+          lore: []
       member-items:
         item:
           name: "<#38BDF8>%player%"
@@ -404,11 +388,11 @@ gui:
           name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
           lore:
             - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
-            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_value_hour%/sᴀᴀᴛ <#94A3B8>(%production_hour% ᴜʀᴜɴ)"
         production:
           name: "<#38BDF8>ᴜʀᴇᴛɪᴍ"
           lore:
-            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_value_hour%/sᴀᴀᴛ <#94A3B8>(%production_hour% ᴜʀᴜɴ)"
         auto-sell:
           name: "<#22C55E>ᴏᴛᴏ sᴀᴛɪs"
           lore:
@@ -419,12 +403,10 @@ gui:
             - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
         back:
           name: "<#94A3B8>ɢᴇʀɪ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+          lore: []
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
-          lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+          lore: []
       module-items:
         enabled:
           name: "<#22C55E>%module%"
@@ -458,27 +440,27 @@ gui:
         - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
         - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
         - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-        - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+        - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_value_hour%/sᴀᴀᴛ <#94A3B8>(%production_hour% ᴜʀᴜɴ)"
         - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
       buttons:
         toggle:
           label: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%product_state%"
-          tooltip: "<#FDE68A>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%product_action%"
+          tooltip: "<#E0F2FE>%product_action%"
         sell-amount:
           label: "<#22C55E>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#BBF7D0>sᴀᴛ"
-          tooltip: "<#BBF7D0>sᴀᴛɪʟᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ ɢɪʀ"
+          tooltip: "<#BBF7D0>ᴍɪᴋᴛᴀʀ ɢɪʀ"
         withdraw-amount:
           label: "<#38BDF8>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>ᴀʟ"
-          tooltip: "<#E0F2FE>ᴀʟɪɴᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ ɢɪʀ"
+          tooltip: "<#E0F2FE>ᴍɪᴋᴛᴀʀ ɢɪʀ"
         sell-all:
           label: "<#22C55E>ᴛᴜᴍᴜ <#94A3B8>• <#BBF7D0>sᴀᴛ"
-          tooltip: "<#BBF7D0>ᴅᴇᴘᴏᴅᴀᴋɪ ʜᴇʀ sᴇʏɪ sᴀᴛ"
+          tooltip: "<#BBF7D0>ᴅᴇᴘᴏᴅᴀᴋɪ ᴜʀᴜɴʟᴇʀɪ sᴀᴛ"
         withdraw-space:
           label: "<#38BDF8>sɪɢᴀɴ ᴋᴀᴅᴀʀ <#94A3B8>• <#E0F2FE>ᴀʟ"
-          tooltip: "<#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀɪɴᴇ sɪɢᴀᴄᴀᴋ ᴋᴀᴅᴀʀ ᴀʟ"
+          tooltip: "<#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀᴄᴀᴋ ᴋᴀᴅᴀʀ ᴀʟ"
         back:
           label: "<#94A3B8>ɢᴇʀɪ"
-          tooltip: "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪ"
+          tooltip: "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪɴᴇ ᴅᴏɴ"
     amount:
       input-label: "<#E0F2FE>ᴍɪᴋᴛᴀʀ"
       withdraw:
@@ -496,7 +478,7 @@ gui:
       buttons:
         confirm:
           label: "<#22C55E>ᴏɴᴀʏʟᴀ"
-          tooltip: "<#BBF7D0>ᴏɴᴀʏʟᴀ <#94A3B8>• <#E0F2FE>ᴅᴇᴠᴀᴍ"
+          tooltip: "<#BBF7D0>ɪsʟᴇᴍɪ ᴛᴀᴍᴀᴍʟᴀ"
         cancel:
           label: "<#EF4444>ᴠᴀᴢɢᴇᴄ"
-          tooltip: "<#BBF7D0>ᴜʀᴜɴ ʟɪsᴛᴇsɪ"
+          tooltip: "<#BBF7D0>ɪᴘᴛᴀʟ ᴇᴛ"

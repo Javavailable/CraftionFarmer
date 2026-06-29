@@ -1,11 +1,13 @@
 package com.craftion.farmer.module;
 
+import com.craftion.farmer.economy.PriceProvider;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.MaterialKey;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ProductionCalcModule implements FarmerModule {
@@ -38,12 +40,12 @@ public final class ProductionCalcModule implements FarmerModule {
         long now = System.currentTimeMillis();
         Deque<ProductionSample> farmerSamples = this.samples.computeIfAbsent(farmer.farmerId(), ignored -> new ArrayDeque<>());
         synchronized (farmerSamples) {
-            farmerSamples.addLast(new ProductionSample(now, amount));
+            farmerSamples.addLast(new ProductionSample(now, materialKey, amount));
             purge(farmerSamples, now);
         }
     }
 
-    public ProductionEstimate estimate(Farmer farmer) {
+    public ProductionEstimate estimate(Farmer farmer, PriceProvider priceProvider) {
         if (farmer == null) {
             return ProductionEstimate.empty();
         }
@@ -55,10 +57,17 @@ public final class ProductionCalcModule implements FarmerModule {
 
         long now = System.currentTimeMillis();
         long amount = 0L;
+        double value = 0.0D;
         synchronized (farmerSamples) {
             purge(farmerSamples, now);
             for (ProductionSample sample : farmerSamples) {
                 amount = safeAdd(amount, sample.amount());
+                if (priceProvider != null && sample.materialKey() != null) {
+                    OptionalDouble priceOpt = priceProvider.price(sample.materialKey());
+                    if (priceOpt.isPresent()) {
+                        value += priceOpt.getAsDouble() * sample.amount();
+                    }
+                }
             }
         }
 
@@ -67,7 +76,11 @@ public final class ProductionCalcModule implements FarmerModule {
         }
 
         long perMinute = Math.round(amount * 60.0D / Duration.ofMillis(WINDOW_MILLIS).toSeconds());
-        return new ProductionEstimate(perMinute, safeMultiply(perMinute, 60L), safeMultiply(perMinute, 1440L));
+        double valuePerMinute = value * 60.0D / Duration.ofMillis(WINDOW_MILLIS).toSeconds();
+        return new ProductionEstimate(
+            perMinute, safeMultiply(perMinute, 60L), safeMultiply(perMinute, 1440L),
+            valuePerMinute, valuePerMinute * 60.0D, valuePerMinute * 1440.0D
+        );
     }
 
     private void purge(Deque<ProductionSample> farmerSamples, long now) {
@@ -93,6 +106,6 @@ public final class ProductionCalcModule implements FarmerModule {
         return value * multiplier;
     }
 
-    private record ProductionSample(long createdAtMillis, long amount) {
+    private record ProductionSample(long createdAtMillis, MaterialKey materialKey, long amount) {
     }
 }
