@@ -1,6 +1,7 @@
 package com.craftion.farmer.hook.placeholder;
 
 import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.economy.EconomyProviderManager;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.module.ModuleManager;
 import org.bukkit.plugin.Plugin;
@@ -14,13 +15,15 @@ public final class PlaceholderProviderManager {
     private final DebugLogger debugLogger;
     private final FarmerCache farmerCache;
     private final ModuleManager moduleManager;
+    private final EconomyProviderManager economyProviderManager;
     private PlaceholderProvider provider = new NoPlaceholderProvider();
 
-    public PlaceholderProviderManager(JavaPlugin plugin, DebugLogger debugLogger, FarmerCache farmerCache, ModuleManager moduleManager) {
+    public PlaceholderProviderManager(JavaPlugin plugin, DebugLogger debugLogger, FarmerCache farmerCache, ModuleManager moduleManager, EconomyProviderManager economyProviderManager) {
         this.plugin = plugin;
         this.debugLogger = debugLogger;
         this.farmerCache = farmerCache;
         this.moduleManager = moduleManager;
+        this.economyProviderManager = economyProviderManager;
     }
 
     public synchronized void initialize() {
@@ -48,6 +51,6 @@ public final class PlaceholderProviderManager {
         if (placeholderApi == null || !placeholderApi.isEnabled()) {
             return new NoPlaceholderProvider();
         }
-        return new PapiPlaceholderProvider(this.plugin, this.farmerCache, this.moduleManager);
+        return new PapiPlaceholderProvider(this.plugin, this.farmerCache, this.moduleManager, this.economyProviderManager);
     }
 }

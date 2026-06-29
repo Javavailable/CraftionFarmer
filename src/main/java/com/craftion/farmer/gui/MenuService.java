@@ -2,6 +2,7 @@ package com.craftion.farmer.gui;
 
 import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.debug.DebugLogger;
+import com.craftion.farmer.economy.EconomyProviderManager;
 import com.craftion.farmer.economy.StorageTransactionResult;
 import com.craftion.farmer.economy.StorageTransactionService;
 import com.craftion.farmer.farmer.Farmer;
@@ -74,6 +75,7 @@ public final class MenuService {
     private final GuiTextService guiTextService;
     private final StorageTransactionService storageTransactionService;
     private final ModuleManager moduleManager;
+    private final EconomyProviderManager economyProviderManager;
     private final MenuActionRegistry actionRegistry;
     private final Map<String, FarmerMenu> menus = new LinkedHashMap<>();
     private boolean initialized;
@@ -90,7 +92,8 @@ public final class MenuService {
         MessageService messageService,
         GuiTextService guiTextService,
         StorageTransactionService storageTransactionService,
-        ModuleManager moduleManager
+        ModuleManager moduleManager,
+        EconomyProviderManager economyProviderManager
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -104,6 +107,7 @@ public final class MenuService {
         this.guiTextService = guiTextService;
         this.storageTransactionService = storageTransactionService;
         this.moduleManager = moduleManager;
+        this.economyProviderManager = economyProviderManager;
         this.actionRegistry = new MenuActionRegistry(debugLogger);
         registerMenus();
         registerDefaultActions();
@@ -1334,7 +1338,14 @@ public final class MenuService {
     }
 
     private String formatMoney(double amount) {
-        return String.format(Locale.US, "%,.2f TL", amount);
+        if (this.economyProviderManager != null && this.economyProviderManager.provider() != null) {
+            try {
+                return this.economyProviderManager.provider().format(amount);
+            } catch (Exception exception) {
+                // safe fallback
+            }
+        }
+        return String.format(Locale.US, "%,.2f", amount);
     }
 
     private String playerName(UUID playerUuid) {

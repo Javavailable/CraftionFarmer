@@ -1,5 +1,6 @@
 package com.craftion.farmer.hook.placeholder;
 
+import com.craftion.farmer.economy.EconomyProviderManager;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.module.ModuleManager;
@@ -17,12 +18,14 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
     private final JavaPlugin plugin;
     private final FarmerCache farmerCache;
     private final ModuleManager moduleManager;
+    private final EconomyProviderManager economyProviderManager;
     private boolean registered;
 
-    public PapiPlaceholderProvider(JavaPlugin plugin, FarmerCache farmerCache, ModuleManager moduleManager) {
+    public PapiPlaceholderProvider(JavaPlugin plugin, FarmerCache farmerCache, ModuleManager moduleManager, EconomyProviderManager economyProviderManager) {
         this.plugin = plugin;
         this.farmerCache = farmerCache;
         this.moduleManager = moduleManager;
+        this.economyProviderManager = economyProviderManager;
     }
 
     @Override
@@ -124,7 +127,14 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
     }
 
     private String formatMoney(double amount) {
-        return String.format(Locale.US, "%,.2f TL", amount);
+        if (this.economyProviderManager != null && this.economyProviderManager.provider() != null) {
+            try {
+                return this.economyProviderManager.provider().format(amount);
+            } catch (Exception exception) {
+                // safe fallback
+            }
+        }
+        return String.format(Locale.US, "%,.2f", amount);
     }
 
     private String text(String value) {
