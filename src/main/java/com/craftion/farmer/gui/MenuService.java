@@ -15,6 +15,7 @@ import com.craftion.farmer.hook.region.RegionMemberInfo;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
+import com.craftion.farmer.message.GuiTextService;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.module.ModuleStateResult;
@@ -53,7 +54,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class MenuService {
 
     private static final String USE_PERMISSION = "craftionfarmer.use";
-    private static final String DEFAULT_TITLE = "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ";
+    private static final String DEFAULT_TITLE = "CraftionFarmer";
     private static final String MAIN_MENU_ID = "main";
     private static final String MAIN_MENU_PREFIX = MAIN_MENU_ID + ":";
     private static final String PRODUCT_MENU_ID = "product";
@@ -70,6 +71,7 @@ public final class MenuService {
     private final FarmerPersistenceService farmerPersistenceService;
     private final FarmerReconcileService farmerReconcileService;
     private final MessageService messageService;
+    private final GuiTextService guiTextService;
     private final StorageTransactionService storageTransactionService;
     private final ModuleManager moduleManager;
     private final MenuActionRegistry actionRegistry;
@@ -86,6 +88,7 @@ public final class MenuService {
         FarmerPersistenceService farmerPersistenceService,
         FarmerReconcileService farmerReconcileService,
         MessageService messageService,
+        GuiTextService guiTextService,
         StorageTransactionService storageTransactionService,
         ModuleManager moduleManager
     ) {
@@ -98,6 +101,7 @@ public final class MenuService {
         this.farmerPersistenceService = farmerPersistenceService;
         this.farmerReconcileService = farmerReconcileService;
         this.messageService = messageService;
+        this.guiTextService = guiTextService;
         this.storageTransactionService = storageTransactionService;
         this.moduleManager = moduleManager;
         this.actionRegistry = new MenuActionRegistry(debugLogger);
@@ -389,15 +393,8 @@ public final class MenuService {
 
     private Dialog productDialog(MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session) {
         Map<String, String> productPlaceholders = productPlaceholders(session.farmer(), materialKey);
-        String materialName = productPlaceholders.get("material_name");
-        String productState = productPlaceholders.get("product_state");
-        String productAction = productPlaceholders.get("product_action");
-        String title = "<#38BDF8>" + materialName + " <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ";
-        String body = "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("amount")
-            + " <#94A3B8>/ <#E0F2FE>" + productPlaceholders.get("capacity")
-            + "\n<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("worth")
-            + "\n<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("price_state")
-            + "\n<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• " + productPlaceholders.get("collection_status");
+        String title = this.guiTextService.text("gui.dialogs.product.title", "Product", productPlaceholders);
+        String body = String.join("\n", this.guiTextService.list("gui.dialogs.product.body", List.of(), productPlaceholders));
 
         List<DialogBody> bodyItems = List.of(
             DialogBody.item(new ItemStack(material(materialKey).orElse(Material.BARREL)))
@@ -410,39 +407,39 @@ public final class MenuService {
         );
         List<ActionButton> buttons = List.of(
             productButton(
-                "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>" + productState,
-                "<#FDE68A>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>" + productAction,
+                productDialogButtonText("toggle", "label", productPlaceholders),
+                productDialogButtonText("toggle", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductToggle(materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#22C55E>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#BBF7D0>sᴀᴛ",
-                "<#BBF7D0>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ",
+                productDialogButtonText("sell-amount", "label", productPlaceholders),
+                productDialogButtonText("sell-amount", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductAmountDialog(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#38BDF8>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ",
-                "<#E0F2FE>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#38BDF8>sᴇᴄ",
+                productDialogButtonText("withdraw-amount", "label", productPlaceholders),
+                productDialogButtonText("withdraw-amount", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductAmountDialog(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#22C55E>ᴛᴜᴍᴜ <#94A3B8>• <#BBF7D0>sᴀᴛ",
-                "<#BBF7D0>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>sᴀᴛ",
+                productDialogButtonText("sell-all", "label", productPlaceholders),
+                productDialogButtonText("sell-all", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductTransaction(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#38BDF8>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ",
-                "<#E0F2FE>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#38BDF8>ᴄᴇᴋ",
+                productDialogButtonText("withdraw-space", "label", productPlaceholders),
+                productDialogButtonText("withdraw-space", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductTransaction(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
             )
         );
         ActionButton exitButton = productButton(
-            "<#94A3B8>ɢᴇʀɪ",
-            "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪɴᴇ ᴅᴏɴ",
+            productDialogButtonText("back", "label", productPlaceholders),
+            productDialogButtonText("back", "tooltip", productPlaceholders),
             150,
             (response, audience) -> handleProductDialogBack(menuId, previousMenuId, session, audience)
         );
@@ -456,6 +453,10 @@ public final class MenuService {
         return Dialog.create(factory -> factory.empty()
             .base(base)
             .type(DialogType.multiAction(buttons, exitButton, 2)));
+    }
+
+    private String productDialogButtonText(String buttonId, String key, Map<String, String> placeholders) {
+        return this.guiTextService.text("gui.dialogs.product.buttons." + buttonId + "." + key, buttonId, placeholders);
     }
 
     private ActionButton productButton(String label, String tooltip, int width, io.papermc.paper.registry.data.dialog.action.DialogActionCallback callback) {
@@ -824,19 +825,13 @@ public final class MenuService {
     }
 
     private Dialog amountDialog(DialogOperation operation, MaterialKey materialKey, long maxAmount, String menuId, String previousMenuId, FarmerMenuSession session, boolean returnToProductDialog) {
-        String materialName = materialName(materialKey);
-        OptionalDouble price = this.configManager.price(materialKey);
-        String title = operation == DialogOperation.WITHDRAW
-            ? "<#38BDF8>ᴄᴇᴋɪᴍ"
-            : "<#22C55E>sᴀᴛɪs";
-        String body = operation == DialogOperation.WITHDRAW
-            ? "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>ᴄᴇᴋɪᴍ\n<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
-                + "\n<#CBD5E1>ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴ"
-            : "<#CBD5E1>" + materialName + " <#94A3B8>• <#E0F2FE>sᴀᴛɪs\n<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>" + formatAmount(maxAmount)
-                + (price.isPresent() ? "\n<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>" + formatMoney(price.getAsDouble() * maxAmount) : "");
+        String operationKey = operation.name().toLowerCase(Locale.ROOT);
+        Map<String, String> dialogPlaceholders = amountDialogPlaceholders(operation, materialKey, maxAmount);
+        String title = this.guiTextService.text("gui.dialogs.amount." + operationKey + ".title", operationKey, dialogPlaceholders);
+        String body = String.join("\n", this.guiTextService.list("gui.dialogs.amount." + operationKey + ".body", List.of(), dialogPlaceholders));
 
-        ActionButton confirmButton = ActionButton.builder(TextUtil.parse("<#22C55E>ᴏɴᴀʏʟᴀ"))
-            .tooltip(TextUtil.parse("<#BBF7D0>ᴏɴᴀʏʟᴀ <#94A3B8>• <#E0F2FE>ᴅᴇᴠᴀᴍ"))
+        ActionButton confirmButton = ActionButton.builder(TextUtil.parse(amountDialogButtonText("confirm", "label", dialogPlaceholders)))
+            .tooltip(TextUtil.parse(amountDialogButtonText("confirm", "tooltip", dialogPlaceholders)))
             .width(150)
             .action(DialogAction.customClick(
                 (response, audience) -> handleAmountDialogResponse(
@@ -853,8 +848,8 @@ public final class MenuService {
                 dialogOptions()
             ))
             .build();
-        ActionButton cancelButton = ActionButton.builder(TextUtil.parse("<#EF4444>ᴠᴀᴢɢᴇᴄ"))
-            .tooltip(TextUtil.parse("<#BBF7D0>ɢᴇʀɪ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"))
+        ActionButton cancelButton = ActionButton.builder(TextUtil.parse(amountDialogButtonText("cancel", "label", dialogPlaceholders)))
+            .tooltip(TextUtil.parse(amountDialogButtonText("cancel", "tooltip", dialogPlaceholders)))
             .width(150)
             .action(DialogAction.customClick(
                 (response, audience) -> handleAmountDialogCancel(materialKey, menuId, previousMenuId, session, returnToProductDialog, audience),
@@ -866,7 +861,12 @@ public final class MenuService {
             .canCloseWithEscape(true)
             .afterAction(DialogBase.DialogAfterAction.CLOSE)
             .body(List.of(DialogBody.plainMessage(TextUtil.parse(body), 300)))
-            .inputs(List.of(DialogInput.numberRange(AMOUNT_INPUT_KEY, TextUtil.parse("<#E0F2FE>ᴍɪᴋᴛᴀʀ"), 1.0F, (float) maxAmount)
+            .inputs(List.of(DialogInput.numberRange(
+                    AMOUNT_INPUT_KEY,
+                    TextUtil.parse(this.guiTextService.text("gui.dialogs.amount.input-label", "Amount", dialogPlaceholders)),
+                    1.0F,
+                    (float) maxAmount
+                )
                 .width(300)
                 .labelFormat("%s • %s")
                 .initial((float) maxAmount)
@@ -877,6 +877,21 @@ public final class MenuService {
         return Dialog.create(factory -> factory.empty()
             .base(base)
             .type(DialogType.confirmation(confirmButton, cancelButton)));
+    }
+
+    private Map<String, String> amountDialogPlaceholders(DialogOperation operation, MaterialKey materialKey, long maxAmount) {
+        OptionalDouble price = this.configManager.price(materialKey);
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("material", materialKey == null ? "" : materialKey.toString());
+        placeholders.put("material_name", materialName(materialKey));
+        placeholders.put("max_amount", formatAmount(maxAmount));
+        placeholders.put("max_worth", price.isPresent() ? formatMoney(price.getAsDouble() * maxAmount) : "-");
+        placeholders.put("operation", this.guiTextService.action(operation == DialogOperation.WITHDRAW ? "withdraw" : "sell", operation.name().toLowerCase(Locale.ROOT)));
+        return Map.copyOf(placeholders);
+    }
+
+    private String amountDialogButtonText(String buttonId, String key, Map<String, String> placeholders) {
+        return this.guiTextService.text("gui.dialogs.amount.buttons." + buttonId + "." + key, buttonId, placeholders);
     }
 
     private ClickCallback.Options dialogOptions() {
@@ -1012,15 +1027,15 @@ public final class MenuService {
         placeholders.put("tax", formatMoney(result.tax()));
         placeholders.put("net", formatMoney(result.net()));
         placeholders.put("provider", result.providerName().isBlank() ? "-" : result.providerName());
-        placeholders.put("error", result.errorMessage().isBlank() ? "ʙɪʟɪɴᴍᴇʏᴇɴ ʜᴀᴛᴀ" : result.errorMessage());
+        placeholders.put("error", result.errorMessage().isBlank() ? this.guiTextService.label("unknown-error", "unknown error") : result.errorMessage());
         return Map.copyOf(placeholders);
     }
 
     private Map<String, String> modulePlaceholders(String moduleKey, boolean enabled) {
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("module", this.configManager.guiModuleName(moduleKey));
+        placeholders.put("module", this.guiTextService.moduleName(moduleKey));
         placeholders.put("module_key", moduleKey == null ? "" : moduleKey);
-        placeholders.put("module_state", this.configManager.guiModuleState(enabled));
+        placeholders.put("module_state", this.guiTextService.state(enabled ? "active" : "closed", enabled ? "active" : "closed"));
         placeholders.put("permission", this.configManager.modulePermission(moduleKey));
         return Map.copyOf(placeholders);
     }
@@ -1038,28 +1053,32 @@ public final class MenuService {
         long capacity = this.configManager.maxStoragePerItem();
         boolean productEnabled = farmer.productCollectingEnabled(materialKey);
         boolean effectiveEnabled = farmer.collectingEnabled() && productEnabled;
+        ProductionEstimate productionEstimate = this.moduleManager.productionEstimate(farmer);
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("material", materialKey.toString());
         placeholders.put("material_name", materialName(materialKey));
         placeholders.put("amount", formatAmount(amount));
         placeholders.put("price", price.isPresent() ? formatMoney(price.getAsDouble()) : "-");
         placeholders.put("worth", price.isPresent() ? formatMoney(price.getAsDouble() * amount) : "-");
-        placeholders.put("capacity", capacity < 0L ? "sɪɴɪʀsɪᴢ" : formatAmount(capacity));
+        placeholders.put("capacity", capacity < 0L ? this.guiTextService.state("unlimited", "unlimited") : formatAmount(capacity));
         placeholders.put("fill_percent", fillPercent(amount, capacity));
-        placeholders.put("product_state", this.configManager.guiCollectingState(productEnabled));
-        placeholders.put("product_action", productEnabled ? "ᴋᴀᴘᴀᴛ" : "ᴀᴄ");
-        placeholders.put("effective_product_state", this.configManager.guiCollectingState(effectiveEnabled));
-        placeholders.put("price_state", price.isPresent() ? formatMoney(price.getAsDouble()) : "ғɪʏᴀᴛ ʏᴏᴋ");
+        placeholders.put("product_state", this.guiTextService.state(productEnabled ? "active" : "closed", productEnabled ? "active" : "closed"));
+        placeholders.put("product_action", this.guiTextService.action(productEnabled ? "close" : "open", productEnabled ? "close" : "open"));
+        placeholders.put("effective_product_state", this.guiTextService.state(effectiveEnabled ? "active" : "closed", effectiveEnabled ? "active" : "closed"));
+        placeholders.put("price_state", price.isPresent() ? formatMoney(price.getAsDouble()) : this.guiTextService.state("no-price", "no price"));
         placeholders.put("collection_status", productCollectionStatus(farmer, materialKey));
         placeholders.put("product_material", material(materialKey).map(Material::name).orElse("BARREL"));
+        placeholders.put("production_minute", formatAmount(productionEstimate.perMinute()));
+        placeholders.put("production_hour", formatAmount(productionEstimate.perHour()));
+        placeholders.put("production_day", formatAmount(productionEstimate.perDay()));
         return Map.copyOf(placeholders);
     }
 
     private String productCollectionStatus(Farmer farmer, MaterialKey materialKey) {
         if (!farmer.collectingEnabled() || !farmer.productCollectingEnabled(materialKey)) {
-            return "<#FBBF24>ᴋᴀᴘᴀʟɪ";
+            return this.guiTextService.state("closed", "closed");
         }
-        return "<#22C55E>ᴀᴋᴛɪғ";
+        return this.guiTextService.state("active", "active");
     }
 
     private Map<String, String> mergedPlaceholders(Map<String, String> base, Map<String, String> extra) {
@@ -1080,7 +1099,7 @@ public final class MenuService {
     }
 
     private String materialName(MaterialKey materialKey) {
-        return materialKey == null ? "ᴛᴜᴍ ᴜʀᴜɴʟᴇʀ" : this.configManager.guiMaterialName(materialKey.toString());
+        return materialKey == null ? this.guiTextService.label("all-products", "all products") : this.guiTextService.materialName(materialKey.toString());
     }
 
     private Optional<Material> material(MaterialKey materialKey) {
@@ -1108,10 +1127,10 @@ public final class MenuService {
             placeholders = mergedPlaceholders(placeholders, productPlaceholders(session.farmer(), productMaterialKey));
         }
         int size = menuSize(menuSection);
-        String title = applyPlaceholders(menuSection.getString("title", DEFAULT_TITLE), placeholders);
-        MenuLayoutBuilder builder = new MenuLayoutBuilder(menuId, previousMenuId, session, size, title);
+        String title = this.guiTextService.menuTitle(menu.id(), menuSection, placeholders, DEFAULT_TITLE);
+        MenuLayoutBuilder builder = new MenuLayoutBuilder(menuId, previousMenuId, session, this.guiTextService, size, title);
         loadStaticItems(menuSection, builder, placeholders);
-        menu.render(new MenuRenderContext(player, menuId, session, this.configManager, this.moduleManager, menuSection, productMaterialKey, placeholders), builder);
+        menu.render(new MenuRenderContext(player, menuId, session, this.configManager, this.guiTextService, this.moduleManager, menuSection, productMaterialKey, placeholders), builder);
 
         MenuLayoutBuilder.MenuLayout layout = builder.build();
         Inventory inventory = Bukkit.createInventory(layout.holder(), layout.size(), TextUtil.parse(layout.title()));
@@ -1135,19 +1154,6 @@ public final class MenuService {
         }
     }
 
-    private String applyPlaceholders(String value, Map<String, String> placeholders) {
-        if (value == null) {
-            return null;
-        }
-        String result = value;
-        if (placeholders != null) {
-            for (Map.Entry<String, String> entry : placeholders.entrySet()) {
-                result = result.replace("%" + entry.getKey() + "%", entry.getValue());
-            }
-        }
-        return result;
-    }
-
     private Map<String, String> placeholders(Player player, FarmerMenuSession session) {
         Farmer farmer = session.farmer();
         Map<String, String> placeholders = new HashMap<>();
@@ -1158,16 +1164,20 @@ public final class MenuService {
         placeholders.put("level", String.valueOf(farmer.level()));
         placeholders.put("members", String.valueOf(memberCount(farmer)));
         placeholders.put("storage_usage", formatAmount(storageTotal(farmer)));
-        placeholders.put("collecting_state", this.configManager.guiCollectingState(farmer.collectingEnabled()));
-        placeholders.put("collecting_action", farmer.collectingEnabled() ? "ᴋᴀᴘᴀᴛ" : "ᴀᴄ");
-        placeholders.put("role", this.configManager.guiRoleName(session.role()));
+        placeholders.put("collecting_state", this.guiTextService.state(farmer.collectingEnabled() ? "active" : "closed", farmer.collectingEnabled() ? "active" : "closed"));
+        placeholders.put("collecting_action", this.guiTextService.action(farmer.collectingEnabled() ? "close" : "open", farmer.collectingEnabled() ? "close" : "open"));
+        placeholders.put("role", this.guiTextService.roleName(session.role()));
         placeholders.put("player", player.getName());
         ProductionEstimate productionEstimate = this.moduleManager.productionEstimate(farmer);
         placeholders.put("production_minute", formatAmount(productionEstimate.perMinute()));
         placeholders.put("production_hour", formatAmount(productionEstimate.perHour()));
         placeholders.put("production_day", formatAmount(productionEstimate.perDay()));
-        placeholders.put("auto_sell_interval", this.moduleManager.intervalLabel("auto-sell"));
+        placeholders.put("auto_sell_interval", autoSellIntervalLabel());
         return Map.copyOf(placeholders);
+    }
+
+    private String autoSellIntervalLabel() {
+        return this.guiTextService.format("seconds", "%seconds% sec", Map.of("seconds", String.valueOf(this.configManager.autoSellIntervalSeconds())));
     }
 
     private FarmerRole roleFor(UUID playerUuid, Farmer farmer, RegionAccessResult access) {

@@ -99,3 +99,404 @@ commands:
     reconcile-no-region: "<#FB7185>ᴀᴅᴀ ʙᴜʟᴜɴᴀᴍᴀᴅɪ"
     reconcile-no-farmer: "<#FBBF24>ᴄɪғᴛᴄɪ ʏᴏᴋ"
     reconcile-failed: "<#FB7185>ᴇsʟᴇᴍᴇ ᴏʟᴍᴀᴅɪ"
+
+gui:
+  shared:
+    states:
+      active: "ᴀᴋᴛɪғ"
+      passive: "ᴘᴀsɪғ"
+      closed: "ᴋᴀᴘᴀʟɪ"
+      locked: "ᴋɪʟɪᴛʟɪ"
+      coming-soon: "ʏᴀᴋɪɴᴅᴀ"
+      unlimited: "sɪɴɪʀsɪᴢ"
+      no-price: "ғɪʏᴀᴛ ʏᴏᴋ"
+    actions:
+      open: "ᴀᴄ"
+      close: "ᴋᴀᴘᴀᴛ"
+      sell: "sᴀᴛ"
+      sell-all: "ᴛᴜᴍᴜ sᴀᴛ"
+      withdraw: "ᴄᴇᴋ"
+      back: "ɢᴇʀɪ"
+      operation: "ɪsʟᴇᴍ"
+      confirm: "ᴏɴᴀʏʟᴀ"
+      cancel: "ᴠᴀᴢɢᴇᴄ"
+      continue: "ᴅᴇᴠᴀᴍ"
+      select: "sᴇᴄ"
+    labels:
+      island: "ᴀᴅᴀ"
+      owner: "sᴀʜɪᴘ"
+      level: "sᴇᴠɪʏᴇ"
+      storage: "ᴅᴇᴘᴏ"
+      amount: "ᴍɪᴋᴛᴀʀ"
+      price: "ғɪʏᴀᴛ"
+      value: "ᴅᴇɢᴇʀ"
+      profit: "ᴋᴀᴢᴀɴᴄ"
+      production: "ᴜʀᴇᴛɪᴍ"
+      collecting: "ᴛᴏᴘʟᴀᴍᴀ"
+      role: "ʀᴏʟ"
+      permission: "ʏᴇᴛᴋɪ"
+      interval: "ᴀʀᴀʟɪᴋ"
+      product: "ᴜʀᴜɴ"
+      page: "sᴀʏғᴀ"
+      member: "ᴜʏᴇ"
+      module: "ᴍᴏᴅᴜʟ"
+      state: "ᴅᴜʀᴜᴍ"
+      space: "ʙᴏs ᴀʟᴀɴ"
+      max: "ᴇɴ ᴄᴏᴋ"
+      inventory-space: "ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴ"
+      all-products: "ᴛᴜᴍ ᴜʀᴜɴʟᴇʀ"
+      unknown-error: "ʙɪʟɪɴᴍᴇʏᴇɴ ʜᴀᴛᴀ"
+    permissions:
+      ok: "ᴠᴀʀ"
+      required: "ɢᴇʀᴇᴋɪʀ"
+      none: "ɢᴇʀᴇᴋᴍᴇᴢ"
+      denied: "ʏᴇᴛᴋɪ ʏᴏᴋ"
+    units:
+      seconds: "sɴ"
+    formats:
+      seconds: "%seconds% sɴ"
+      per-hour: "%amount%/sᴀᴀᴛ"
+    roles:
+      owner: "ᴀᴅᴀ sᴀʜɪʙɪ"
+      manager: "ʏᴏɴᴇᴛɪᴄɪ"
+      member: "ᴜʏᴇ"
+      viewer: "ɪᴢʟᴇʏᴇɴ"
+    material-names:
+      wheat: "ʙᴜɢᴅᴀʏ"
+      carrot: "ʜᴀᴠᴜᴄ"
+      potato: "ᴘᴀᴛᴀᴛᴇs"
+      beetroot: "ᴘᴀɴᴄᴀʀ"
+      sugar_cane: "sᴇᴋᴇʀ ᴋᴀᴍɪsɪ"
+      cactus: "ᴋᴀᴋᴛᴜs"
+      bamboo: "ʙᴀᴍʙᴜ"
+      melon_slice: "ᴋᴀʀᴘᴜᴢ"
+      pumpkin: "ʙᴀʟ ᴋᴀʙᴀɢɪ"
+      cocoa_beans: "ᴋᴀᴋᴀᴏ"
+      sweet_berries: "ʙᴇʀʀʏ"
+      nether_wart: "ɴᴇᴛʜᴇʀ ᴍᴀɴᴛᴀʀɪ"
+      cobblestone: "ᴋɪʀɪᴋ ᴛᴀs"
+      oak_log: "ᴍᴇsᴇ ᴋᴜᴛᴜɢᴜ"
+    module-names:
+      auto-sell: "ᴏᴛᴏ sᴀᴛɪs"
+      production-calc: "ᴜʀᴇᴛɪᴍ"
+      auto-harvest: "ᴏᴛᴏ ʜᴀsᴀᴛ"
+      auto-kill: "ᴏᴛᴏ ᴀᴠ"
+    module-descriptions:
+      auto-sell: "ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴜʀᴜɴʟᴇʀɪ ᴏᴛᴏ sᴀᴛᴀʀ"
+      production-calc: "ᴜʀᴇᴛɪᴍ ʜɪᴢɪɴɪ ᴅᴇᴘᴏʏᴀ ɢᴏʀᴇ ʜᴇsᴀᴘʟᴀʀ"
+      auto-harvest: "ᴏʟɢᴜɴ ᴇᴋɪɴʟᴇʀɪ ᴛᴏᴘʟᴀʀ"
+      auto-kill: "ᴀᴠ ᴍᴏᴅᴜʟᴜ ʏᴀᴋɪɴᴅᴀ"
+    module-metric-labels:
+      auto-sell: "ᴀʀᴀʟɪᴋ"
+      production-calc: "ᴜʀᴇᴛɪᴍ"
+      auto-harvest: "ᴜʀᴜɴ"
+      auto-kill: "ᴅᴜʀᴜᴍ"
+  menus:
+    main:
+      title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
+      items:
+        info:
+          name: "<#38BDF8>ᴄɪғᴛᴄɪ"
+          lore:
+            - "<#BBF7D0>ᴀᴅᴀɴɪɴ ᴛᴏᴘʟᴀᴍᴀ ᴅᴇᴘᴏsᴜ"
+            - "<#BBF7D0>ᴜʀᴜɴʟᴇʀ ʙᴜʀᴀᴅᴀ ʙɪʀɪᴋɪʀ"
+            - ""
+            - "<#CBD5E1>ᴀᴅᴀ <#94A3B8>• <#E0F2FE>%region%"
+            - "<#CBD5E1>sᴀʜɪᴘ <#94A3B8>• <#E0F2FE>%owner%"
+            - "<#CBD5E1>sᴇᴠɪʏᴇ <#94A3B8>• <#E0F2FE>%level%"
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%storage_usage%"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+        storage:
+          name: "<#22C55E>ᴅᴇᴘᴏ"
+          lore:
+            - "<#BBF7D0>ᴄɪғᴛᴄɪɴɪɴ ᴛᴜᴛᴛᴜɢᴜ ᴜʀᴜɴʟᴇʀ"
+            - "<#BBF7D0>ʙᴜʀᴀᴅᴀɴ ᴄᴇᴋᴇʀ ᴠᴇ sᴀᴛᴀʀsɪɴ"
+            - ""
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%storage_usage%"
+            - ""
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
+        manage:
+          name: "<#38BDF8>ʏᴏɴᴇᴛ"
+          lore:
+            - "<#BBF7D0>ᴛᴏᴘʟᴀᴍᴀ ᴠᴇ ᴇʀɪsɪᴍ ᴀʏᴀʀʟᴀʀɪ"
+            - ""
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
+        modules:
+          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
+          lore:
+            - "<#BBF7D0>ᴄɪғᴛᴄɪɴɪɴ ᴇᴋ ɪsʟᴇᴠʟᴇʀɪ"
+            - ""
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
+        members:
+          name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
+          lore:
+            - "<#BBF7D0>ᴀᴅᴀ ᴜʏᴇʟᴇʀɪɴɪ ɢᴏʀ"
+            - ""
+            - "<#CBD5E1>ᴜʏᴇ <#94A3B8>• <#E0F2FE>%members%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
+        sell-all:
+          name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
+          lore:
+            - "<#BBF7D0>ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴛᴜᴍ ᴜʀᴜɴʟᴇʀɪ sᴀᴛ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
+        close:
+          name: "<#EF4444>ᴋᴀᴘᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+      product-items:
+        item:
+          name: "<#22C55E>%material_name%"
+          lore:
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
+            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɪsʟᴇᴍ"
+        empty:
+          name: "<#FBBF24>ᴜʀᴜɴ ʏᴏᴋ"
+          lore:
+            - "<#FBBF24>ᴛᴏᴘʟᴀɴᴀᴄᴀᴋ ᴜʀᴜɴ ʏᴏᴋ"
+        previous-page:
+          name: "<#94A3B8>ᴏɴᴄᴇᴋɪ"
+          lore:
+            - "<#CBD5E1>sᴀʏғᴀ <#94A3B8>• <#E0F2FE>%previous_page% <#94A3B8>/ <#E0F2FE>%pages%"
+        page-indicator:
+          name: "<#38BDF8>sᴀʏғᴀ <#E0F2FE>%page%<#94A3B8>/<#E0F2FE>%pages%"
+          lore:
+            - "<#CBD5E1>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>%first_product%-%last_product% <#94A3B8>/ <#E0F2FE>%products%"
+        next-page:
+          name: "<#38BDF8>sᴏɴʀᴀᴋɪ"
+          lore:
+            - "<#CBD5E1>sᴀʏғᴀ <#94A3B8>• <#E0F2FE>%next_page% <#94A3B8>/ <#E0F2FE>%pages%"
+    product:
+      title: "<#38BDF8>%material_name% <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"
+      items:
+        info:
+          name: "<#22C55E>%material_name%"
+          lore:
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
+            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
+        toggle:
+          name: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ"
+          lore:
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%product_state%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%product_action%"
+        sell-amount:
+          name: "<#22C55E>sᴀᴛ"
+          lore:
+            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>sᴀᴛ"
+        withdraw-amount:
+          name: "<#38BDF8>ᴄᴇᴋ"
+          lore:
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
+        sell-all:
+          name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
+          lore:
+            - "<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
+        withdraw-space:
+          name: "<#38BDF8>ʙᴏs ᴀʟᴀɴ"
+          lore:
+            - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
+        back:
+          name: "<#94A3B8>ɢᴇʀɪ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+        close:
+          name: "<#EF4444>ᴋᴀᴘᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+    storage:
+      title: "<#22C55E>ᴅᴇᴘᴏ"
+      items:
+        info:
+          name: "<#22C55E>ᴅᴇᴘᴏ"
+          lore:
+            - "<#BBF7D0>ᴄɪғᴛᴄɪɴɪɴ ᴛᴜᴛᴛᴜɢᴜ ᴜʀᴜɴʟᴇʀ"
+            - ""
+            - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%storage_usage%"
+        back:
+          name: "<#94A3B8>ɢᴇʀɪ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+        close:
+          name: "<#EF4444>ᴋᴀᴘᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+        sell-all:
+          name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
+      storage-items:
+        filled:
+          name: "<#22C55E>%material_name%"
+          lore:
+            - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount%"
+            - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
+            - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>64 ᴄᴇᴋ"
+            - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>sᴀᴛ"
+        empty:
+          name: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
+          lore:
+            - "<#FBBF24>ᴜʀᴜɴ ʏᴏᴋ"
+    manage:
+      title: "<#38BDF8>ʏᴏɴᴇᴛ"
+      items:
+        info:
+          name: "<#38BDF8>ʏᴏɴᴇᴛ"
+          lore:
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+        collecting:
+          name: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ"
+          lore:
+            - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%collecting_action%"
+        members:
+          name: "<#38BDF8>ᴜʏᴇʟᴇʀ"
+          lore:
+            - "<#CBD5E1>ᴜʏᴇ <#94A3B8>• <#E0F2FE>%members%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
+        modules:
+          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
+          lore:
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀᴄ"
+        back:
+          name: "<#94A3B8>ɢᴇʀɪ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+        close:
+          name: "<#EF4444>ᴋᴀᴘᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+    members:
+      title: "<#FBBF24>ᴀᴅᴀ ᴜʏᴇʟᴇʀɪ"
+      items:
+        info:
+          name: "<#FBBF24>ᴜʏᴇʟᴇʀ"
+          lore:
+            - "<#CBD5E1>ᴜʏᴇ <#94A3B8>• <#E0F2FE>%members%"
+        back:
+          name: "<#94A3B8>ɢᴇʀɪ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+        close:
+          name: "<#EF4444>ᴋᴀᴘᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+      member-items:
+        item:
+          name: "<#38BDF8>%player%"
+          lore:
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+    modules:
+      title: "<#38BDF8>ᴄɪғᴛᴄɪ ᴍᴏᴅᴜʟʟᴇʀɪ"
+      items:
+        info:
+          name: "<#38BDF8>ᴍᴏᴅᴜʟʟᴇʀ"
+          lore:
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+        production:
+          name: "<#38BDF8>ᴜʀᴇᴛɪᴍ"
+          lore:
+            - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+        auto-sell:
+          name: "<#22C55E>ᴏᴛᴏ sᴀᴛɪs"
+          lore:
+            - "<#CBD5E1>ᴀʀᴀʟɪᴋ <#94A3B8>• <#E0F2FE>%auto_sell_interval%"
+        status:
+          name: "<#FBBF24>ᴅᴜʀᴜᴍ"
+          lore:
+            - "<#CBD5E1>ʀᴏʟ <#94A3B8>• <#E0F2FE>%role%"
+        back:
+          name: "<#94A3B8>ɢᴇʀɪ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+        close:
+          name: "<#EF4444>ᴋᴀᴘᴀᴛ"
+          lore:
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀᴛ"
+      module-items:
+        enabled:
+          name: "<#22C55E>%module%"
+          lore:
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
+            - "<#CBD5E1>%module_metric_label% <#94A3B8>• <#E0F2FE>%module_metric%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%module_action%"
+        disabled:
+          name: "<#FBBF24>%module%"
+          lore:
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
+            - "<#CBD5E1>%module_metric_label% <#94A3B8>• <#E0F2FE>%module_metric%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%module_action%"
+        locked:
+          name: "<#FB7185>%module%"
+          lore:
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
+            - "<#CBD5E1>ʏᴇᴛᴋɪ <#94A3B8>• <#E0F2FE>%module_permission%"
+        unavailable:
+          name: "<#94A3B8>%module%"
+          lore:
+            - "<#CBD5E1>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>%module_state%"
+        empty:
+          name: "<#FBBF24>ᴍᴏᴅᴜʟ ʏᴏᴋ"
+          lore:
+            - "<#FBBF24>ᴍᴏᴅᴜʟ ʏᴏᴋ"
+  dialogs:
+    product:
+      title: "<#38BDF8>%material_name% <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"
+      body:
+        - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
+        - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price_state%"
+        - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
+        - "<#CBD5E1>ᴜʀᴇᴛɪᴍ <#94A3B8>• <#E0F2FE>%production_hour%/sᴀᴀᴛ"
+        - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
+      buttons:
+        toggle:
+          label: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%product_state%"
+          tooltip: "<#FDE68A>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%product_action%"
+        sell-amount:
+          label: "<#22C55E>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#BBF7D0>sᴀᴛ"
+          tooltip: "<#BBF7D0>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ"
+        withdraw-amount:
+          label: "<#38BDF8>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
+          tooltip: "<#E0F2FE>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#38BDF8>sᴇᴄ"
+        sell-all:
+          label: "<#22C55E>ᴛᴜᴍᴜ <#94A3B8>• <#BBF7D0>sᴀᴛ"
+          tooltip: "<#BBF7D0>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>sᴀᴛ"
+        withdraw-space:
+          label: "<#38BDF8>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
+          tooltip: "<#E0F2FE>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#38BDF8>ᴄᴇᴋ"
+        back:
+          label: "<#94A3B8>ɢᴇʀɪ"
+          tooltip: "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪɴᴇ ᴅᴏɴ"
+    amount:
+      input-label: "<#E0F2FE>ᴍɪᴋᴛᴀʀ"
+      withdraw:
+        title: "<#38BDF8>ᴄᴇᴋɪᴍ"
+        body:
+          - "<#CBD5E1>%material_name% <#94A3B8>• <#E0F2FE>ᴄᴇᴋɪᴍ"
+          - "<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>%max_amount%"
+          - "<#CBD5E1>ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴ"
+      sell:
+        title: "<#22C55E>sᴀᴛɪs"
+        body:
+          - "<#CBD5E1>%material_name% <#94A3B8>• <#E0F2FE>sᴀᴛɪs"
+          - "<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>%max_amount%"
+          - "<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>%max_worth%"
+      buttons:
+        confirm:
+          label: "<#22C55E>ᴏɴᴀʏʟᴀ"
+          tooltip: "<#BBF7D0>ᴏɴᴀʏʟᴀ <#94A3B8>• <#E0F2FE>ᴅᴇᴠᴀᴍ"
+        cancel:
+          label: "<#EF4444>ᴠᴀᴢɢᴇᴄ"
+          tooltip: "<#BBF7D0>ɢᴇʀɪ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"

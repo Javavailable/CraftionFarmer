@@ -4,6 +4,7 @@ import com.craftion.farmer.config.ConfigManager;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerRole;
 import com.craftion.farmer.farmer.MaterialKey;
+import com.craftion.farmer.message.GuiTextService;
 import com.craftion.farmer.module.ModuleManager;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +20,7 @@ public record MenuRenderContext(
     String menuId,
     FarmerMenuSession session,
     ConfigManager configManager,
+    GuiTextService guiTextService,
     ModuleManager moduleManager,
     ConfigurationSection menuSection,
     MaterialKey productMaterialKey,
@@ -30,6 +32,7 @@ public record MenuRenderContext(
         menuId = Objects.requireNonNull(menuId, "menuId");
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(configManager, "configManager");
+        Objects.requireNonNull(guiTextService, "guiTextService");
         Objects.requireNonNull(moduleManager, "moduleManager");
         Objects.requireNonNull(menuSection, "menuSection");
         placeholders = Map.copyOf(Objects.requireNonNull(placeholders, "placeholders"));
@@ -52,15 +55,15 @@ public record MenuRenderContext(
     }
 
     public String materialName(String materialKey) {
-        return this.configManager.guiMaterialName(materialKey);
+        return this.guiTextService.materialName(materialKey);
     }
 
     public String moduleName(String moduleKey) {
-        return this.configManager.guiModuleName(moduleKey);
+        return this.guiTextService.moduleName(moduleKey);
     }
 
     public String roleName(FarmerRole role) {
-        return this.configManager.guiRoleName(role);
+        return this.guiTextService.roleName(role);
     }
 
     public String playerName(UUID playerUuid) {

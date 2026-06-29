@@ -578,7 +578,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
     }
 
     private String stateLabel(boolean enabled) {
-        return enabled ? "ᴀᴋᴛɪғ" : "ᴘᴀsɪғ";
+        return this.messageService.messageString("gui.shared.states." + (enabled ? "active" : "passive"), enabled ? "active" : "passive");
     }
 
     private String formatAmount(long amount) {
