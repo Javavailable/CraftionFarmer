@@ -93,7 +93,10 @@ public final class ModulesMenu implements FarmerMenu {
         if (access.status() == ModuleAccessResult.Status.ROLE_DENIED || access.status() == ModuleAccessResult.Status.PERMISSION_DENIED) {
             return context.configManager().guiLabel("modules.locked", "ᴋɪʟɪᴛʟɪ");
         }
-        if (access.status() == ModuleAccessResult.Status.UNAVAILABLE || access.status() == ModuleAccessResult.Status.CONFIG_DISABLED) {
+        if (access.status() == ModuleAccessResult.Status.CONFIG_DISABLED) {
+            return context.configManager().guiLabel("modules.unavailable", "ᴋᴀᴘᴀʟɪ");
+        }
+        if (access.status() == ModuleAccessResult.Status.UNAVAILABLE) {
             return context.configManager().guiLabel("modules.coming-soon", "ʏᴀᴋɪɴᴅᴀ");
         }
         return context.configManager().guiModuleState(enabled);
