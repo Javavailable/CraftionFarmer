@@ -369,23 +369,11 @@ public final class MenuService {
         return true;
     }
 
-    private void showProductDialog(
-        Player player,
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session
-    ) {
+    private void showProductDialog(Player player, MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session) {
         this.schedulerAdapter.runAtEntity(player, () -> showProductDialogNow(player, materialKey, menuId, previousMenuId, session));
     }
 
-    private void showProductDialogNow(
-        Player player,
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session
-    ) {
+    private void showProductDialogNow(Player player, MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session) {
         if (player == null || !player.isOnline()) {
             return;
         }
@@ -402,6 +390,8 @@ public final class MenuService {
     private Dialog productDialog(MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session) {
         Map<String, String> productPlaceholders = productPlaceholders(session.farmer(), materialKey);
         String materialName = productPlaceholders.get("material_name");
+        String productState = productPlaceholders.get("product_state");
+        String productAction = productPlaceholders.get("product_action");
         String title = "<#38BDF8>" + materialName + " <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ";
         String body = "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("amount")
             + " <#94A3B8>/ <#E0F2FE>" + productPlaceholders.get("capacity")
@@ -420,8 +410,8 @@ public final class MenuService {
         );
         List<ActionButton> buttons = List.of(
             productButton(
-                "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ",
-                "<#FDE68A>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>ᴀᴄ / ᴋᴀᴘᴀᴛ",
+                "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>" + productState,
+                "<#FDE68A>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>" + productAction,
                 150,
                 (response, audience) -> handleProductToggle(materialKey, menuId, previousMenuId, session, audience)
             ),
@@ -482,14 +472,7 @@ public final class MenuService {
         }
     }
 
-    private void handleProductAmountDialog(
-        DialogOperation operation,
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session,
-        Audience audience
-    ) {
+    private void handleProductAmountDialog(DialogOperation operation, MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session, Audience audience) {
         if (!(audience instanceof Player player)) {
             return;
         }
@@ -528,14 +511,7 @@ public final class MenuService {
         });
     }
 
-    private void handleProductTransaction(
-        DialogOperation operation,
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session,
-        Audience audience
-    ) {
+    private void handleProductTransaction(DialogOperation operation, MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session, Audience audience) {
         if (!(audience instanceof Player player)) {
             return;
         }
@@ -569,13 +545,7 @@ public final class MenuService {
         });
     }
 
-    private void handleProductToggle(
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session,
-        Audience audience
-    ) {
+    private void handleProductToggle(MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session, Audience audience) {
         if (!(audience instanceof Player player)) {
             return;
         }
@@ -659,15 +629,7 @@ public final class MenuService {
         }
 
         long sliderMax = Math.min(availability.amount(), DIALOG_MAX_AMOUNT);
-        Dialog dialog = amountDialog(
-            operation,
-            materialKey.get(),
-            sliderMax,
-            context.menuId(),
-            context.holder().previousMenuId().orElse(null),
-            menuSession,
-            false
-        );
+        Dialog dialog = amountDialog(operation, materialKey.get(), sliderMax, context.menuId(), context.holder().previousMenuId().orElse(null), menuSession, false);
         this.schedulerAdapter.runAtEntity(context.player(), () -> {
             if (!context.player().isOnline()) {
                 return;
@@ -861,15 +823,7 @@ public final class MenuService {
         return new AmountAvailability(StorageTransactionResult.Status.SUCCESS, sellableAmount);
     }
 
-    private Dialog amountDialog(
-        DialogOperation operation,
-        MaterialKey materialKey,
-        long maxAmount,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session,
-        boolean returnToProductDialog
-    ) {
+    private Dialog amountDialog(DialogOperation operation, MaterialKey materialKey, long maxAmount, String menuId, String previousMenuId, FarmerMenuSession session, boolean returnToProductDialog) {
         String materialName = materialName(materialKey);
         OptionalDouble price = this.configManager.price(materialKey);
         String title = operation == DialogOperation.WITHDRAW
@@ -1001,14 +955,7 @@ public final class MenuService {
         });
     }
 
-    private void handleAmountDialogCancel(
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session,
-        boolean returnToProductDialog,
-        Audience audience
-    ) {
+    private void handleAmountDialogCancel(MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session, boolean returnToProductDialog, Audience audience) {
         if (audience instanceof Player player) {
             this.schedulerAdapter.runAtEntity(
                 player,
@@ -1017,14 +964,7 @@ public final class MenuService {
         }
     }
 
-    private void returnAfterAmountDialog(
-        Player player,
-        MaterialKey materialKey,
-        String menuId,
-        String previousMenuId,
-        FarmerMenuSession session,
-        boolean returnToProductDialog
-    ) {
+    private void returnAfterAmountDialog(Player player, MaterialKey materialKey, String menuId, String previousMenuId, FarmerMenuSession session, boolean returnToProductDialog) {
         if (returnToProductDialog) {
             showProductDialog(player, materialKey, menuId, previousMenuId, session);
             return;
@@ -1107,6 +1047,7 @@ public final class MenuService {
         placeholders.put("capacity", capacity < 0L ? "sɪɴɪʀsɪᴢ" : formatAmount(capacity));
         placeholders.put("fill_percent", fillPercent(amount, capacity));
         placeholders.put("product_state", this.configManager.guiCollectingState(productEnabled));
+        placeholders.put("product_action", productEnabled ? "ᴋᴀᴘᴀᴛ" : "ᴀᴄ");
         placeholders.put("effective_product_state", this.configManager.guiCollectingState(effectiveEnabled));
         placeholders.put("price_state", price.isPresent() ? formatMoney(price.getAsDouble()) : "ғɪʏᴀᴛ ʏᴏᴋ");
         placeholders.put("collection_status", productCollectionStatus(farmer, materialKey));
@@ -1115,11 +1056,8 @@ public final class MenuService {
     }
 
     private String productCollectionStatus(Farmer farmer, MaterialKey materialKey) {
-        if (!farmer.collectingEnabled()) {
-            return "<#FBBF24>ɢᴇɴᴇʟ ᴋᴀᴘᴀʟɪ";
-        }
-        if (!farmer.productCollectingEnabled(materialKey)) {
-            return "<#FBBF24>ᴜʀᴜɴ ᴋᴀᴘᴀʟɪ";
+        if (!farmer.collectingEnabled() || !farmer.productCollectingEnabled(materialKey)) {
+            return "<#FBBF24>ᴋᴀᴘᴀʟɪ";
         }
         return "<#22C55E>ᴀᴋᴛɪғ";
     }
@@ -1221,6 +1159,7 @@ public final class MenuService {
         placeholders.put("members", String.valueOf(memberCount(farmer)));
         placeholders.put("storage_usage", formatAmount(storageTotal(farmer)));
         placeholders.put("collecting_state", this.configManager.guiCollectingState(farmer.collectingEnabled()));
+        placeholders.put("collecting_action", farmer.collectingEnabled() ? "ᴋᴀᴘᴀᴛ" : "ᴀᴄ");
         placeholders.put("role", this.configManager.guiRoleName(session.role()));
         placeholders.put("player", player.getName());
         ProductionEstimate productionEstimate = this.moduleManager.productionEstimate(farmer);
