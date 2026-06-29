@@ -50,11 +50,31 @@ public final class MessageService {
         }
     }
 
-    private String applyPlaceholders(String message, Map<String, String> placeholders) {
+    public String messageString(String path, String fallback) {
+        return this.messageManager.messageString(path, fallback);
+    }
+
+    public List<String> messageList(String path, List<String> fallbackList) {
+        return this.messageManager.messageList(path, fallbackList);
+    }
+
+    public String applyPlaceholders(String message, Map<String, String> placeholders) {
+        if (message == null) {
+            return null;
+        }
         String result = message;
-        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
-            result = result.replace("%" + entry.getKey() + "%", entry.getValue());
+        if (placeholders != null) {
+            for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+                result = result.replace("%" + entry.getKey() + "%", entry.getValue());
+            }
         }
         return result;
+    }
+
+    public List<String> applyPlaceholders(List<String> messages, Map<String, String> placeholders) {
+        if (messages == null || messages.isEmpty()) {
+            return List.of();
+        }
+        return messages.stream().map(message -> applyPlaceholders(message, placeholders)).toList();
     }
 }

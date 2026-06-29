@@ -1,7 +1,7 @@
 package com.craftion.farmer.gui;
 
+import com.craftion.farmer.message.GuiTextService;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.bukkit.Material;
@@ -13,16 +13,18 @@ public final class MenuLayoutBuilder {
     private final String menuId;
     private final String previousMenuId;
     private final FarmerMenuSession session;
+    private final GuiTextService guiTextService;
     private final int size;
     private final String title;
     private final Map<Integer, MenuAction> actions = new HashMap<>();
     private final Map<Integer, MenuAction> rightActions = new HashMap<>();
     private final Map<Integer, ItemStack> items = new HashMap<>();
 
-    public MenuLayoutBuilder(String menuId, String previousMenuId, FarmerMenuSession session, int size, String title) {
+    public MenuLayoutBuilder(String menuId, String previousMenuId, FarmerMenuSession session, GuiTextService guiTextService, int size, String title) {
         this.menuId = menuId;
         this.previousMenuId = previousMenuId;
         this.session = session;
+        this.guiTextService = guiTextService;
         this.size = size;
         this.title = title;
     }
@@ -81,8 +83,8 @@ public final class MenuLayoutBuilder {
 
         return Optional.of(MenuItemBuilder.of(material)
             .amount(clamp(section.getInt("amount", 1), 1, 64))
-            .displayName(applyPlaceholders(section.getString("name"), placeholders))
-            .lore(applyPlaceholders(section.getStringList("lore"), placeholders))
+            .displayName(this.guiTextService.itemName(section, placeholders))
+            .lore(this.guiTextService.itemLore(section, placeholders))
             .build());
     }
 
@@ -109,13 +111,6 @@ public final class MenuLayoutBuilder {
             }
         }
         return result;
-    }
-
-    private List<String> applyPlaceholders(List<String> values, Map<String, String> placeholders) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-        return values.stream().map(value -> applyPlaceholders(value, placeholders)).toList();
     }
 
     private boolean isValidSlot(int slot) {

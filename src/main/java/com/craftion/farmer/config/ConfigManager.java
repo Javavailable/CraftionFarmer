@@ -259,7 +259,7 @@ public final class ConfigManager {
 
     public String guiModuleDescription(String moduleKey) {
         String normalizedKey = normalizeGuiKey(moduleKey);
-        return this.config.getString("gui.module-descriptions." + normalizedKey, "ᴍᴏᴅᴜʟ ʙɪʟɢɪsɪ");
+        return this.config.getString("gui.module-descriptions." + normalizedKey, "module");
     }
 
     public ConfigurationSection guiMenu(String menuId) {
@@ -270,20 +270,20 @@ public final class ConfigManager {
     }
 
     public String guiCollectingState(boolean enabled) {
-        return guiLabel("collecting." + (enabled ? "enabled" : "disabled"), enabled ? "ᴀᴋᴛɪғ" : "ᴅᴜʀᴀᴋʟᴀᴛɪʟᴅɪ");
+        return guiLabel("collecting." + (enabled ? "enabled" : "disabled"), enabled ? "active" : "closed");
     }
 
     public String guiModuleState(boolean enabled) {
-        return guiLabel("modules." + (enabled ? "enabled" : "disabled"), enabled ? "ᴀᴋᴛɪғ" : "ᴘᴀsɪғ");
+        return guiLabel("modules." + (enabled ? "enabled" : "disabled"), enabled ? "active" : "closed");
     }
 
     public String guiRoleName(FarmerRole role) {
         FarmerRole safeRole = role == null ? FarmerRole.VIEWER : role;
         String fallback = switch (safeRole) {
-            case OWNER -> "ᴀᴅᴀ sᴀʜɪʙɪ";
-            case MANAGER -> "ʏᴏɴᴇᴛɪᴄɪ";
-            case MEMBER -> "ᴜʏᴇ";
-            case VIEWER -> "ɢᴏʀᴜɴᴛᴜʟᴇʏᴇɴ";
+            case OWNER -> "owner";
+            case MANAGER -> "manager";
+            case MEMBER -> "member";
+            case VIEWER -> "viewer";
         };
         return guiLabel("roles." + safeRole.name().toLowerCase(Locale.ROOT), fallback);
     }

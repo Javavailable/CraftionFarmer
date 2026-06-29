@@ -47,7 +47,7 @@ public final class StorageMenu implements FarmerMenu {
                 "material", materialKey,
                 "material_name", context.materialName(materialKey),
                 "amount", formatAmount(entry.getValue()),
-                "price", price.isPresent() ? formatMoney(price.getAsDouble()) : "-",
+                "price", price.isPresent() ? formatMoney(price.getAsDouble()) : context.guiTextService().state("no-price", "no price"),
                 "worth", price.isPresent() ? formatMoney(price.getAsDouble() * entry.getValue()) : "-"
             )), "BARREL");
             index++;

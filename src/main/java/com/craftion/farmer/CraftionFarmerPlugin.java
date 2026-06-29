@@ -22,6 +22,7 @@ import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
 import com.craftion.farmer.hook.visual.VisualProviderManager;
+import com.craftion.farmer.message.GuiTextService;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
@@ -40,6 +41,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private MessageManager messageManager;
     private ConfigValidationService configValidationService;
     private MessageService messageService;
+    private GuiTextService guiTextService;
     private DebugLogger debugLogger;
     private SchedulerAdapter schedulerAdapter;
     private DatabaseManager databaseManager;
@@ -75,6 +77,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.messageManager.reload();
 
         this.messageService = new MessageService(this.messageManager);
+        this.guiTextService = new GuiTextService(this.messageService);
         this.debugLogger = new DebugLogger(this, this.configManager);
         this.configValidationService = new ConfigValidationService(this, this.debugLogger);
         this.schedulerAdapter = SchedulerFactory.create(this);
@@ -154,6 +157,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.farmerPersistenceService,
             this.farmerReconcileService,
             this.messageService,
+            this.guiTextService,
             this.storageTransactionService,
             this.moduleManager
         );

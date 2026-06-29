@@ -52,7 +52,7 @@ public final class MainFarmerMenu implements FarmerMenu {
                 "material_name", context.materialName(materialKey.toString()),
                 "amount", formatAmount(amount),
                 "worth", price.isPresent() ? formatMoney(price.getAsDouble() * amount) : "-",
-                "capacity", capacity < 0L ? "sɪɴɪʀsɪᴢ" : formatAmount(capacity),
+                "capacity", capacity < 0L ? context.guiTextService().state("unlimited", "unlimited") : formatAmount(capacity),
                 "collection_status", collectionStatus(context, materialKey)
             ))), materialKey.toString());
             slotIndex++;
@@ -88,9 +88,9 @@ public final class MainFarmerMenu implements FarmerMenu {
 
     private String collectionStatus(MenuRenderContext context, MaterialKey materialKey) {
         if (!context.farmer().collectingEnabled() || !context.farmer().productCollectingEnabled(materialKey)) {
-            return "<#FBBF24>ᴋᴀᴘᴀʟɪ";
+            return context.guiTextService().state("closed", "closed");
         }
-        return "<#22C55E>ᴀᴋᴛɪғ";
+        return context.guiTextService().state("active", "active");
     }
 
     private String formatAmount(long amount) {
