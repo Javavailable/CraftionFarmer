@@ -119,7 +119,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.economyProviderManager,
             this.storageTransactionService
         );
-        this.placeholderProviderManager = new PlaceholderProviderManager(this, this.debugLogger, this.farmerCache, this.moduleManager);
+        this.placeholderProviderManager = new PlaceholderProviderManager(this, this.debugLogger, this.farmerCache, this.moduleManager, this.economyProviderManager);
         this.farmerCreateService = new FarmerCreateService(this.farmerPersistenceService, this.configManager, this.regionProviderManager, this.visualProviderManager);
         this.farmerRemoveService = new FarmerRemoveService(
             this.farmerPersistenceService,
@@ -159,7 +159,8 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.messageService,
             this.guiTextService,
             this.storageTransactionService,
-            this.moduleManager
+            this.moduleManager,
+            this.economyProviderManager
         );
 
         if (!registerCommands()) {

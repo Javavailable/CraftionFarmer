@@ -237,7 +237,7 @@ public final class ModuleManager {
         if (!state(farmer, ProductionCalcModule.KEY)) {
             return ProductionEstimate.empty();
         }
-        return this.productionCalcModule.estimate(farmer);
+        return this.productionCalcModule.estimate(farmer, new com.craftion.farmer.economy.ConfigPriceProvider(this.configManager));
     }
 
     public String intervalLabel(String moduleKey) {

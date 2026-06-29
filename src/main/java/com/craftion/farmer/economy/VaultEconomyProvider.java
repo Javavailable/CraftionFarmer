@@ -16,6 +16,7 @@ public final class VaultEconomyProvider implements EconomyProvider {
     private volatile Object economy;
     private volatile Method depositPlayerMethod;
     private volatile Method nameMethod;
+    private volatile Method formatMethod;
 
     public VaultEconomyProvider(JavaPlugin plugin, DebugLogger debugLogger) {
         this.plugin = plugin;
@@ -28,6 +29,7 @@ public final class VaultEconomyProvider implements EconomyProvider {
         this.economy = null;
         this.depositPlayerMethod = null;
         this.nameMethod = null;
+        this.formatMethod = null;
 
         try {
             Class<?> economyClass = Class.forName(ECONOMY_CLASS);
@@ -40,11 +42,27 @@ public final class VaultEconomyProvider implements EconomyProvider {
             this.economy = registration.getProvider();
             this.depositPlayerMethod = economyClass.getMethod("depositPlayer", OfflinePlayer.class, double.class);
             this.nameMethod = economyClass.getMethod("getName");
+            this.formatMethod = economyClass.getMethod("format", double.class);
             this.debugLogger.debug("Vault economy provider ready: " + name());
         } catch (ClassNotFoundException exception) {
             this.debugLogger.debug("Vault economy API is not available.");
         } catch (ReflectiveOperationException exception) {
             this.plugin.getLogger().warning("Vault economy hook hazirlanamadi: " + readableMessage(exception));
+        }
+    }
+
+    @Override
+    public String format(double amount) {
+        Object provider = this.economy;
+        Method method = this.formatMethod;
+        if (provider == null || method == null) {
+            return EconomyProvider.super.format(amount);
+        }
+        try {
+            Object value = method.invoke(provider, amount);
+            return value == null ? EconomyProvider.super.format(amount) : value.toString();
+        } catch (ReflectiveOperationException exception) {
+            return EconomyProvider.super.format(amount);
         }
     }
 
