@@ -405,38 +405,41 @@ public final class MenuService {
                 .build(),
             DialogBody.plainMessage(TextUtil.parse(body), 300)
         );
-        List<ActionButton> buttons = List.of(
-            productButton(
-                productDialogButtonText("toggle", "label", productPlaceholders),
-                productDialogButtonText("toggle", "tooltip", productPlaceholders),
-                150,
-                (response, audience) -> handleProductToggle(materialKey, menuId, previousMenuId, session, audience)
-            ),
-            productButton(
+        long storedAmount = session.farmer().storageAmount(materialKey);
+        List<ActionButton> buttons = new java.util.ArrayList<>();
+        buttons.add(productButton(
+            productDialogButtonText("toggle", "label", productPlaceholders),
+            productDialogButtonText("toggle", "tooltip", productPlaceholders),
+            150,
+            (response, audience) -> handleProductToggle(materialKey, menuId, previousMenuId, session, audience)
+        ));
+
+        if (storedAmount > 0L) {
+            buttons.add(productButton(
                 productDialogButtonText("sell-amount", "label", productPlaceholders),
                 productDialogButtonText("sell-amount", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductAmountDialog(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
-            ),
-            productButton(
+            ));
+            buttons.add(productButton(
                 productDialogButtonText("withdraw-amount", "label", productPlaceholders),
                 productDialogButtonText("withdraw-amount", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductAmountDialog(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
-            ),
-            productButton(
+            ));
+            buttons.add(productButton(
                 productDialogButtonText("sell-all", "label", productPlaceholders),
                 productDialogButtonText("sell-all", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductTransaction(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
-            ),
-            productButton(
+            ));
+            buttons.add(productButton(
                 productDialogButtonText("withdraw-space", "label", productPlaceholders),
                 productDialogButtonText("withdraw-space", "tooltip", productPlaceholders),
                 150,
                 (response, audience) -> handleProductTransaction(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
-            )
-        );
+            ));
+        }
         ActionButton exitButton = productButton(
             productDialogButtonText("back", "label", productPlaceholders),
             productDialogButtonText("back", "tooltip", productPlaceholders),
@@ -530,6 +533,18 @@ public final class MenuService {
             FarmerMenuAccess requiredAccess = operation == DialogOperation.WITHDRAW ? withdrawAccess() : FarmerMenuAccess.MANAGER;
             if (!hasCurrentAccess(player, session, requiredAccess)) {
                 this.messageService.send(player, "commands.farmer.gui-denied");
+                showProductDialog(player, materialKey, menuId, previousMenuId, session);
+                return;
+            }
+
+            AmountAvailability availability = amountAvailability(player, session, materialKey, operation);
+            if (availability.status() == StorageTransactionResult.Status.EMPTY_STORAGE) {
+                StorageTransactionResult result = transactionResult(StorageTransactionResult.Status.EMPTY_STORAGE, materialKey);
+                if (operation == DialogOperation.WITHDRAW) {
+                    sendWithdrawResult(player, result);
+                } else {
+                    sendSellResult(player, result);
+                }
                 showProductDialog(player, materialKey, menuId, previousMenuId, session);
                 return;
             }
