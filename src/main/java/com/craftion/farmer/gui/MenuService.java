@@ -1173,7 +1173,7 @@ public final class MenuService {
         Farmer farmer = session.farmer();
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("farmer", farmer.farmerId());
-        placeholders.put("region", farmer.regionId());
+        placeholders.put("region", regionDisplayName(farmer));
         placeholders.put("owner", playerName(farmer.ownerUuid()));
         placeholders.put("owner_uuid", farmer.ownerUuid().toString());
         placeholders.put("level", String.valueOf(farmer.level()));
@@ -1346,6 +1346,13 @@ public final class MenuService {
             return cause.getClass().getSimpleName();
         }
         return message;
+    }
+
+    private String regionDisplayName(Farmer farmer) {
+        if (farmer == null) {
+            return "Ada";
+        }
+        return TextUtil.regionDisplayName(playerName(farmer.ownerUuid()), farmer.regionId());
     }
 
     private enum DialogOperation {

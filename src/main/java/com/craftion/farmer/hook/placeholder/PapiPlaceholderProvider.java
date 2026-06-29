@@ -86,6 +86,7 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
         return switch (params) {
             case "farmer_id" -> text(farmer.farmerId());
             case "region_id" -> text(farmer.regionId());
+            case "region_name", "region_display" -> regionDisplayName(farmer);
             case "owner" -> farmer.ownerUuid().toString();
             case "level" -> String.valueOf(farmer.level());
             case "storage_total" -> formatAmount(storageTotal(farmer));
@@ -121,5 +122,13 @@ public final class PapiPlaceholderProvider extends PlaceholderExpansion implemen
 
     private String text(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String regionDisplayName(Farmer farmer) {
+        if (farmer == null) {
+            return "Ada";
+        }
+        String ownerName = org.bukkit.Bukkit.getOfflinePlayer(farmer.ownerUuid()).getName();
+        return com.craftion.farmer.util.TextUtil.regionDisplayName(ownerName, farmer.regionId());
     }
 }
