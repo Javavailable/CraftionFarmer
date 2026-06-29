@@ -403,7 +403,6 @@ public final class MenuService {
         Map<String, String> productPlaceholders = productPlaceholders(session.farmer(), materialKey);
         String materialName = productPlaceholders.get("material_name");
         String title = "<#38BDF8>" + materialName + " <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ";
-        String description = "<#CBD5E1>ᴜʀᴜɴ ᴘᴀɴᴇʟɪ\n<#94A3B8>ᴅᴇᴘᴏ, sᴀᴛɪs ᴠᴇ ᴛᴏᴘʟᴀᴍᴀ";
         String body = "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("amount")
             + " <#94A3B8>/ <#E0F2FE>" + productPlaceholders.get("capacity")
             + "\n<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>" + productPlaceholders.get("worth")
@@ -412,42 +411,41 @@ public final class MenuService {
 
         List<DialogBody> bodyItems = List.of(
             DialogBody.item(new ItemStack(material(materialKey).orElse(Material.BARREL)))
-                .description(DialogBody.plainMessage(TextUtil.parse(description), 240))
-                .showDecorations(true)
+                .showDecorations(false)
                 .showTooltip(true)
-                .width(64)
-                .height(64)
+                .width(48)
+                .height(48)
                 .build(),
-            DialogBody.plainMessage(TextUtil.parse(body), 320)
+            DialogBody.plainMessage(TextUtil.parse(body), 300)
         );
         List<ActionButton> buttons = List.of(
             productButton(
                 "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ",
-                "<#FDE68A>ᴜʀᴜɴᴜ ᴀᴄ / ᴋᴀᴘᴀᴛ",
+                "<#FDE68A>ᴜʀᴜɴ <#94A3B8>• <#E0F2FE>ᴀᴄ / ᴋᴀᴘᴀᴛ",
                 150,
                 (response, audience) -> handleProductToggle(materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#22C55E>ᴍɪᴋᴛᴀʀʟᴀ sᴀᴛ",
-                "<#BBF7D0>sᴀᴛɪs ᴍɪᴋᴛᴀʀɪ sᴇᴄ",
+                "<#22C55E>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#BBF7D0>sᴀᴛ",
+                "<#BBF7D0>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ",
                 150,
                 (response, audience) -> handleProductAmountDialog(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#38BDF8>ᴍɪᴋᴛᴀʀʟᴀ ᴄᴇᴋ",
-                "<#E0F2FE>ᴄᴇᴋɪᴍ ᴍɪᴋᴛᴀʀɪ sᴇᴄ",
+                "<#38BDF8>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ",
+                "<#E0F2FE>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#38BDF8>sᴇᴄ",
                 150,
                 (response, audience) -> handleProductAmountDialog(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#22C55E>ᴛᴜᴍᴜɴᴜ sᴀᴛ",
-                "<#BBF7D0>ʙᴜ ᴜʀᴜɴᴜɴ ᴛᴜᴍᴜɴᴜ sᴀᴛ",
+                "<#22C55E>ᴛᴜᴍᴜ <#94A3B8>• <#BBF7D0>sᴀᴛ",
+                "<#BBF7D0>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>sᴀᴛ",
                 150,
                 (response, audience) -> handleProductTransaction(DialogOperation.SELL, materialKey, menuId, previousMenuId, session, audience)
             ),
             productButton(
-                "<#38BDF8>sɪɢᴀɴɪ ᴄᴇᴋ",
-                "<#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴɪ ᴄᴇᴋ",
+                "<#38BDF8>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ",
+                "<#E0F2FE>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#38BDF8>ᴄᴇᴋ",
                 150,
                 (response, audience) -> handleProductTransaction(DialogOperation.WITHDRAW, materialKey, menuId, previousMenuId, session, audience)
             )
