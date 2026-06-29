@@ -13,7 +13,7 @@ commands:
       - "<#CBD5E1>/farmer reconcile [ada] <#94A3B8>• <#E0F2FE>ᴜʏᴇ ᴇsʟᴇ"
     reload-success: "<#22C55E>ʏᴇɴɪʟᴇɴᴅɪ"
     no-permission: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
-    only-player: "<#FB7185>ᴏʏᴜɴᴄᴜ ɢᴇʀᴇᴋɪʀ"
+    only-player: "<#FB7185>sᴀᴅᴇᴄᴇ ᴏʏᴜɴᴄᴜʟᴀʀ ᴋᴜʟʟᴀɴᴀʙɪʟɪʀ"
     provider-unavailable: "<#FB7185>ᴀᴅᴀ ʙᴀɢʟᴀɴᴛɪsɪ ʏᴏᴋ"
     create-success: "<#22C55E>ᴄɪғᴛᴄɪ ᴋᴜʀᴜʟᴅᴜ"
     create-duplicate: "<#FBBF24>ᴄɪғᴛᴄɪ ᴢᴀᴛᴇɴ ᴠᴀʀ"
@@ -43,27 +43,27 @@ commands:
     open-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
     open-failed: "<#FB7185>ᴍᴇɴᴜ ᴀᴄɪʟᴀᴍᴀᴅɪ"
     gui-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
-    gui-action-pending: "<#FBBF24>ʜᴀᴢɪʀ ᴅᴇɢɪʟ"
+    gui-action-pending: "<#FBBF24>ɪsʟᴇᴍ sᴜʀᴜʏᴏʀ, ʙᴇᴋʟᴇ"
     collect-enabled: "<#22C55E>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>ᴀᴋᴛɪғ"
     collect-disabled: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀʟɪ"
     collect-toggle-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
-    collect-toggle-failed: "<#FB7185>ᴛᴏᴘʟᴀᴍᴀ ᴅᴇɢɪsᴍᴇᴅɪ"
+    collect-toggle-failed: "<#FB7185>ᴛᴏᴘʟᴀᴍᴀ ᴀʏᴀʀʟᴀɴᴀᴍᴀᴅɪ"
     product-toggle-denied: "<#EF4444>ʏᴇᴛᴋɪ ʏᴏᴋ <#94A3B8>• <#BBF7D0>%material_name%"
-    product-toggle-failed: "<#EF4444>ᴛᴏᴘʟᴀᴍᴀ ᴅᴇɢɪsᴍᴇᴅɪ <#94A3B8>• <#BBF7D0>%material_name%"
+    product-toggle-failed: "<#EF4444>ᴛᴏᴘʟᴀᴍᴀ ᴀʏᴀʀʟᴀɴᴀᴍᴀᴅɪ <#94A3B8>• <#BBF7D0>%material_name%"
     product-enabled: "<#22C55E>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>ᴀᴋᴛɪғ <#94A3B8>• <#BBF7D0>%material_name%"
     product-disabled: "<#FBBF24>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀʟɪ <#94A3B8>• <#BBF7D0>%material_name%"
-    withdraw-success: "<#22C55E>ᴄᴇᴋɪᴍ <#94A3B8>• <#E0F2FE>%amount% %material%"
+    withdraw-success: "<#22C55E>ᴀʟɪɴᴅɪ <#94A3B8>• <#E0F2FE>%amount% %material%"
     withdraw-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
-    withdraw-empty: "<#FBBF24>ᴜʀᴜɴ ʏᴏᴋ"
-    withdraw-inventory-full: "<#FBBF24>ᴇɴᴠᴀɴᴛᴇʀ ᴅᴏʟᴜ"
-    withdraw-failed: "<#FB7185>ᴄᴇᴋɪᴍ ᴏʟᴍᴀᴅɪ"
-    sell-success: "<#22C55E>sᴀᴛɪs <#94A3B8>• <#E0F2FE>%net%"
+    withdraw-empty: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
+    withdraw-inventory-full: "<#FBBF24>ᴇɴᴠᴀɴᴛᴇʀɪɴ ᴅᴏʟᴜ"
+    withdraw-failed: "<#FB7185>ᴜʀᴜɴ ᴀʟɪɴᴀᴍᴀᴅɪ"
+    sell-success: "<#22C55E>sᴀᴛɪʟᴅɪ <#94A3B8>• <#E0F2FE>%net%"
     sell-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
-    sell-empty: "<#FBBF24>ᴜʀᴜɴ ʏᴏᴋ"
+    sell-empty: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
     sell-no-price: "<#FBBF24>ғɪʏᴀᴛ ʏᴏᴋ"
-    sell-economy-unavailable: "<#FB7185>sᴀᴛɪs ᴏʟᴍᴀᴅɪ"
-    sell-deposit-failed: "<#FB7185>ᴏᴅᴇᴍᴇ ᴏʟᴍᴀᴅɪ"
-    sell-failed: "<#FB7185>sᴀᴛɪs ᴏʟᴍᴀᴅɪ"
+    sell-economy-unavailable: "<#FB7185>ᴇᴋᴏɴᴏᴍɪ ᴋᴀᴘᴀʟɪ"
+    sell-deposit-failed: "<#FB7185>sᴀᴛɪs ʙᴀsᴀʀɪsɪᴢ"
+    sell-failed: "<#FB7185>sᴀᴛɪs ʙᴀsᴀʀɪsɪᴢ"
     module-enabled: "<#22C55E>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>ᴀᴋᴛɪғ <#94A3B8>• <#D1FAE5>%module%"
     module-disabled: "<#FBBF24>ᴅᴜʀᴜᴍ <#94A3B8>• <#E0F2FE>ᴋᴀᴘᴀʟɪ <#94A3B8>• <#FDE68A>%module%"
     module-toggle-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ <#94A3B8>• <#FFE4E6>%module%"
@@ -71,7 +71,7 @@ commands:
     module-unavailable: "<#FBBF24>ʏᴀᴋɪɴᴅᴀ <#94A3B8>• <#FDE68A>%module%"
     module-config-disabled: "<#FBBF24>ᴋᴀᴘᴀʟɪ <#94A3B8>• <#FDE68A>%module%"
     module-unknown: "<#FB7185>ᴍᴏᴅᴜʟ ʏᴏᴋ"
-    module-toggle-failed: "<#FB7185>ᴍᴏᴅᴜʟ ᴅᴇɢɪsᴍᴇᴅɪ"
+    module-toggle-failed: "<#FB7185>ᴍᴏᴅᴜʟ ᴀʏᴀʀʟᴀɴᴀᴍᴀᴅɪ"
     admin-usage: "<#94A3B8>ᴋᴜʟʟᴀɴɪᴍ <#E2E8F0>/farmer admin info [ada] <#CBD5E1>ᴠᴇʏᴀ <#E2E8F0>/farmer admin logs [ada] [limit]"
     admin-info-usage: "<#94A3B8>ᴋᴜʟʟᴀɴɪᴍ <#E2E8F0>/farmer admin info [ada]"
     admin-info:
@@ -86,7 +86,7 @@ commands:
       - "<#CBD5E1>ᴍᴏᴅᴜʟ <#94A3B8>• <#E0F2FE>%module_states%"
     admin-logs-usage: "<#94A3B8>ᴋᴜʟʟᴀɴɪᴍ <#E2E8F0>/farmer admin logs [ada] [limit]"
     admin-logs-no-region: "<#FB7185>ᴀᴅᴀ ʙᴜʟᴜɴᴀᴍᴀᴅɪ"
-    admin-logs-database-unavailable: "<#FB7185>ᴋᴀʏɪᴛ ʜᴀᴢɪʀ ᴅᴇɢɪʟ"
+    admin-logs-database-unavailable: "<#FB7185>ᴋᴀʏɪᴛ sɪsᴛᴇᴍɪ ᴋᴀᴘᴀʟɪ"
     admin-logs-failed: "<#FB7185>ᴋᴀʏɪᴛ ᴀʟɪɴᴀᴍᴀᴅɪ"
     admin-logs-header: "<#38BDF8>ᴋᴀʏɪᴛ <#94A3B8>• <#E0F2FE>%farmer%"
     admin-logs-empty: "<#FBBF24>ᴋᴀʏɪᴛ ʏᴏᴋ"
@@ -115,7 +115,7 @@ gui:
       close: "ᴋᴀᴘᴀᴛ"
       sell: "sᴀᴛ"
       sell-all: "ᴛᴜᴍᴜ sᴀᴛ"
-      withdraw: "ᴄᴇᴋ"
+      withdraw: "ᴀʟ"
       back: "ɢᴇʀɪ"
       operation: "ɪsʟᴇᴍ"
       confirm: "ᴏɴᴀʏʟᴀ"
@@ -143,7 +143,7 @@ gui:
       state: "ᴅᴜʀᴜᴍ"
       space: "ʙᴏs ᴀʟᴀɴ"
       max: "ᴇɴ ᴄᴏᴋ"
-      inventory-space: "ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴ"
+      inventory-space: "sɪɢᴀɴ ᴋᴀᴅᴀʀ"
       all-products: "ᴛᴜᴍ ᴜʀᴜɴʟᴇʀ"
       unknown-error: "ʙɪʟɪɴᴍᴇʏᴇɴ ʜᴀᴛᴀ"
     permissions:
@@ -184,7 +184,7 @@ gui:
     module-descriptions:
       auto-sell: "ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴜʀᴜɴʟᴇʀɪ ᴏᴛᴏ sᴀᴛᴀʀ"
       production-calc: "ᴜʀᴇᴛɪᴍ ʜɪᴢɪɴɪ ᴅᴇᴘᴏʏᴀ ɢᴏʀᴇ ʜᴇsᴀᴘʟᴀʀ"
-      auto-harvest: "ᴏʟɢᴜɴ ᴇᴋɪɴʟᴇʀɪ ᴛᴏᴘʟᴀʀ"
+      auto-harvest: "ᴇᴋɪɴʟᴇʀɪ ᴋᴇɴᴅɪ ᴛᴏᴘʟᴀʀ"
       auto-kill: "ᴀᴠ ᴍᴏᴅᴜʟᴜ ʏᴀᴋɪɴᴅᴀ"
     module-metric-labels:
       auto-sell: "ᴀʀᴀʟɪᴋ"
@@ -253,7 +253,7 @@ gui:
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount% <#94A3B8>/ <#E0F2FE>%capacity%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• %collection_status%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɪsʟᴇᴍ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ʏᴏɴᴇᴛ"
         empty:
           name: "<#FBBF24>ᴜʀᴜɴ ʏᴏᴋ"
           lore:
@@ -291,24 +291,24 @@ gui:
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
             - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>sᴀᴛ"
         withdraw-amount:
-          name: "<#38BDF8>ᴄᴇᴋ"
+          name: "<#38BDF8>ᴀʟ"
           lore:
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀʟ"
         sell-all:
           name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
           lore:
             - "<#CBD5E1>ᴋᴀᴢᴀɴᴄ <#94A3B8>• <#E0F2FE>%worth%"
             - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴛᴜᴍᴜ sᴀᴛ"
         withdraw-space:
-          name: "<#38BDF8>ʙᴏs ᴀʟᴀɴ"
+          name: "<#38BDF8>sɪɢᴀɴ ᴋᴀᴅᴀʀ ᴀʟ"
           lore:
             - "<#CBD5E1>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>%amount%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴀʟ"
         back:
           name: "<#94A3B8>ɢᴇʀɪ"
           lore:
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ɢᴇʀɪ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ ʟɪsᴛᴇsɪ"
         close:
           name: "<#EF4444>ᴋᴀᴘᴀᴛ"
           lore:
@@ -341,7 +341,7 @@ gui:
             - "<#CBD5E1>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>%amount%"
             - "<#CBD5E1>ғɪʏᴀᴛ <#94A3B8>• <#E0F2FE>%price%"
             - "<#CBD5E1>ᴅᴇɢᴇʀ <#94A3B8>• <#E0F2FE>%worth%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>64 ᴄᴇᴋ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>64 ᴀʟ"
             - "<#CBD5E1>sᴀɢ ᴛɪᴋ <#94A3B8>• <#E0F2FE>sᴀᴛ"
         empty:
           name: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
@@ -466,27 +466,27 @@ gui:
           tooltip: "<#FDE68A>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%product_action%"
         sell-amount:
           label: "<#22C55E>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#BBF7D0>sᴀᴛ"
-          tooltip: "<#BBF7D0>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>sᴇᴄ"
+          tooltip: "<#BBF7D0>sᴀᴛɪʟᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ ɢɪʀ"
         withdraw-amount:
-          label: "<#38BDF8>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
-          tooltip: "<#E0F2FE>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#38BDF8>sᴇᴄ"
+          label: "<#38BDF8>ᴍɪᴋᴛᴀʀ <#94A3B8>• <#E0F2FE>ᴀʟ"
+          tooltip: "<#E0F2FE>ᴀʟɪɴᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀɪ ɢɪʀ"
         sell-all:
           label: "<#22C55E>ᴛᴜᴍᴜ <#94A3B8>• <#BBF7D0>sᴀᴛ"
-          tooltip: "<#BBF7D0>ᴅᴇᴘᴏ <#94A3B8>• <#E0F2FE>sᴀᴛ"
+          tooltip: "<#BBF7D0>ᴅᴇᴘᴏᴅᴀᴋɪ ʜᴇʀ sᴇʏɪ sᴀᴛ"
         withdraw-space:
-          label: "<#38BDF8>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴄᴇᴋ"
-          tooltip: "<#E0F2FE>ʙᴏs ᴀʟᴀɴ <#94A3B8>• <#38BDF8>ᴄᴇᴋ"
+          label: "<#38BDF8>sɪɢᴀɴ ᴋᴀᴅᴀʀ <#94A3B8>• <#E0F2FE>ᴀʟ"
+          tooltip: "<#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀɪɴᴇ sɪɢᴀᴄᴀᴋ ᴋᴀᴅᴀʀ ᴀʟ"
         back:
           label: "<#94A3B8>ɢᴇʀɪ"
-          tooltip: "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪɴᴇ ᴅᴏɴ"
+          tooltip: "<#CBD5E1>ᴜʀᴜɴ ʟɪsᴛᴇsɪ"
     amount:
       input-label: "<#E0F2FE>ᴍɪᴋᴛᴀʀ"
       withdraw:
-        title: "<#38BDF8>ᴄᴇᴋɪᴍ"
+        title: "<#38BDF8>ᴜʀᴜɴ ᴀʟ"
         body:
-          - "<#CBD5E1>%material_name% <#94A3B8>• <#E0F2FE>ᴄᴇᴋɪᴍ"
+          - "<#CBD5E1>%material_name% <#94A3B8>• <#E0F2FE>ᴀʟɪɴᴀᴄᴀᴋ ᴍɪᴋᴛᴀʀ"
           - "<#CBD5E1>ᴇɴ ᴄᴏᴋ <#94A3B8>• <#E0F2FE>%max_amount%"
-          - "<#CBD5E1>ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>ᴇɴᴠᴀɴᴛᴇʀᴇ sɪɢᴀɴ"
+          - "<#CBD5E1>ᴀʟᴀɴ <#94A3B8>• <#E0F2FE>sɪɢᴀɴ ᴋᴀᴅᴀʀ ᴀʟ"
       sell:
         title: "<#22C55E>sᴀᴛɪs"
         body:
@@ -499,4 +499,4 @@ gui:
           tooltip: "<#BBF7D0>ᴏɴᴀʏʟᴀ <#94A3B8>• <#E0F2FE>ᴅᴇᴠᴀᴍ"
         cancel:
           label: "<#EF4444>ᴠᴀᴢɢᴇᴄ"
-          tooltip: "<#BBF7D0>ɢᴇʀɪ <#94A3B8>• <#E0F2FE>ᴜʀᴜɴ"
+          tooltip: "<#BBF7D0>ᴜʀᴜɴ ʟɪsᴛᴇsɪ"
