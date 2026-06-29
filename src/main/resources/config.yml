@@ -278,7 +278,7 @@ gui:
           action: "product-toggle:%material%"
           lore:
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%product_state%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴅᴇɢɪsᴛɪʀ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%product_action%"
         "22":
           material: EMERALD
           name: "<#22C55E>sᴀᴛ"
@@ -382,7 +382,7 @@ gui:
           action: "collect-toggle"
           lore:
             - "<#CBD5E1>ᴛᴏᴘʟᴀᴍᴀ <#94A3B8>• <#E0F2FE>%collecting_state%"
-            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>ᴅᴇɢɪsᴛɪʀ"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>%collecting_action%"
         "22":
           material: OAK_SIGN
           name: "<#38BDF8>ᴜʏᴇʟᴇʀ"
