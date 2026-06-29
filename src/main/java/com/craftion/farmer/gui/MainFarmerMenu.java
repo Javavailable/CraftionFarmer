@@ -87,11 +87,8 @@ public final class MainFarmerMenu implements FarmerMenu {
     }
 
     private String collectionStatus(MenuRenderContext context, MaterialKey materialKey) {
-        if (!context.farmer().collectingEnabled()) {
-            return "<#FBBF24>ɢᴇɴᴇʟ ᴋᴀᴘᴀʟɪ";
-        }
-        if (!context.farmer().productCollectingEnabled(materialKey)) {
-            return "<#FBBF24>ᴜʀᴜɴ ᴋᴀᴘᴀʟɪ";
+        if (!context.farmer().collectingEnabled() || !context.farmer().productCollectingEnabled(materialKey)) {
+            return "<#FBBF24>ᴋᴀᴘᴀʟɪ";
         }
         return "<#22C55E>ᴀᴋᴛɪғ";
     }
