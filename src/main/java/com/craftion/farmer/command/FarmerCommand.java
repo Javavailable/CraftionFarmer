@@ -513,7 +513,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
         }
         return Map.of(
             "farmer", farmer.farmerId(),
-            "region", farmer.regionId(),
+            "region", regionDisplayName(farmer),
             "owner", ownerName(farmer.ownerUuid()),
             "owner_uuid", farmer.ownerUuid().toString(),
             "level", String.valueOf(farmer.level()),
@@ -555,7 +555,7 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
     }
 
     private Map<String, String> regionPlaceholders(String regionId) {
-        return Map.of("region", regionId == null ? "-" : regionId);
+        return Map.of("region", regionName(regionId));
     }
 
     private long storageTotal(Farmer farmer) {
@@ -600,6 +600,24 @@ public final class FarmerCommand implements CommandExecutor, TabCompleter {
             return cause.getClass().getSimpleName();
         }
         return message;
+    }
+
+    private String regionName(String regionId) {
+        if (regionId == null) {
+            return "-";
+        }
+        java.util.Optional<Farmer> farmer = this.plugin.farmerCache().getByRegionId(regionId);
+        if (farmer.isPresent()) {
+            return regionDisplayName(farmer.get());
+        }
+        return regionId;
+    }
+
+    private String regionDisplayName(Farmer farmer) {
+        if (farmer == null) {
+            return "Ada";
+        }
+        return com.craftion.farmer.util.TextUtil.regionDisplayName(ownerName(farmer.ownerUuid()), farmer.regionId());
     }
 
     private void addIfMatches(List<String> completions, String value, String input) {
