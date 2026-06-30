@@ -100,9 +100,6 @@ public final class AutoKillModule implements FarmerModule, Listener {
             return;
         }
         
-        // Prevent double processing if another event also caught it.
-        // Wait, SpawnerSpawnEvent extends EntitySpawnEvent, but doesn't implement CreatureSpawnEvent.
-        // It's a separate event that gives us the entity.
         if (!(event.getEntity() instanceof LivingEntity livingEntity)) {
             return;
         }
@@ -135,9 +132,18 @@ public final class AutoKillModule implements FarmerModule, Listener {
             return;
         }
 
-        // Do not touch custom/named entities
+        if (isUnsafeEntityType(entity.getType())) {
+            debugSkip("unsafe entity type", location, entity.getType().name());
+            return;
+        }
+
         if (entity.customName() != null) {
             debugSkip("entity has custom name", location, entity.getType().name());
+            return;
+        }
+
+        if (entity.hasMetadata("NPC") || entity.hasMetadata("CitizensNPC")) {
+            debugSkip("entity is NPC", location, entity.getType().name());
             return;
         }
 
@@ -165,19 +171,6 @@ public final class AutoKillModule implements FarmerModule, Listener {
         }
         if (!whitelist && contains) {
             debugSkip("in blacklist", location, entity.getType().name());
-            return;
-        }
-        
-        // Safety: Do not kill players, armor stands, etc.
-        if (entity.getType() == EntityType.PLAYER || entity.getType() == EntityType.ARMOR_STAND) {
-            debugSkip("unsafe entity type", location, entity.getType().name());
-            return;
-        }
-        
-        // Safety: Do not kill villagers by default unless explicitly in whitelist?
-        // Let's just strictly avoid if it's not explicitly whitelisted, but in blacklist it might slip.
-        if (!whitelist && entity.getType() == EntityType.VILLAGER) {
-            debugSkip("villager skipped in blacklist", location, entity.getType().name());
             return;
         }
 
@@ -237,5 +230,12 @@ public final class AutoKillModule implements FarmerModule, Listener {
                 .append(location.getBlockZ());
         }
         this.debugLogger.debug(message.toString());
+    }
+
+    private boolean isUnsafeEntityType(EntityType type) {
+        return type == EntityType.PLAYER
+            || type == EntityType.ARMOR_STAND
+            || type == EntityType.VILLAGER
+            || type == EntityType.WANDERING_TRADER;
     }
 }
