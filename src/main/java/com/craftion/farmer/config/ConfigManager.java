@@ -246,6 +246,22 @@ public final class ConfigManager {
         return this.config.getBoolean("modules.auto-harvest.check-all-directions", false);
     }
 
+    public boolean autoKillKillSpawnerMobs() {
+        return this.config.getBoolean("modules.auto-kill.kill-spawner-mobs", true);
+    }
+
+    public boolean autoKillKillNaturalMobs() {
+        return this.config.getBoolean("modules.auto-kill.kill-natural-mobs", false);
+    }
+
+    public String autoKillMode() {
+        return this.config.getString("modules.auto-kill.mode", "WHITELIST");
+    }
+
+    public List<String> autoKillMobs() {
+        return this.config.getStringList("modules.auto-kill.mobs");
+    }
+
     public Set<Material> autoHarvestCrops() {
         Set<Material> materials = new LinkedHashSet<>();
         for (String materialName : this.config.getStringList("modules.auto-harvest.crops")) {
