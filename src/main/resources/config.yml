@@ -225,6 +225,15 @@ modules:
       - COW
       - SHEEP
       - CHICKEN
+  xp-collector:
+    enabled: true
+    default-state: false
+    permission: "craftionfarmer.module.xp-collector"
+    xp-table:
+      cow: 1
+      sheep: 1
+      chicken: 1
+      iron_golem: 0
 
 gui:
   menus:
@@ -334,6 +343,10 @@ gui:
           id: close
           material: BARRIER
           action: "close"
+        "51":
+          id: xp-withdraw
+          material: SCULK
+          action: "xp-withdraw"
         "53":
           id: sell-all
           material: EMERALD

@@ -57,6 +57,10 @@ commands:
     withdraw-empty: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
     withdraw-inventory-full: "<#FBBF24>ᴇɴᴠᴀɴᴛᴇʀɪɴ ᴅᴏʟᴜ"
     withdraw-failed: "<#FB7185>ᴜʀᴜɴ ᴀʟɪɴᴀᴍᴀᴅɪ"
+    xp-withdraw-success: "<#22C55E>%amount% xᴘ ᴄᴇᴋɪʟᴅɪ"
+    xp-withdraw-empty: "<#FBBF24>xᴘ ʏᴏᴋ"
+    xp-withdraw-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
+    xp-withdraw-failed: "<#FB7185>xᴘ ᴄᴇᴋɪʟᴇᴍᴇᴅɪ"
     sell-success: "<#22C55E>sᴀᴛɪʟᴅɪ <#94A3B8>• <#E0F2FE>%net%"
     sell-denied: "<#FB7185>ʏᴇᴛᴋɪ ʏᴏᴋ"
     sell-empty: "<#FBBF24>ᴅᴇᴘᴏ ʙᴏs"
@@ -122,6 +126,7 @@ gui:
       cancel: "ᴠᴀᴢɢᴇᴄ"
       continue: "ᴅᴇᴠᴀᴍ"
       select: "sᴇᴄ"
+      xp-withdraw: "xᴘ ᴄᴇᴋ"
     labels:
       island: "ᴀᴅᴀ"
       owner: "sᴀʜɪᴘ"
@@ -146,6 +151,7 @@ gui:
       inventory-space: "sɪɢᴀɴ ᴋᴀᴅᴀʀ"
       all-products: "ᴛᴜᴍ ᴜʀᴜɴʟᴇʀ"
       unknown-error: "ʙɪʟɪɴᴍᴇʏᴇɴ ʜᴀᴛᴀ"
+      xp: "xᴘ"
     permissions:
       ok: "ᴠᴀʀ"
       required: "ɢᴇʀᴇᴋɪʀ"
@@ -232,16 +238,19 @@ gui:
       production-calc: "ᴜʀᴇᴛɪᴍ"
       auto-harvest: "ᴏᴛᴏ ʜᴀsᴀᴛ"
       auto-kill: "ᴏᴛᴏ ᴀᴠ"
+      xp-collector: "xᴘ ᴛᴏᴘʟᴀʏɪᴄɪ"
     module-descriptions:
       auto-sell: "ғɪʏᴀᴛɪ ᴏʟᴀɴ ᴜʀᴜɴʟᴇʀɪ ᴏᴛᴏ sᴀᴛᴀʀ"
       production-calc: "ᴜʀᴇᴛɪᴍ ʜɪᴢɪɴɪ ᴅᴇᴘᴏʏᴀ ɢᴏʀᴇ ʜᴇsᴀᴘʟᴀʀ"
       auto-harvest: "ᴇᴋɪɴʟᴇʀɪ ᴋᴇɴᴅɪ ᴛᴏᴘʟᴀʀ"
       auto-kill: "ᴍᴏʙ ᴜʀᴜɴʟᴇʀɪɴɪ ᴛᴏᴘʟᴀʀ"
+      xp-collector: "ᴍᴏʙ xᴘ ᴛᴏᴘʟᴀʀ"
     module-metric-labels:
       auto-sell: "ᴀʀᴀʟɪᴋ"
       production-calc: "ᴜʀᴇᴛɪᴍ"
       auto-harvest: "ᴜʀᴜɴ"
       auto-kill: "ᴅᴜʀᴜᴍ"
+      xp-collector: "xᴘ"
   menus:
     main:
       title: "<#38BDF8>ᴄʀᴀғᴛɪᴏɴ ᴄɪғᴛᴄɪ"
@@ -375,6 +384,11 @@ gui:
         sell-all:
           name: "<#22C55E>ᴛᴜᴍᴜ sᴀᴛ"
           lore: []
+        xp-withdraw:
+          name: "<#38BDF8>xᴘ ᴄᴇᴋ"
+          lore:
+            - "<#CBD5E1>xᴘ <#94A3B8>• <#E0F2FE>%xp_amount%"
+            - "<#CBD5E1>sᴏʟ ᴛɪᴋ <#94A3B8>• <#E0F2FE>xᴘ ᴄᴇᴋ"
       storage-items:
         filled:
           name: "<#22C55E>%material_name%"

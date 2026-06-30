@@ -38,6 +38,9 @@ public record MenuAction(Type type, String target) {
         if (action.equals("collect-toggle")) {
             return Optional.of(new MenuAction(Type.COLLECT_TOGGLE, ""));
         }
+        if (action.equals("xp-withdraw")) {
+            return Optional.of(new MenuAction(Type.XP_WITHDRAW, ""));
+        }
         if (action.startsWith("product-toggle:")) {
             String target = target(action, "product-toggle:");
             return isMaterialTarget(target) ? Optional.of(new MenuAction(Type.PRODUCT_TOGGLE, target)) : Optional.empty();
@@ -112,7 +115,7 @@ public record MenuAction(Type type, String target) {
     private static boolean isValidTarget(Type type, String target) {
         return switch (type) {
             case OPEN -> isOpenTarget(target);
-            case CLOSE, BACK, INFO, COLLECT_TOGGLE -> target.isEmpty();
+            case CLOSE, BACK, INFO, COLLECT_TOGGLE, XP_WITHDRAW -> target.isEmpty();
             case WITHDRAW -> isWithdrawTarget(target);
             case SELL -> isSellTarget(target);
             case WITHDRAW_DIALOG, SELL_DIALOG, PRODUCT_TOGGLE -> isMaterialTarget(target);
@@ -172,6 +175,7 @@ public record MenuAction(Type type, String target) {
         SELL_DIALOG,
         MODULE_TOGGLE,
         COLLECT_TOGGLE,
-        PRODUCT_TOGGLE
+        PRODUCT_TOGGLE,
+        XP_WITHDRAW
     }
 }

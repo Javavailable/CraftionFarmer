@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class ConfigValidationService {
 
     private static final long SAFE_AUTO_SELL_INTERVAL_SECONDS = 5L;
+    private static final Set<String> XP_COLLECTOR_KEYS = Set.of("cow", "sheep", "chicken", "iron_golem");
 
     private final JavaPlugin plugin;
     private final DebugLogger debugLogger;
@@ -31,6 +32,7 @@ public final class ConfigValidationService {
         validateEconomy(config, warnings);
         validatePrices(config, warnings);
         validateAutoSell(config, warnings);
+        validateXpCollector(config, warnings);
         validateGui(config, warnings);
 
         if (warnings.isEmpty()) {
@@ -104,6 +106,25 @@ public final class ConfigValidationService {
         }
         if (interval.longValue() < SAFE_AUTO_SELL_INTERVAL_SECONDS) {
             warnings.add("modules.auto-sell.interval-seconds is below safe minimum before clamp: " + interval.longValue());
+        }
+    }
+
+    private void validateXpCollector(FileConfiguration config, List<String> warnings) {
+        ConfigurationSection xpTable = config.getConfigurationSection("modules.xp-collector.xp-table");
+        if (xpTable == null) {
+            return;
+        }
+
+        for (String key : xpTable.getKeys(false)) {
+            String normalizedKey = normalizeKey(key);
+            if (!XP_COLLECTOR_KEYS.contains(normalizedKey)) {
+                warnings.add("Unsupported XP collector mob key ignored in v1: modules.xp-collector.xp-table." + key);
+                continue;
+            }
+            Number value = number(xpTable.get(key));
+            if (value == null || value.longValue() < 0L) {
+                warnings.add("Invalid XP collector value: modules.xp-collector.xp-table." + key + " must be 0 or greater.");
+            }
         }
     }
 
