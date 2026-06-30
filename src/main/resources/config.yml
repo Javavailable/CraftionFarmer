@@ -57,6 +57,9 @@ collect:
     - NETHER_WART
     - WHEAT_SEEDS
     - BEETROOT_SEEDS
+    - POISONOUS_POTATO
+    - APPLE
+    - CHORUS_FRUIT
 
 storage:
   withdraw:
@@ -83,6 +86,9 @@ prices:
   nether_wart: 3.0
   wheat_seeds: 0.25
   beetroot_seeds: 0.25
+  poisonous_potato: 0.10
+  apple: 1.0
+  chorus_fruit: 2.0
 
 modules:
   auto-sell:

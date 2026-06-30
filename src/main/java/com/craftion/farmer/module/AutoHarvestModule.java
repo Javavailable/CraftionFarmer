@@ -237,7 +237,13 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
                 drops.add(new ItemStack(Material.BEETROOT_SEEDS, ThreadLocalRandom.current().nextInt(1, 4)));
                 return drops;
             }
-            case CARROT, POTATO -> amount = ThreadLocalRandom.current().nextInt(2, 6);
+            case CARROT -> amount = ThreadLocalRandom.current().nextInt(2, 6);
+            case POTATO -> {
+                amount = ThreadLocalRandom.current().nextInt(2, 6);
+                if (ThreadLocalRandom.current().nextInt(100) < 2) {
+                    drops.add(new ItemStack(Material.POISONOUS_POTATO, 1));
+                }
+            }
             case NETHER_WART -> amount = ThreadLocalRandom.current().nextInt(2, 5);
             case MELON_SLICE -> amount = ThreadLocalRandom.current().nextInt(3, 8);
             case COCOA_BEANS, SWEET_BERRIES -> amount = 3;
