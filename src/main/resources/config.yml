@@ -60,6 +60,14 @@ collect:
     - POISONOUS_POTATO
     - APPLE
     - CHORUS_FRUIT
+    - IRON_INGOT
+    - POPPY
+    - BEEF
+    - LEATHER
+    - MUTTON
+    - WHITE_WOOL
+    - CHICKEN
+    - FEATHER
 
 storage:
   withdraw:
@@ -89,6 +97,14 @@ prices:
   poisonous_potato: 0.10
   apple: 1.0
   chorus_fruit: 2.0
+  iron_ingot: 8.0
+  poppy: 0.5
+  beef: 2.0
+  leather: 2.0
+  mutton: 2.0
+  white_wool: 1.5
+  chicken: 2.0
+  feather: 1.0
 
 modules:
   auto-sell:
@@ -122,9 +138,17 @@ modules:
       - SWEET_BERRIES
       - NETHER_WART
   auto-kill:
-    enabled: false
+    enabled: true
     default-state: false
     permission: "craftionfarmer.module.auto-kill"
+    kill-spawner-mobs: true
+    kill-natural-mobs: false
+    mode: WHITELIST
+    mobs:
+      - IRON_GOLEM
+      - COW
+      - SHEEP
+      - CHICKEN
 
 gui:
   menus:

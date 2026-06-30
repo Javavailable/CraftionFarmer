@@ -79,7 +79,14 @@ public final class ModuleManager {
             this.moduleStateService,
             Objects.requireNonNull(regionProviderManager, "regionProviderManager")
         ));
-        registerUnavailable(ModuleCardDescriptor.unavailable("auto-kill", "IRON_SWORD"));
+        register(new AutoKillModule(
+            plugin,
+            configManager,
+            this.debugLogger,
+            Objects.requireNonNull(farmerCache, "farmerCache"),
+            this.moduleStateService,
+            Objects.requireNonNull(regionProviderManager, "regionProviderManager")
+        ));
     }
 
     public void initialize() {
