@@ -8,6 +8,7 @@ import com.craftion.farmer.economy.StorageTransactionService;
 import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.FarmerRole;
+import com.craftion.farmer.farmer.FarmerSaveRetryService;
 import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.gui.listener.MenuClickListener;
 import com.craftion.farmer.gui.listener.MenuDragListener;
@@ -21,6 +22,7 @@ import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.module.ModuleStateResult;
 import com.craftion.farmer.module.ProductionEstimate;
+import com.craftion.farmer.scheduler.ScheduledTaskHandle;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.storage.DatabaseManager;
 import com.craftion.farmer.util.TextUtil;
@@ -70,6 +72,7 @@ public final class MenuService {
     private final DatabaseManager databaseManager;
     private final RegionProviderManager regionProviderManager;
     private final FarmerPersistenceService farmerPersistenceService;
+    private final FarmerSaveRetryService farmerSaveRetryService;
     private final FarmerReconcileService farmerReconcileService;
     private final MessageService messageService;
     private final GuiTextService guiTextService;
@@ -88,6 +91,7 @@ public final class MenuService {
         DatabaseManager databaseManager,
         RegionProviderManager regionProviderManager,
         FarmerPersistenceService farmerPersistenceService,
+        FarmerSaveRetryService farmerSaveRetryService,
         FarmerReconcileService farmerReconcileService,
         MessageService messageService,
         GuiTextService guiTextService,
@@ -102,6 +106,7 @@ public final class MenuService {
         this.databaseManager = databaseManager;
         this.regionProviderManager = regionProviderManager;
         this.farmerPersistenceService = farmerPersistenceService;
+        this.farmerSaveRetryService = farmerSaveRetryService;
         this.farmerReconcileService = farmerReconcileService;
         this.messageService = messageService;
         this.guiTextService = guiTextService;
@@ -179,6 +184,7 @@ public final class MenuService {
         this.actionRegistry.register(MenuAction.Type.MODULE_TOGGLE, this::toggleModule);
         this.actionRegistry.register(MenuAction.Type.COLLECT_TOGGLE, this::toggleCollect);
         this.actionRegistry.register(MenuAction.Type.PRODUCT_TOGGLE, this::toggleProductCollect);
+        this.actionRegistry.register(MenuAction.Type.XP_WITHDRAW, this::withdrawXp);
     }
 
     private boolean openForPlayer(Player player, String menuId, String previousMenuId) {
@@ -769,6 +775,91 @@ public final class MenuService {
         return true;
     }
 
+    private boolean withdrawXp(MenuContext context, MenuAction action) {
+        Optional<FarmerMenuSession> session = context.session();
+        if (session.isEmpty()) {
+            this.messageService.send(context.player(), "commands.farmer.gui-denied");
+            return false;
+        }
+
+        FarmerMenuSession menuSession = session.get();
+        if (!withdrawAccess().allows(menuSession.role())) {
+            this.messageService.send(context.player(), "commands.farmer.xp-withdraw-denied");
+            return true;
+        }
+
+        Farmer farmer = menuSession.farmer();
+        long drainedXp = farmer.drainXp(Integer.MAX_VALUE);
+        if (drainedXp <= 0L) {
+            this.messageService.send(context.player(), "commands.farmer.xp-withdraw-empty", xpPlaceholders(0L));
+            return true;
+        }
+
+        this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                restoreXp(farmer, drainedXp, "xp withdraw save failed");
+                this.schedulerAdapter.runAtEntity(context.player(), () -> {
+                    if (context.player().isOnline()) {
+                        this.plugin.getLogger().warning("XP withdraw save failed: " + readableMessage(throwable));
+                        this.messageService.send(context.player(), "commands.farmer.xp-withdraw-failed", xpPlaceholders(drainedXp));
+                        refreshCurrentMenu(context);
+                    }
+                });
+                return;
+            }
+
+            ScheduledTaskHandle grantTask = this.schedulerAdapter.runAtEntity(context.player(), () -> grantWithdrawnXp(context, farmer, drainedXp));
+            if (grantTask.isCancelled()) {
+                restoreAndPersistXp(farmer, drainedXp, "xp withdraw grant schedule");
+            }
+        });
+        return true;
+    }
+
+    private void grantWithdrawnXp(MenuContext context, Farmer farmer, long drainedXp) {
+        Player player = context.player();
+        if (!player.isOnline() || !player.isValid()) {
+            restoreAndPersistXp(farmer, drainedXp, "xp withdraw player offline");
+            return;
+        }
+
+        try {
+            player.giveExp((int) drainedXp);
+        } catch (RuntimeException exception) {
+            restoreAndPersistXp(farmer, drainedXp, "xp withdraw grant failed");
+            this.plugin.getLogger().warning("XP grant failed: " + readableMessage(exception));
+            this.messageService.send(player, "commands.farmer.xp-withdraw-failed", xpPlaceholders(drainedXp));
+            refreshCurrentMenu(context);
+            return;
+        }
+
+        this.messageService.send(player, "commands.farmer.xp-withdraw-success", xpPlaceholders(drainedXp));
+        refreshCurrentMenu(context);
+    }
+
+    private void restoreXp(Farmer farmer, long amount, String reason) {
+        if (farmer == null || amount <= 0L) {
+            return;
+        }
+
+        farmer.addXp(amount);
+        this.farmerSaveRetryService.markDirty(farmer, reason);
+    }
+
+    private void restoreAndPersistXp(Farmer farmer, long amount, String reason) {
+        if (farmer == null || amount <= 0L) {
+            return;
+        }
+
+        farmer.addXp(amount);
+        this.farmerPersistenceService.save(farmer).whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                this.plugin.getLogger().warning("XP restore save failed: " + readableMessage(throwable));
+                this.farmerSaveRetryService.markDirty(farmer, reason);
+            }
+        });
+    }
+
     private void sendWithdrawResult(Player player, StorageTransactionResult result) {
         String path = switch (result.status()) {
             case SUCCESS -> "commands.farmer.withdraw-success";
@@ -1050,6 +1141,10 @@ public final class MenuService {
         return Map.copyOf(placeholders);
     }
 
+    private Map<String, String> xpPlaceholders(long amount) {
+        return Map.of("amount", formatAmount(amount), "xp_amount", formatAmount(amount));
+    }
+
     private Map<String, String> modulePlaceholders(String moduleKey, boolean enabled) {
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("module", this.guiTextService.moduleName(moduleKey));
@@ -1186,6 +1281,7 @@ public final class MenuService {
         placeholders.put("level", String.valueOf(farmer.level()));
         placeholders.put("members", String.valueOf(memberCount(farmer)));
         placeholders.put("storage_usage", formatAmount(storageTotal(farmer)));
+        placeholders.put("xp_amount", formatAmount(farmer.xpBuffer()));
         placeholders.put("collecting_state", this.guiTextService.state(farmer.collectingEnabled() ? "active" : "closed", farmer.collectingEnabled() ? "active" : "closed"));
         placeholders.put("collecting_action", this.guiTextService.action(farmer.collectingEnabled() ? "close" : "open", farmer.collectingEnabled() ? "close" : "open"));
         placeholders.put("role", this.guiTextService.roleName(session.role()));
