@@ -55,6 +55,8 @@ collect:
     - COCOA_BEANS
     - SWEET_BERRIES
     - NETHER_WART
+    - WHEAT_SEEDS
+    - BEETROOT_SEEDS
 
 storage:
   withdraw:
@@ -79,6 +81,8 @@ prices:
   cocoa_beans: 2.0
   sweet_berries: 2.0
   nether_wart: 3.0
+  wheat_seeds: 0.25
+  beetroot_seeds: 0.25
 
 modules:
   auto-sell:

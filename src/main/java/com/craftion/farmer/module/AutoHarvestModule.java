@@ -7,8 +7,11 @@ import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.MaterialKey;
 import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -152,7 +155,7 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
             return;
         }
 
-        if (this.configManager.autoHarvestCheckStock() && isStorageFull(value, materialKey)) {
+        if (this.configManager.autoHarvestCheckStock() && isStorageFullForHarvest(value, harvestMaterial)) {
             debugSkip("storage full", location, harvestMaterial.name());
             if (this.configManager.autoHarvestPreventGrowthWhenFull()) {
                 event.setCancelled(true);
@@ -182,8 +185,10 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
     private boolean harvest(BlockGrowEvent event, Material harvestMaterial) {
         if (isBlockCrop(harvestMaterial)) {
             event.setCancelled(true);
+            BlockState matureState = event.getNewState();
+            List<ItemStack> drops = harvestDrops(harvestMaterial);
             event.getBlock().setType(Material.AIR, true);
-            dropHarvest(event.getNewState().getLocation(), harvestMaterial);
+            dropHarvest(matureState.getLocation(), drops);
             return true;
         }
 
@@ -196,27 +201,51 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
         }
 
         event.setCancelled(true);
+        BlockState matureState = event.getNewState();
+        List<ItemStack> drops = harvestDrops(harvestMaterial);
         ageable.setAge(0);
         event.getBlock().setBlockData(ageable, true);
-        dropHarvest(event.getNewState().getLocation(), harvestMaterial);
+        dropHarvest(matureState.getLocation(), drops);
         return true;
     }
 
-    private void dropHarvest(Location location, Material harvestMaterial) {
+    private void dropHarvest(Location location, List<ItemStack> drops) {
         World world = location.getWorld();
         if (world == null) {
             return;
         }
 
-        world.dropItemNaturally(location, new ItemStack(harvestMaterial, harvestAmount(harvestMaterial)));
+        for (ItemStack drop : drops) {
+            if (drop != null && drop.getAmount() > 0 && !drop.getType().isAir()) {
+                world.dropItemNaturally(location, drop);
+            }
+        }
     }
 
-    private int harvestAmount(Material harvestMaterial) {
-        return switch (harvestMaterial) {
-            case MELON_SLICE -> 4;
-            case COCOA_BEANS, SWEET_BERRIES -> 3;
-            default -> 1;
-        };
+    private List<ItemStack> harvestDrops(Material harvestMaterial) {
+        List<ItemStack> drops = new ArrayList<>();
+        int amount = 1;
+
+        switch (harvestMaterial) {
+            case WHEAT -> {
+                drops.add(new ItemStack(Material.WHEAT, 1));
+                drops.add(new ItemStack(Material.WHEAT_SEEDS, ThreadLocalRandom.current().nextInt(1, 4)));
+                return drops;
+            }
+            case BEETROOT -> {
+                drops.add(new ItemStack(Material.BEETROOT, 1));
+                drops.add(new ItemStack(Material.BEETROOT_SEEDS, ThreadLocalRandom.current().nextInt(1, 4)));
+                return drops;
+            }
+            case CARROT, POTATO -> amount = ThreadLocalRandom.current().nextInt(2, 6);
+            case NETHER_WART -> amount = ThreadLocalRandom.current().nextInt(2, 5);
+            case MELON_SLICE -> amount = ThreadLocalRandom.current().nextInt(3, 8);
+            case COCOA_BEANS, SWEET_BERRIES -> amount = 3;
+            default -> amount = 1;
+        }
+
+        drops.add(new ItemStack(harvestMaterial, amount));
+        return drops;
     }
 
     private boolean isBlockCrop(Material harvestMaterial) {
@@ -225,6 +254,30 @@ public final class AutoHarvestModule implements FarmerModule, Listener {
             || harvestMaterial == Material.BAMBOO
             || harvestMaterial == Material.PUMPKIN
             || harvestMaterial == Material.MELON_SLICE;
+    }
+
+    private List<Material> stockKeysForHarvest(Material harvestMaterial) {
+        if (harvestMaterial == Material.WHEAT) {
+            return List.of(Material.WHEAT, Material.WHEAT_SEEDS);
+        }
+        if (harvestMaterial == Material.BEETROOT) {
+            return List.of(Material.BEETROOT, Material.BEETROOT_SEEDS);
+        }
+        return List.of(harvestMaterial);
+    }
+
+    private boolean isStorageFullForHarvest(Farmer farmer, Material harvestMaterial) {
+        Set<Material> allowedMaterials = this.configManager.allowedCollectMaterials();
+        for (Material material : stockKeysForHarvest(harvestMaterial)) {
+            if (!allowedMaterials.contains(material)) {
+                continue;
+            }
+            MaterialKey materialKey = MaterialKey.of(material.name());
+            if (farmer.productCollectingEnabled(materialKey) && isStorageFull(farmer, materialKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isStorageFull(Farmer farmer, MaterialKey materialKey) {
