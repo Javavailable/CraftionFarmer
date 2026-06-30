@@ -68,6 +68,44 @@ collect:
     - WHITE_WOOL
     - CHICKEN
     - FEATHER
+    - ROTTEN_FLESH
+    - BONE
+    - ARROW
+    - GUNPOWDER
+    - STRING
+    - SPIDER_EYE
+    - ENDER_PEARL
+    - SLIME_BALL
+    - BLAZE_ROD
+    - MAGMA_CREAM
+    - PRISMARINE_SHARD
+    - PRISMARINE_CRYSTALS
+    - PHANTOM_MEMBRANE
+    - RABBIT
+    - RABBIT_HIDE
+    - RABBIT_FOOT
+    - INK_SAC
+    - GLOW_INK_SAC
+    - PORKCHOP
+    - COD
+    - SALMON
+    - TROPICAL_FISH
+    - PUFFERFISH
+    - ORANGE_WOOL
+    - MAGENTA_WOOL
+    - LIGHT_BLUE_WOOL
+    - YELLOW_WOOL
+    - LIME_WOOL
+    - PINK_WOOL
+    - GRAY_WOOL
+    - LIGHT_GRAY_WOOL
+    - CYAN_WOOL
+    - PURPLE_WOOL
+    - BLUE_WOOL
+    - BROWN_WOOL
+    - GREEN_WOOL
+    - RED_WOOL
+    - BLACK_WOOL
 
 storage:
   withdraw:
@@ -105,6 +143,44 @@ prices:
   white_wool: 1.5
   chicken: 2.0
   feather: 1.0
+  rotten_flesh: 0.5
+  bone: 1.0
+  arrow: 0.5
+  gunpowder: 2.5
+  string: 1.0
+  spider_eye: 1.5
+  ender_pearl: 4.0
+  slime_ball: 2.5
+  blaze_rod: 5.0
+  magma_cream: 3.5
+  prismarine_shard: 3.0
+  prismarine_crystals: 3.0
+  phantom_membrane: 4.0
+  rabbit: 2.0
+  rabbit_hide: 1.0
+  rabbit_foot: 3.0
+  ink_sac: 1.5
+  glow_ink_sac: 2.0
+  porkchop: 2.0
+  cod: 1.5
+  salmon: 1.75
+  tropical_fish: 2.0
+  pufferfish: 3.0
+  orange_wool: 1.5
+  magenta_wool: 1.5
+  light_blue_wool: 1.5
+  yellow_wool: 1.5
+  lime_wool: 1.5
+  pink_wool: 1.5
+  gray_wool: 1.5
+  light_gray_wool: 1.5
+  cyan_wool: 1.5
+  purple_wool: 1.5
+  blue_wool: 1.5
+  brown_wool: 1.5
+  green_wool: 1.5
+  red_wool: 1.5
+  black_wool: 1.5
 
 modules:
   auto-sell:
