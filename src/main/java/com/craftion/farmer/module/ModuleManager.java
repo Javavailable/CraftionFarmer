@@ -34,6 +34,7 @@ public final class ModuleManager {
     private final LogRepository logRepository;
     private final ModuleStateService moduleStateService;
     private final ModuleAccessService moduleAccessService;
+    private final AutoKillDeathTracker autoKillDeathTracker = new AutoKillDeathTracker();
     private final Map<String, FarmerModule> modules = new LinkedHashMap<>();
     private final Map<String, ModuleCardDescriptor> unavailableCards = new LinkedHashMap<>();
     private final ProductionCalcModule productionCalcModule;
@@ -85,7 +86,17 @@ public final class ModuleManager {
             this.debugLogger,
             Objects.requireNonNull(farmerCache, "farmerCache"),
             this.moduleStateService,
-            Objects.requireNonNull(regionProviderManager, "regionProviderManager")
+            Objects.requireNonNull(regionProviderManager, "regionProviderManager"),
+            this.autoKillDeathTracker
+        ));
+        register(new XpCollectorModule(
+            plugin,
+            configManager,
+            this.debugLogger,
+            this.farmerPersistenceService,
+            this.farmerSaveRetryService,
+            this.moduleStateService,
+            this.autoKillDeathTracker
         ));
     }
 

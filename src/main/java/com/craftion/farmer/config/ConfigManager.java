@@ -10,9 +10,17 @@ import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ConfigManager {
+
+    private static final Set<EntityType> XP_COLLECTOR_ENTITY_TYPES = Set.of(
+        EntityType.COW,
+        EntityType.SHEEP,
+        EntityType.CHICKEN,
+        EntityType.IRON_GOLEM
+    );
 
     private final JavaPlugin plugin;
     private FileConfiguration config;
@@ -260,6 +268,14 @@ public final class ConfigManager {
 
     public List<String> autoKillMobs() {
         return this.config.getStringList("modules.auto-kill.mobs");
+    }
+
+    public long xpCollectorXp(EntityType entityType) {
+        if (entityType == null || !XP_COLLECTOR_ENTITY_TYPES.contains(entityType)) {
+            return 0L;
+        }
+
+        return Math.max(0L, this.config.getLong("modules.xp-collector.xp-table." + normalizeGuiKey(entityType.name()), 0L));
     }
 
     public Set<Material> autoHarvestCrops() {

@@ -30,6 +30,7 @@ public final class AutoKillModule implements FarmerModule, Listener {
     private final FarmerCache farmerCache;
     private final ModuleStateService moduleStateService;
     private final RegionProviderManager regionProviderManager;
+    private final AutoKillDeathTracker deathTracker;
     private boolean registered;
 
     public AutoKillModule(
@@ -38,7 +39,8 @@ public final class AutoKillModule implements FarmerModule, Listener {
         DebugLogger debugLogger,
         FarmerCache farmerCache,
         ModuleStateService moduleStateService,
-        RegionProviderManager regionProviderManager
+        RegionProviderManager regionProviderManager,
+        AutoKillDeathTracker deathTracker
     ) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -46,6 +48,7 @@ public final class AutoKillModule implements FarmerModule, Listener {
         this.farmerCache = farmerCache;
         this.moduleStateService = moduleStateService;
         this.regionProviderManager = regionProviderManager;
+        this.deathTracker = deathTracker;
     }
 
     @Override
@@ -209,8 +212,12 @@ public final class AutoKillModule implements FarmerModule, Listener {
             return;
         }
 
-        // Perform the kill
-        entity.damage(Double.MAX_VALUE);
+        this.deathTracker.mark(entity, value);
+        try {
+            entity.damage(Double.MAX_VALUE);
+        } finally {
+            this.deathTracker.unmark(entity);
+        }
     }
 
     private void debugSkip(String reason, Location location, String detail) {

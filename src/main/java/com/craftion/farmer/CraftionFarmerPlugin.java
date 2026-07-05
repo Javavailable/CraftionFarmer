@@ -155,6 +155,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.databaseManager,
             this.regionProviderManager,
             this.farmerPersistenceService,
+            this.farmerSaveRetryService,
             this.farmerReconcileService,
             this.messageService,
             this.guiTextService,

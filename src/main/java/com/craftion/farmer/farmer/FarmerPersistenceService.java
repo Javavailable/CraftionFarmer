@@ -237,6 +237,7 @@ public final class FarmerPersistenceService {
             new FarmerSettings(loadSettings(connection, farmerId)),
             loadModules(connection, farmerId),
             loadProductCollectingStates(connection, farmerId),
+            resultSet.getLong("xp_buffer"),
             FarmerStatistics.empty(),
             Instant.ofEpochMilli(resultSet.getLong("created_at")),
             Instant.ofEpochMilli(resultSet.getLong("updated_at"))
@@ -353,21 +354,21 @@ public final class FarmerPersistenceService {
     private int updateFarmer(Connection connection, Farmer farmer) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
             "UPDATE farmers SET region_id = ?, owner_uuid = ?, world = ?, x = ?, y = ?, z = ?, yaw = ?, pitch = ?, "
-                + "level = ?, collecting_enabled = ?, created_at = ?, updated_at = ? WHERE id = ?"
+                + "level = ?, collecting_enabled = ?, xp_buffer = ?, created_at = ?, updated_at = ? WHERE id = ?"
         )) {
             bindFarmer(statement, farmer);
-            statement.setString(13, farmer.farmerId());
+            statement.setString(14, farmer.farmerId());
             return statement.executeUpdate();
         }
     }
 
     private void insertFarmer(Connection connection, Farmer farmer) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-            "INSERT INTO farmers (region_id, owner_uuid, world, x, y, z, yaw, pitch, level, collecting_enabled, created_at, updated_at, id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO farmers (region_id, owner_uuid, world, x, y, z, yaw, pitch, level, collecting_enabled, xp_buffer, created_at, updated_at, id) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )) {
             bindFarmer(statement, farmer);
-            statement.setString(13, farmer.farmerId());
+            statement.setString(14, farmer.farmerId());
             statement.executeUpdate();
         }
     }
@@ -384,8 +385,9 @@ public final class FarmerPersistenceService {
         statement.setFloat(8, location.pitch());
         statement.setInt(9, farmer.level());
         statement.setBoolean(10, farmer.collectingEnabled());
-        statement.setLong(11, farmer.createdAt().toEpochMilli());
-        statement.setLong(12, farmer.updatedAt().toEpochMilli());
+        statement.setLong(11, farmer.xpBuffer());
+        statement.setLong(12, farmer.createdAt().toEpochMilli());
+        statement.setLong(13, farmer.updatedAt().toEpochMilli());
     }
 
     private void insertMembers(Connection connection, Farmer farmer) throws SQLException {

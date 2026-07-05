@@ -68,14 +68,21 @@ public final class FoliaSchedulerAdapter implements SchedulerAdapter {
     }
 
     @Override
-    public ScheduledTaskHandle runAtEntity(Entity entity, Runnable task) {
+    public ScheduledTaskHandle runAtEntity(Entity entity, Runnable task, Runnable retiredTask) {
         Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(retiredTask, "retiredTask");
         if (!canSchedule()) {
             return ScheduledTaskHandle.cancelled();
         }
 
         OneShotTask oneShotTask = new OneShotTask(task);
-        ScheduledTask scheduledTask = entity.getScheduler().run(this.plugin, ignored -> oneShotTask.run(), oneShotTask::finish);
+        ScheduledTask scheduledTask = entity.getScheduler().run(this.plugin, ignored -> oneShotTask.run(), () -> {
+            try {
+                retiredTask.run();
+            } finally {
+                oneShotTask.finish();
+            }
+        });
         if (scheduledTask == null) {
             return ScheduledTaskHandle.cancelled();
         }

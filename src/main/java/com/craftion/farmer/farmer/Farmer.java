@@ -22,6 +22,7 @@ public final class Farmer {
     private volatile LocationSnapshot location;
     private volatile int level;
     private volatile boolean collectingEnabled;
+    private long xpBuffer;
     private volatile FarmerStatistics statistics;
     private volatile Instant updatedAt;
 
@@ -52,6 +53,7 @@ public final class Farmer {
             settings,
             moduleStates,
             Map.of(),
+            0L,
             statistics,
             createdAt,
             updatedAt
@@ -70,6 +72,7 @@ public final class Farmer {
         FarmerSettings settings,
         Map<String, Boolean> moduleStates,
         Map<MaterialKey, Boolean> productCollectingStates,
+        long xpBuffer,
         FarmerStatistics statistics,
         Instant createdAt,
         Instant updatedAt
@@ -82,6 +85,7 @@ public final class Farmer {
         this.collectingEnabled = collectingEnabled;
         this.storage = FarmerValidation.requireNonNull(storage, "storage").copy();
         this.settings = FarmerValidation.requireNonNull(settings, "settings").copy();
+        this.xpBuffer = FarmerValidation.requireNonNegative(xpBuffer, "xpBuffer");
         this.statistics = FarmerValidation.requireNonNull(statistics, "statistics");
         this.createdAt = FarmerValidation.requireNonNull(createdAt, "createdAt");
         this.updatedAt = FarmerValidation.requireNonNull(updatedAt, "updatedAt");
@@ -138,6 +142,7 @@ public final class Farmer {
             this.settings,
             this.moduleStates,
             this.productCollectingStates,
+            this.xpBuffer(),
             this.statistics,
             this.createdAt,
             Instant.now()
@@ -205,6 +210,46 @@ public final class Farmer {
             }
             touch();
             return new StorageRemoveResult(materialKey, requestedAmount, removedAmount, requestedAmount - removedAmount, newAmount);
+        }
+    }
+
+    public long xpBuffer() {
+        synchronized (this) {
+            return this.xpBuffer;
+        }
+    }
+
+    public long addXp(long requestedAmount) {
+        FarmerValidation.requireNonNegative(requestedAmount, "requestedAmount");
+
+        synchronized (this) {
+            if (requestedAmount <= 0L || this.xpBuffer >= Long.MAX_VALUE) {
+                return 0L;
+            }
+
+            long addableAmount = Math.min(requestedAmount, Long.MAX_VALUE - this.xpBuffer);
+            if (addableAmount <= 0L) {
+                return 0L;
+            }
+
+            this.xpBuffer += addableAmount;
+            touch();
+            return addableAmount;
+        }
+    }
+
+    public long drainXp(long requestedAmount) {
+        FarmerValidation.requireNonNegative(requestedAmount, "requestedAmount");
+
+        synchronized (this) {
+            long drainedAmount = Math.min(requestedAmount, this.xpBuffer);
+            if (drainedAmount <= 0L) {
+                return 0L;
+            }
+
+            this.xpBuffer -= drainedAmount;
+            touch();
+            return drainedAmount;
         }
     }
 

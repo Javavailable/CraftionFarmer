@@ -154,6 +154,7 @@ public final class ModulesMenu implements FarmerMenu {
             case "auto-sell" -> moduleIntervalLabel(context, card.key());
             case "production-calc" -> context.guiTextService().format("per-hour", "%amount%/hour", Map.of("amount", context.placeholders().getOrDefault("production_hour", "0")));
             case "auto-harvest" -> String.valueOf(context.configManager().autoHarvestCrops().size());
+            case "xp-collector" -> context.placeholders().getOrDefault("xp_amount", "0");
             default -> context.guiTextService().state("coming-soon", "coming soon");
         };
     }
