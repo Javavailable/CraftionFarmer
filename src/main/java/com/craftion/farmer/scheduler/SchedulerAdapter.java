@@ -15,7 +15,12 @@ public interface SchedulerAdapter {
 
     ScheduledTaskHandle runRepeating(Runnable task, long delayTicks, long periodTicks);
 
-    ScheduledTaskHandle runAtEntity(Entity entity, Runnable task);
+    default ScheduledTaskHandle runAtEntity(Entity entity, Runnable task) {
+        return runAtEntity(entity, task, () -> {
+        });
+    }
+
+    ScheduledTaskHandle runAtEntity(Entity entity, Runnable task, Runnable retiredTask);
 
     ScheduledTaskHandle runAtLocation(Location location, Runnable task);
 

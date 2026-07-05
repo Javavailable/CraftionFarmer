@@ -64,7 +64,7 @@ public final class PaperSchedulerAdapter implements SchedulerAdapter {
     }
 
     @Override
-    public ScheduledTaskHandle runAtEntity(Entity entity, Runnable task) {
+    public ScheduledTaskHandle runAtEntity(Entity entity, Runnable task, Runnable retiredTask) {
         Objects.requireNonNull(entity, "entity");
         return runGlobal(task);
     }

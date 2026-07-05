@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.event.ClickCallback;
 import org.bukkit.Bukkit;
@@ -808,9 +809,27 @@ public final class MenuService {
                 return;
             }
 
-            ScheduledTaskHandle grantTask = this.schedulerAdapter.runAtEntity(context.player(), () -> grantWithdrawnXp(context, farmer, drainedXp));
+            AtomicBoolean settled = new AtomicBoolean(false);
+            Runnable successCallback = () -> {
+                if (!settled.compareAndSet(false, true)) {
+                    return;
+                }
+                grantWithdrawnXp(context, farmer, drainedXp);
+            };
+            Runnable retiredCallback = () -> {
+                if (!settled.compareAndSet(false, true)) {
+                    return;
+                }
+                restoreAndPersistXp(farmer, drainedXp, "xp withdraw player retired");
+            };
+
+            ScheduledTaskHandle grantTask = this.schedulerAdapter.runAtEntity(
+                context.player(),
+                successCallback,
+                retiredCallback
+            );
             if (grantTask.isCancelled()) {
-                restoreAndPersistXp(farmer, drainedXp, "xp withdraw grant schedule");
+                retiredCallback.run();
             }
         });
         return true;
