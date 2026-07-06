@@ -12,6 +12,8 @@ public final class FarmerCache {
 
     private final ConcurrentMap<String, Farmer> farmers = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, String> farmerIdsByPlayerUuid = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> farmerIdsByRegionId = new ConcurrentHashMap<>();
+    private final Object mutationLock = new Object();
 
     public CompletableFuture<Optional<Farmer>> load(String farmerId, Supplier<CompletableFuture<Optional<Farmer>>> loader) {
         String normalizedFarmerId = FarmerValidation.requireNonBlank(farmerId, "farmerId");
@@ -34,9 +36,16 @@ public final class FarmerCache {
 
     public Optional<Farmer> getByRegionId(String regionId) {
         String normalizedRegionId = FarmerValidation.requireNonBlank(regionId, "regionId");
-        return this.farmers.values().stream()
-            .filter(farmer -> normalizedRegionId.equals(farmer.regionId()))
-            .findFirst();
+        String farmerId = this.farmerIdsByRegionId.get(normalizedRegionId);
+        if (farmerId == null || farmerId.isBlank()) {
+            return Optional.empty();
+        }
+
+        Farmer farmer = this.farmers.get(farmerId);
+        if (farmer == null || !normalizedRegionId.equals(farmer.regionId())) {
+            return Optional.empty();
+        }
+        return Optional.of(farmer);
     }
 
     public Optional<Farmer> getByPlayerUuid(UUID playerUuid) {
@@ -52,23 +61,47 @@ public final class FarmerCache {
 
     public Farmer put(Farmer farmer) {
         Farmer validatedFarmer = FarmerValidation.requireNonNull(farmer, "farmer");
-        removeIndexes(validatedFarmer.farmerId());
-        this.farmers.put(validatedFarmer.farmerId(), validatedFarmer);
-        index(validatedFarmer);
-        return validatedFarmer;
+        synchronized (this.mutationLock) {
+            Farmer previousFarmer = this.farmers.get(validatedFarmer.farmerId());
+            if (previousFarmer != null) {
+                removeIndexes(previousFarmer);
+            }
+
+            this.farmers.put(validatedFarmer.farmerId(), validatedFarmer);
+            index(validatedFarmer);
+            return validatedFarmer;
+        }
     }
 
     public Optional<Farmer> remove(String farmerId) {
         String normalizedFarmerId = FarmerValidation.requireNonBlank(farmerId, "farmerId");
-        Optional<Farmer> removed = Optional.ofNullable(this.farmers.remove(normalizedFarmerId));
-        removeIndexes(normalizedFarmerId);
-        return removed;
+        synchronized (this.mutationLock) {
+            Farmer removedFarmer = this.farmers.remove(normalizedFarmerId);
+            if (removedFarmer != null) {
+                removeIndexes(removedFarmer);
+            }
+            return Optional.ofNullable(removedFarmer);
+        }
     }
 
     public Optional<Farmer> removeByRegionId(String regionId) {
-        Optional<Farmer> farmer = getByRegionId(regionId);
-        farmer.ifPresent(value -> remove(value.farmerId()));
-        return farmer;
+        String normalizedRegionId = FarmerValidation.requireNonBlank(regionId, "regionId");
+        synchronized (this.mutationLock) {
+            String farmerId = this.farmerIdsByRegionId.get(normalizedRegionId);
+            if (farmerId == null || farmerId.isBlank()) {
+                return Optional.empty();
+            }
+
+            Farmer farmer = this.farmers.get(farmerId);
+            if (farmer == null || !normalizedRegionId.equals(farmer.regionId())) {
+                this.farmerIdsByRegionId.remove(normalizedRegionId, farmerId);
+                return Optional.empty();
+            }
+
+            this.farmers.remove(farmerId);
+            removeIndexes(farmer);
+            return Optional.of(farmer);
+        }
     }
 
     public boolean contains(String farmerId) {
@@ -80,16 +113,23 @@ public final class FarmerCache {
     }
 
     public void clear() {
-        this.farmers.clear();
-        this.farmerIdsByPlayerUuid.clear();
+        synchronized (this.mutationLock) {
+            this.farmers.clear();
+            this.farmerIdsByPlayerUuid.clear();
+            this.farmerIdsByRegionId.clear();
+        }
     }
 
     private void index(Farmer farmer) {
+        this.farmerIdsByRegionId.put(farmer.regionId(), farmer.farmerId());
         this.farmerIdsByPlayerUuid.put(farmer.ownerUuid(), farmer.farmerId());
         farmer.members().keySet().forEach(playerUuid -> this.farmerIdsByPlayerUuid.put(playerUuid, farmer.farmerId()));
     }
 
-    private void removeIndexes(String farmerId) {
-        this.farmerIdsByPlayerUuid.entrySet().removeIf(entry -> farmerId.equals(entry.getValue()));
+    private void removeIndexes(Farmer farmer) {
+        String farmerId = farmer.farmerId();
+        this.farmerIdsByRegionId.remove(farmer.regionId(), farmerId);
+        this.farmerIdsByPlayerUuid.remove(farmer.ownerUuid(), farmerId);
+        farmer.members().keySet().forEach(playerUuid -> this.farmerIdsByPlayerUuid.remove(playerUuid, farmerId));
     }
 }
