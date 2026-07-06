@@ -1,7 +1,9 @@
 package com.craftion.farmer.farmer;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +14,7 @@ public final class FarmerCache {
 
     private final ConcurrentMap<String, Farmer> farmers = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, String> farmerIdsByPlayerUuid = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Set<UUID>> indexedPlayerUuidsByFarmerId = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> farmerIdsByRegionId = new ConcurrentHashMap<>();
     private final Object mutationLock = new Object();
 
@@ -61,14 +64,20 @@ public final class FarmerCache {
 
     public Farmer put(Farmer farmer) {
         Farmer validatedFarmer = FarmerValidation.requireNonNull(farmer, "farmer");
+        String farmerId = validatedFarmer.farmerId();
         synchronized (this.mutationLock) {
-            Farmer previousFarmer = this.farmers.get(validatedFarmer.farmerId());
+            Farmer previousFarmer = this.farmers.get(farmerId);
             if (previousFarmer != null) {
-                removeIndexes(previousFarmer);
+                this.farmerIdsByRegionId.remove(previousFarmer.regionId(), farmerId);
             }
+            removePlayerIndexes(farmerId);
 
-            this.farmers.put(validatedFarmer.farmerId(), validatedFarmer);
-            index(validatedFarmer);
+            this.farmers.put(farmerId, validatedFarmer);
+            this.farmerIdsByRegionId.put(validatedFarmer.regionId(), farmerId);
+
+            Set<UUID> indexedPlayerUuids = indexedPlayerUuids(validatedFarmer);
+            indexedPlayerUuids.forEach(playerUuid -> this.farmerIdsByPlayerUuid.put(playerUuid, farmerId));
+            this.indexedPlayerUuidsByFarmerId.put(farmerId, indexedPlayerUuids);
             return validatedFarmer;
         }
     }
@@ -78,8 +87,9 @@ public final class FarmerCache {
         synchronized (this.mutationLock) {
             Farmer removedFarmer = this.farmers.remove(normalizedFarmerId);
             if (removedFarmer != null) {
-                removeIndexes(removedFarmer);
+                this.farmerIdsByRegionId.remove(removedFarmer.regionId(), normalizedFarmerId);
             }
+            removePlayerIndexes(normalizedFarmerId);
             return Optional.ofNullable(removedFarmer);
         }
     }
@@ -93,13 +103,19 @@ public final class FarmerCache {
             }
 
             Farmer farmer = this.farmers.get(farmerId);
-            if (farmer == null || !normalizedRegionId.equals(farmer.regionId())) {
+            if (farmer == null) {
+                this.farmerIdsByRegionId.remove(normalizedRegionId, farmerId);
+                removePlayerIndexes(farmerId);
+                return Optional.empty();
+            }
+            if (!normalizedRegionId.equals(farmer.regionId())) {
                 this.farmerIdsByRegionId.remove(normalizedRegionId, farmerId);
                 return Optional.empty();
             }
 
             this.farmers.remove(farmerId);
-            removeIndexes(farmer);
+            this.farmerIdsByRegionId.remove(normalizedRegionId, farmerId);
+            removePlayerIndexes(farmerId);
             return Optional.of(farmer);
         }
     }
@@ -116,20 +132,22 @@ public final class FarmerCache {
         synchronized (this.mutationLock) {
             this.farmers.clear();
             this.farmerIdsByPlayerUuid.clear();
+            this.indexedPlayerUuidsByFarmerId.clear();
             this.farmerIdsByRegionId.clear();
         }
     }
 
-    private void index(Farmer farmer) {
-        this.farmerIdsByRegionId.put(farmer.regionId(), farmer.farmerId());
-        this.farmerIdsByPlayerUuid.put(farmer.ownerUuid(), farmer.farmerId());
-        farmer.members().keySet().forEach(playerUuid -> this.farmerIdsByPlayerUuid.put(playerUuid, farmer.farmerId()));
+    private Set<UUID> indexedPlayerUuids(Farmer farmer) {
+        Set<UUID> playerUuids = new HashSet<>(farmer.members().keySet());
+        playerUuids.add(farmer.ownerUuid());
+        return Set.copyOf(playerUuids);
     }
 
-    private void removeIndexes(Farmer farmer) {
-        String farmerId = farmer.farmerId();
-        this.farmerIdsByRegionId.remove(farmer.regionId(), farmerId);
-        this.farmerIdsByPlayerUuid.remove(farmer.ownerUuid(), farmerId);
-        farmer.members().keySet().forEach(playerUuid -> this.farmerIdsByPlayerUuid.remove(playerUuid, farmerId));
+    private void removePlayerIndexes(String farmerId) {
+        Set<UUID> indexedPlayerUuids = this.indexedPlayerUuidsByFarmerId.remove(farmerId);
+        if (indexedPlayerUuids == null) {
+            return;
+        }
+        indexedPlayerUuids.forEach(playerUuid -> this.farmerIdsByPlayerUuid.remove(playerUuid, farmerId));
     }
 }

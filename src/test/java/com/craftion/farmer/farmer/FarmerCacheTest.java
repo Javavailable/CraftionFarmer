@@ -156,6 +156,64 @@ class FarmerCacheTest {
     }
 
     @Test
+    void rePuttingSameMutableFarmerRemovesFormerMemberMapping() {
+        FarmerCache cache = new FarmerCache();
+        UUID removedMember = uuid(20);
+        Farmer farmer = farmer("farmer-fifteen", "mutable-remove-region", uuid(21), removedMember);
+        cache.put(farmer);
+
+        farmer.removeMember(removedMember);
+        cache.put(farmer);
+
+        assertTrue(cache.getByPlayerUuid(removedMember).isEmpty());
+        assertSame(farmer, cache.get("farmer-fifteen").orElseThrow());
+    }
+
+    @Test
+    void rePuttingSameMutableFarmerIndexesNewMember() {
+        FarmerCache cache = new FarmerCache();
+        UUID addedMember = uuid(22);
+        Farmer farmer = farmer("farmer-sixteen", "mutable-add-region", uuid(23));
+        cache.put(farmer);
+
+        farmer.putMember(new FarmerMember(farmer.farmerId(), addedMember, FarmerRole.MEMBER, Instant.EPOCH));
+        cache.put(farmer);
+
+        assertSame(farmer, cache.getByPlayerUuid(addedMember).orElseThrow());
+    }
+
+    @Test
+    void rePuttingAndRemovingOlderFarmerPreservesNewerSharedPlayerMapping() {
+        FarmerCache cache = new FarmerCache();
+        UUID sharedPlayer = uuid(24);
+        Farmer older = farmer("farmer-seventeen", "older-reput-region", uuid(25), sharedPlayer);
+        Farmer newer = farmer("farmer-eighteen", "newer-shared-region", uuid(26), sharedPlayer);
+        cache.put(older);
+        cache.put(newer);
+
+        older.removeMember(sharedPlayer);
+        cache.put(older);
+        cache.remove(older.farmerId());
+
+        assertSame(newer, cache.getByPlayerUuid(sharedPlayer).orElseThrow());
+    }
+
+    @Test
+    void clearDropsReverseSnapshotBeforeMutableFarmerIsRePut() {
+        FarmerCache cache = new FarmerCache();
+        UUID formerMember = uuid(27);
+        Farmer farmer = farmer("farmer-nineteen", "clear-snapshot-region", uuid(28), formerMember);
+        cache.put(farmer);
+
+        cache.clear();
+        farmer.removeMember(formerMember);
+        cache.put(farmer);
+
+        assertTrue(cache.getByPlayerUuid(formerMember).isEmpty());
+        assertSame(farmer, cache.getByPlayerUuid(farmer.ownerUuid()).orElseThrow());
+    }
+
+    @Test
     void removingOlderFarmerDoesNotDeleteNewerPlayerMapping() {
         FarmerCache cache = new FarmerCache();
         UUID sharedPlayer = uuid(18);
