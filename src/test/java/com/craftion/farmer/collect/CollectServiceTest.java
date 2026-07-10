@@ -4,6 +4,7 @@ import static com.craftion.farmer.test.MockItemStacks.item;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -226,6 +227,25 @@ class CollectServiceTest {
         assertEquals(3L, result.storageAmount());
         assertEquals(3L, this.farmer.storageAmount(WHEAT));
         assertTrue(service.isDirtyFarmer("farmer-one"));
+    }
+
+    @Test
+    void commitTrackerRecordsAcceptedResultBeforeUnexpectedPostCommitError() {
+        CollectService service = service(
+            () -> this.scheduleCalls.incrementAndGet(),
+            (farmer, materialKey, amount) -> {
+                throw new AssertionError("unexpected post-commit error");
+            },
+            (farmer, materialKey, requested, storage, capacity) -> this.dispatchCalls.incrementAndGet()
+        );
+        CollectCommitTracker tracker = new CollectCommitTracker();
+
+        assertThrows(AssertionError.class, () -> service.collect(context(9), tracker));
+
+        CollectResult committed = tracker.committedResult().orElseThrow();
+        assertEquals(9L, committed.collectedAmount());
+        assertEquals(0L, committed.remainingAmount());
+        assertEquals(9L, this.farmer.storageAmount(WHEAT));
     }
 
     private CollectService service(
