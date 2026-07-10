@@ -3,6 +3,7 @@ package com.craftion.farmer.collect.listener;
 import com.craftion.farmer.collect.CollectContext;
 import com.craftion.farmer.collect.CollectResult;
 import com.craftion.farmer.collect.CollectService;
+import org.bukkit.entity.Item;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -19,16 +20,15 @@ public final class CollectItemSpawnListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onItemSpawn(ItemSpawnEvent event) {
-        CollectResult result = this.collectService.collect(CollectContext.itemSpawn(event.getEntity()));
-        if (result.fullyCollected()) {
+        Item item = event.getEntity();
+        ItemStack originalItemStack = item.getItemStack().clone();
+        CollectResult result = this.collectService.collect(CollectContext.itemSpawn(item));
+        CollectItemSpawnOutcome outcome = CollectItemSpawnOutcome.plan(result, originalItemStack);
+
+        if (outcome.cancelEvent()) {
             event.setCancelled(true);
             return;
         }
-
-        if (result.partiallyCollected()) {
-            ItemStack itemStack = event.getEntity().getItemStack().clone();
-            itemStack.setAmount((int) result.remainingAmount());
-            event.getEntity().setItemStack(itemStack);
-        }
+        outcome.replacementItemStack().ifPresent(item::setItemStack);
     }
 }

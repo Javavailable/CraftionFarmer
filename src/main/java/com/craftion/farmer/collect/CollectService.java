@@ -8,23 +8,17 @@ import com.craftion.farmer.farmer.Farmer;
 import com.craftion.farmer.farmer.FarmerCache;
 import com.craftion.farmer.farmer.FarmerPersistenceService;
 import com.craftion.farmer.farmer.MaterialKey;
-import com.craftion.farmer.farmer.StorageAddResult;
-import com.craftion.farmer.hook.region.RegionProvider;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.scheduler.ScheduledTaskHandle;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.entity.Item;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CollectService {
@@ -33,10 +27,13 @@ public final class CollectService {
     private final ConfigManager configManager;
     private final SchedulerAdapter schedulerAdapter;
     private final DebugLogger debugLogger;
-    private final RegionProviderManager regionProviderManager;
     private final FarmerCache farmerCache;
     private final FarmerPersistenceService farmerPersistenceService;
-    private final ModuleManager moduleManager;
+    private final FarmerDepositService depositService;
+    private final Runnable flushScheduler;
+    private final CollectRecorder collectRecorder;
+    private final StorageFullDispatcher storageFullDispatcher;
+    private final FailureLogger failureLogger;
     private final Set<String> dirtyFarmerIds = ConcurrentHashMap.newKeySet();
     private Listener listener;
     private ScheduledTaskHandle flushTask = ScheduledTaskHandle.cancelled();
@@ -51,14 +48,37 @@ public final class CollectService {
         FarmerPersistenceService farmerPersistenceService,
         ModuleManager moduleManager
     ) {
-        this.plugin = plugin;
-        this.configManager = configManager;
-        this.schedulerAdapter = schedulerAdapter;
-        this.debugLogger = debugLogger;
-        this.regionProviderManager = regionProviderManager;
-        this.farmerCache = farmerCache;
-        this.farmerPersistenceService = farmerPersistenceService;
-        this.moduleManager = moduleManager;
+        this.plugin = Objects.requireNonNull(plugin, "plugin");
+        this.configManager = Objects.requireNonNull(configManager, "configManager");
+        this.schedulerAdapter = Objects.requireNonNull(schedulerAdapter, "schedulerAdapter");
+        this.debugLogger = Objects.requireNonNull(debugLogger, "debugLogger");
+        this.farmerCache = Objects.requireNonNull(farmerCache, "farmerCache");
+        this.farmerPersistenceService = Objects.requireNonNull(farmerPersistenceService, "farmerPersistenceService");
+        this.depositService = new FarmerDepositService(configManager, regionProviderManager, farmerCache);
+        this.flushScheduler = this::scheduleFlush;
+        this.collectRecorder = Objects.requireNonNull(moduleManager, "moduleManager")::recordCollect;
+        this.storageFullDispatcher = this::callStorageFull;
+        this.failureLogger = message -> this.plugin.getLogger().warning(message);
+    }
+
+    CollectService(
+        FarmerDepositService depositService,
+        Runnable flushScheduler,
+        CollectRecorder collectRecorder,
+        StorageFullDispatcher storageFullDispatcher,
+        FailureLogger failureLogger
+    ) {
+        this.plugin = null;
+        this.configManager = null;
+        this.schedulerAdapter = null;
+        this.debugLogger = null;
+        this.farmerCache = null;
+        this.farmerPersistenceService = null;
+        this.depositService = Objects.requireNonNull(depositService, "depositService");
+        this.flushScheduler = Objects.requireNonNull(flushScheduler, "flushScheduler");
+        this.collectRecorder = Objects.requireNonNull(collectRecorder, "collectRecorder");
+        this.storageFullDispatcher = Objects.requireNonNull(storageFullDispatcher, "storageFullDispatcher");
+        this.failureLogger = Objects.requireNonNull(failureLogger, "failureLogger");
     }
 
     public void initialize() {
@@ -83,96 +103,33 @@ public final class CollectService {
     }
 
     public CollectResult collect(CollectContext context) {
-        if (context == null || context.item() == null || context.itemStack() == null) {
-            return CollectResult.skipped(CollectResult.Status.INVALID_ITEM, context);
-        }
-        if (!this.configManager.isCollectEnabled()) {
-            return CollectResult.skipped(CollectResult.Status.DISABLED, context);
-        }
+        FarmerDepositOutcome outcome = this.depositService.deposit(context);
+        CollectResult result = outcome.result();
+        Farmer farmer = outcome.farmer();
 
-        Item item = context.item();
-        ItemStack itemStack = context.itemStack();
-        if (itemStack.getAmount() <= 0 || itemStack.getType().isAir()) {
-            return CollectResult.skipped(CollectResult.Status.EMPTY_ITEM, context);
-        }
-        if (this.configManager.ignorePlayerDrops() && item.getThrower() != null) {
-            return CollectResult.skipped(CollectResult.Status.PLAYER_DROP, context);
-        }
-        if (this.configManager.ignoreItemsWithMeta() && itemStack.hasItemMeta()) {
-            return CollectResult.skipped(CollectResult.Status.ITEM_HAS_META, context);
-        }
-
-        Material material = itemStack.getType();
-        if (!this.configManager.allowedCollectMaterials().contains(material)) {
-            return CollectResult.skipped(CollectResult.Status.MATERIAL_NOT_ALLOWED, context);
-        }
-
-        RegionProvider provider = this.regionProviderManager.provider();
-        if (provider == null || !provider.isAvailable()) {
-            return CollectResult.skipped(CollectResult.Status.NO_REGION, context);
-        }
-
-        World world = context.location().getWorld();
-        if (world == null || !provider.isSkyblockWorld(world)) {
-            return CollectResult.skipped(CollectResult.Status.NOT_SKYBLOCK_WORLD, context);
-        }
-
-        Optional<String> regionId = provider.regionIdAt(context.location());
-        if (regionId.isEmpty()) {
-            return CollectResult.skipped(CollectResult.Status.NO_REGION, context);
-        }
-
-        Optional<Farmer> farmer = this.farmerCache.getByRegionId(regionId.get());
-        if (farmer.isEmpty()) {
-            return CollectResult.skipped(CollectResult.Status.NO_FARMER, context, regionId.get());
-        }
-
-        Farmer value = farmer.get();
-        if (!value.collectingEnabled()) {
-            return CollectResult.skipped(CollectResult.Status.FARMER_DISABLED, context, regionId.get());
-        }
-
-        MaterialKey materialKey = MaterialKey.of(material.name());
-        if (!value.productCollectingEnabled(materialKey)) {
-            return CollectResult.skipped(CollectResult.Status.PRODUCT_DISABLED, context, regionId.get());
-        }
-
-        long requestedAmount = itemStack.getAmount();
-        long capacity = capacityFor(value, materialKey);
-        StorageAddResult addResult = value.addStorageAmount(materialKey, requestedAmount, capacity);
-        if (!addResult.changedStorage()) {
-            callStorageFull(value, materialKey, requestedAmount, addResult.storageAmount(), capacity);
-            return CollectResult.collected(
-                CollectResult.Status.STORAGE_FULL,
-                context,
-                value.farmerId(),
-                value.regionId(),
-                materialKey,
-                0L,
-                addResult.remainingAmount(),
-                addResult.storageAmount(),
-                capacity
+        if (result.collectedAmount() > 0L && farmer != null) {
+            this.dirtyFarmerIds.add(farmer.farmerId());
+            runPostCommitEffect("dirty save scheduling", this.flushScheduler);
+            runPostCommitEffect(
+                "Production Calc notification",
+                () -> this.collectRecorder.record(farmer, result.materialKey(), result.collectedAmount())
             );
         }
 
-        markDirty(value.farmerId());
-        this.moduleManager.recordCollect(value, materialKey, addResult.collectedAmount());
-
-        if (addResult.remainingAmount() > 0L) {
-            callStorageFull(value, materialKey, requestedAmount, addResult.storageAmount(), capacity);
+        if ((result.status() == CollectResult.Status.PARTIAL || result.status() == CollectResult.Status.STORAGE_FULL)
+            && farmer != null && result.materialKey() != null) {
+            runPostCommitEffect(
+                "storage-full event dispatch",
+                () -> this.storageFullDispatcher.dispatch(
+                    farmer,
+                    result.materialKey(),
+                    result.requestedAmount(),
+                    result.storageAmount(),
+                    result.capacity()
+                )
+            );
         }
-
-        return CollectResult.collected(
-            addResult.remainingAmount() > 0L ? CollectResult.Status.PARTIAL : CollectResult.Status.COLLECTED,
-            context,
-            value.farmerId(),
-            value.regionId(),
-            materialKey,
-            addResult.collectedAmount(),
-            addResult.remainingAmount(),
-            addResult.storageAmount(),
-            capacity
-        );
+        return result;
     }
 
     public void flushNow() {
@@ -192,12 +149,8 @@ public final class CollectService {
         });
     }
 
-    private void markDirty(String farmerId) {
-        if (farmerId == null || farmerId.isBlank()) {
-            return;
-        }
-        this.dirtyFarmerIds.add(farmerId);
-        scheduleFlush();
+    boolean isDirtyFarmer(String farmerId) {
+        return farmerId != null && this.dirtyFarmerIds.contains(farmerId);
     }
 
     private void scheduleFlush() {
@@ -235,18 +188,32 @@ public final class CollectService {
         }
     }
 
-    private long capacityFor(Farmer farmer, MaterialKey materialKey) {
-        return this.configManager.maxStoragePerItem();
-    }
-
     private void callStorageFull(Farmer farmer, MaterialKey materialKey, long requestedAmount, long storageAmount, long capacity) {
-        this.plugin.getServer().getPluginManager().callEvent(new FarmerStorageFullEvent(farmer, materialKey, requestedAmount, storageAmount, capacity));
+        this.plugin.getServer().getPluginManager().callEvent(
+            new FarmerStorageFullEvent(farmer, materialKey, requestedAmount, storageAmount, capacity)
+        );
     }
 
     private void unregister() {
         if (this.listener != null) {
             HandlerList.unregisterAll(this.listener);
             this.listener = null;
+        }
+    }
+
+    private void runPostCommitEffect(String effectName, Runnable effect) {
+        try {
+            effect.run();
+        } catch (RuntimeException | LinkageError failure) {
+            logPostCommitFailure(effectName, failure);
+        }
+    }
+
+    private void logPostCommitFailure(String effectName, Throwable failure) {
+        try {
+            this.failureLogger.log("Collect " + effectName + " failed: " + readableMessage(failure));
+        } catch (RuntimeException | LinkageError ignored) {
+            // Logging is best-effort and must not replay or invalidate an accepted deposit.
         }
     }
 
@@ -257,5 +224,20 @@ public final class CollectService {
             return cause.getClass().getSimpleName();
         }
         return message;
+    }
+
+    @FunctionalInterface
+    interface CollectRecorder {
+        void record(Farmer farmer, MaterialKey materialKey, long amount);
+    }
+
+    @FunctionalInterface
+    interface StorageFullDispatcher {
+        void dispatch(Farmer farmer, MaterialKey materialKey, long requestedAmount, long storageAmount, long capacity);
+    }
+
+    @FunctionalInterface
+    interface FailureLogger {
+        void log(String message);
     }
 }
