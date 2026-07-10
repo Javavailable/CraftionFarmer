@@ -21,12 +21,14 @@ import com.craftion.farmer.hook.placeholder.PlaceholderProviderManager;
 import com.craftion.farmer.hook.region.RegionProviderManager;
 import com.craftion.farmer.hook.skyllia.FarmerReconcileService;
 import com.craftion.farmer.hook.skyllia.SkylliaSyncManager;
+import com.craftion.farmer.hook.spawner.CraftionSpawnerBridgeManager;
 import com.craftion.farmer.hook.visual.VisualProviderManager;
 import com.craftion.farmer.message.GuiTextService;
 import com.craftion.farmer.message.MessageService;
 import com.craftion.farmer.module.ModuleManager;
 import com.craftion.farmer.scheduler.SchedulerAdapter;
 import com.craftion.farmer.scheduler.SchedulerFactory;
+import com.craftion.farmer.scheduler.ScheduledTaskHandle;
 import com.craftion.farmer.storage.DatabaseManager;
 import com.craftion.farmer.storage.repository.DatabaseLogRepository;
 import com.craftion.farmer.storage.repository.LogRepository;
@@ -59,6 +61,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     private SkylliaSyncManager skylliaSyncManager;
     private MenuService menuService;
     private CollectService collectService;
+    private CraftionSpawnerBridgeManager craftionSpawnerBridgeManager;
     private StorageTransactionService storageTransactionService;
     private ModuleManager moduleManager;
     private PlaceholderProviderManager placeholderProviderManager;
@@ -147,6 +150,11 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             this.farmerPersistenceService,
             this.moduleManager
         );
+        this.craftionSpawnerBridgeManager = new CraftionSpawnerBridgeManager(
+            this,
+            this.regionProviderManager,
+            this.collectService
+        );
         this.menuService = new MenuService(
             this,
             this.configManager,
@@ -176,6 +184,7 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
         this.economyProviderManager.initialize();
         this.databaseManager.initialize();
         this.moduleManager.initialize();
+        this.craftionSpawnerBridgeManager.initialize();
         loadFarmerCacheWhenReady();
         this.skylliaSyncManager.initialize();
         this.collectService.initialize();
@@ -186,6 +195,10 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.craftionSpawnerBridgeManager != null) {
+            this.craftionSpawnerBridgeManager.shutdown().join();
+        }
+
         if (this.skylliaSyncManager != null) {
             this.skylliaSyncManager.shutdown();
         }
@@ -223,6 +236,9 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
     }
 
     public void reloadPluginFiles() {
+        if (this.craftionSpawnerBridgeManager != null) {
+            this.craftionSpawnerBridgeManager.pauseForReload();
+        }
         this.configManager.reload();
         this.messageManager.reload();
         validateConfiguration();
@@ -334,23 +350,46 @@ public final class CraftionFarmerPlugin extends JavaPlugin {
             return;
         }
 
-        this.databaseManager.readyFuture().thenCompose(ignored -> this.farmerPersistenceService.loadAll()).whenComplete((farmers, throwable) -> {
-            if (throwable != null) {
-                getLogger().warning("Farmer cache yuklenemedi: " + readableMessage(throwable));
-                return;
-            }
-            if (this.visualProviderManager != null) {
-                List<Farmer> loadedFarmers = List.copyOf(farmers);
-                this.visualProviderManager.reconcile(loadedFarmers);
-                scheduleVisualReconcileRetry(loadedFarmers, 20L);
-                scheduleVisualReconcileRetry(loadedFarmers, 60L);
-                scheduleVisualReconcileRetry(loadedFarmers, 120L);
-            }
-            if (this.moduleManager != null) {
-                this.moduleManager.ensureDefaultStates(farmers);
-            }
-            this.debugLogger.debug("Farmer cache ready: " + farmers.size());
-        });
+        CraftionSpawnerBridgeManager.CacheLoadGate bridgeGate = this.craftionSpawnerBridgeManager == null
+            ? new CraftionSpawnerBridgeManager.CacheLoadGate(0L, java.util.concurrent.CompletableFuture.completedFuture(null))
+            : this.craftionSpawnerBridgeManager.beginCacheLoad();
+
+        this.databaseManager.readyFuture()
+            .thenCompose(ignored -> bridgeGate.drained())
+            .thenCompose(ignored -> this.farmerPersistenceService.loadAll())
+            .whenComplete((farmers, throwable) -> {
+                if (throwable != null) {
+                    if (this.craftionSpawnerBridgeManager != null) {
+                        this.craftionSpawnerBridgeManager.cacheLoadFailed(bridgeGate.generation());
+                    }
+                    getLogger().warning("Farmer cache yuklenemedi: " + readableMessage(throwable));
+                    return;
+                }
+                markCraftionSpawnerCacheReady(bridgeGate.generation());
+                if (this.visualProviderManager != null) {
+                    List<Farmer> loadedFarmers = List.copyOf(farmers);
+                    this.visualProviderManager.reconcile(loadedFarmers);
+                    scheduleVisualReconcileRetry(loadedFarmers, 20L);
+                    scheduleVisualReconcileRetry(loadedFarmers, 60L);
+                    scheduleVisualReconcileRetry(loadedFarmers, 120L);
+                }
+                if (this.moduleManager != null) {
+                    this.moduleManager.ensureDefaultStates(farmers);
+                }
+                this.debugLogger.debug("Farmer cache ready: " + farmers.size());
+            });
+    }
+
+    private void markCraftionSpawnerCacheReady(long generation) {
+        if (this.craftionSpawnerBridgeManager == null || this.schedulerAdapter == null || !isEnabled()) {
+            return;
+        }
+        ScheduledTaskHandle task = this.schedulerAdapter.runGlobal(
+            () -> this.craftionSpawnerBridgeManager.cacheLoaded(generation)
+        );
+        if (task.isCancelled()) {
+            this.craftionSpawnerBridgeManager.cacheLoadFailed(generation);
+        }
     }
 
     private void scheduleVisualReconcileRetry(List<Farmer> farmers, long delayTicks) {

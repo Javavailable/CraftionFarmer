@@ -103,8 +103,15 @@ public final class CollectService {
     }
 
     public CollectResult collect(CollectContext context) {
+        return collect(context, null);
+    }
+
+    public CollectResult collect(CollectContext context, CollectCommitTracker commitTracker) {
         FarmerDepositOutcome outcome = this.depositService.deposit(context);
         CollectResult result = outcome.result();
+        if (commitTracker != null) {
+            commitTracker.record(result);
+        }
         Farmer farmer = outcome.farmer();
 
         if (result.collectedAmount() > 0L && farmer != null) {

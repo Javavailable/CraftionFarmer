@@ -8,6 +8,8 @@ authors:
 description: CraftionFarmer
 softdepend:
   - Skyllia
+  - CraftionSpawner
+  - SmartSpawner
   - FancyNpcs
   - Vault
   - PlaceholderAPI
